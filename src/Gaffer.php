@@ -6,12 +6,17 @@ namespace Gaffer;
 
 use Gaffer\Bootstrap\TwigBootstrapper;
 use Gaffer\Bootstrap\IncludesBootstrapper;
+use Gaffer\Facades\Config;
 
 class Gaffer
 {
-    public static function boot(string $includes, array $paths, array $subdirs = []): void
+    public static function boot(array $paths): void
     {
         new TwigBootstrapper($paths)->boot();
-        new IncludesBootstrapper($includes, $subdirs)->boot();
+
+        $includes = Config::get('path.includes');
+        if ($includes !== null) {
+            new IncludesBootstrapper($includes)->boot();
+        }
     }
 }

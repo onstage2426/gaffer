@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
+use Gaffer\Bootstrap\IncludesBootstrapper;
+use Gaffer\Facades\Config;
+
 class Ajax
 {
     public static function handle(string $dir, string $namespace): void
@@ -50,6 +53,13 @@ class Ajax
         }
 
         require_once $_SERVER['DOCUMENT_ROOT'] . '/wp-load.php';
+
+        if (!defined('SHORTINIT')) {
+            $includes = Config::get('path.includes');
+            if ($includes !== null) {
+                new IncludesBootstrapper($includes)->boot();
+            }
+        }
 
         $input = $method === 'POST' ? $_POST : $_GET;
 

@@ -8,11 +8,11 @@ use WP_Post;
 use WP_Term;
 
 use Twig\Attribute\AsTwigFunction;
-use Gaffer\Support\Facades\Config;
-use Gaffer\Support\Facades\Theme;
-use Gaffer\Support\Types\Image;
-use Gaffer\Support\Types\Product;
-use Gaffer\Support\Types\Term;
+use Gaffer\Facades\Config;
+use Gaffer\Facades\Theme;
+use Gaffer\Types\Image;
+use Gaffer\Types\Product;
+use Gaffer\Types\Term;
 
 class ThemeExtension
 {

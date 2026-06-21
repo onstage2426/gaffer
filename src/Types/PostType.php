@@ -2,14 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support\Types;
+namespace Gaffer\Types;
 
 use WP_Post_Type;
-use Gaffer\Support\Traits\ClassImporter;
-
-class PostType
+class PostType extends Model
 {
-    use ClassImporter;
 
     protected string $permalink;
     public string $name;
@@ -22,6 +19,21 @@ class PostType
         $post_type = new static();
         $post_type->import($wp_post_type);
         return $post_type;
+    }
+
+    public static function from_name(string $name): ?static
+    {
+        $wp = \get_post_type_object($name);
+        return $wp instanceof WP_Post_Type ? static::build($wp) : null;
+    }
+
+    public static function from(mixed $data): ?static
+    {
+        return match(true) {
+            is_string($data)              => static::from_name($data),
+            $data instanceof WP_Post_Type => static::build($data),
+            default                       => null,
+        };
     }
 
     public function title(): string

@@ -2,18 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support\Types;
+namespace Gaffer\Types;
 
 use WP_Term;
-use Gaffer\Support\Facades\Theme;
-use Gaffer\Support\Types\Attachment;
-use Gaffer\Support\Types\Image;
-use Gaffer\Factory\TermFactory;
-use Gaffer\Support\Traits\ClassImporter;
+use Gaffer\Facades\Theme;
+use Gaffer\Types\Attachment;
+use Gaffer\Types\Image;
 
-class Term
+class Term extends Model
 {
-    use ClassImporter;
 
     protected string $permalink;
     public int $term_id;
@@ -32,6 +29,21 @@ class Term
         $term = new static();
         $term->import($wp_term);
         return $term;
+    }
+
+    public static function from_id(int $id): ?static
+    {
+        $term = \get_term($id);
+        return $term instanceof WP_Term ? static::build($term) : null;
+    }
+
+    public static function from(mixed $data): ?static
+    {
+        return match(true) {
+            is_int($data)             => static::from_id($data),
+            $data instanceof WP_Term  => static::build($data),
+            default                   => null,
+        };
     }
 
     public function id(): int
@@ -92,13 +104,13 @@ class Term
             return null;
         }
 
-        return new TermFactory()->from_id($parent_id);
+        return static::from_id($parent_id);
     }
 
     public function children(): array
     {
         $children = \get_term_children($this->id(), $this->taxonomy());
-        return is_array($children) ? array_map(Theme::get_term(...), $children) : [];
+        return is_array($children) ? array_map([Theme::class, "get_term"], $children) : [];
     }
 
     public function meta(string $key = ""): mixed

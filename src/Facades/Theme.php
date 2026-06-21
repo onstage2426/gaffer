@@ -2,38 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support\Facades;
+namespace Gaffer\Facades;
 
 use WP_Post;
 use WP_Post_Type;
 use WP_Taxonomy;
 use WP_Term;
 
-use Gaffer\Support\Types\Attachment;
-use Gaffer\Support\Types\Image;
-use Gaffer\Support\Types\Post;
-use Gaffer\Support\Types\Product;
-use Gaffer\Support\Types\PostType;
-use Gaffer\Support\Types\Term;
-use Gaffer\Support\Types\Taxonomy;
-use Gaffer\Support\Types\Pagination;
-use Gaffer\Support\Facades\Config;
-use Gaffer\Support\Facades\Twig;
+use Gaffer\Types\Attachment;
+use Gaffer\Types\Image;
+use Gaffer\Types\Post;
+use Gaffer\Types\Product;
+use Gaffer\Types\PostType;
+use Gaffer\Types\Term;
+use Gaffer\Types\Taxonomy;
+use Gaffer\Types\Pagination;
 use Gaffer\Factory\PostFactory;
-use Gaffer\Factory\PostTypeFactory;
-use Gaffer\Factory\TaxonomyFactory;
-use Gaffer\Factory\TermFactory;
-use Gaffer\Factory\AttachmentFactory;
-use Gaffer\Factory\PaginationFactory;
 
 class Theme
 {
-    private static ?PostFactory       $post_factory       = null;
-    private static ?TermFactory       $term_factory       = null;
-    private static ?AttachmentFactory $attachment_factory = null;
-    private static ?PaginationFactory $pagination_factory = null;
-    private static ?PostTypeFactory   $post_type_factory  = null;
-    private static ?TaxonomyFactory   $taxonomy_factory   = null;
+    private static ?PostFactory $post_factory = null;
 
     public static function render(string $name, array $data = []): void
     {
@@ -74,27 +62,23 @@ class Theme
 
     public static function get_post_type(string|WP_Post_Type|null $post_type = null): ?PostType
     {
-        $factory = self::$post_type_factory ??= new PostTypeFactory();
-
         if (isset($post_type)) {
-            return $factory->from($post_type);
+            return PostType::from($post_type);
         }
 
         $post_type = get_post_type();
-        return $post_type ? $factory->from_name($post_type) : null;
+        return $post_type ? PostType::from_name($post_type) : null;
     }
 
     public static function get_taxonomy(string|WP_Taxonomy|null $taxonomy = null): ?Taxonomy
     {
-        $factory = self::$taxonomy_factory ??= new TaxonomyFactory();
-
         if (isset($taxonomy)) {
-            return $factory->from($taxonomy);
+            return Taxonomy::from($taxonomy);
         }
 
         global $wp_query;
         if ($wp_query->queried_object instanceof WP_Term) {
-            return $factory->from_name($wp_query->queried_object->taxonomy);
+            return Taxonomy::from_name($wp_query->queried_object->taxonomy);
         }
 
         return null;
@@ -102,15 +86,13 @@ class Theme
 
     public static function get_term(int|WP_Term|null $term = null): ?Term
     {
-        $factory = self::$term_factory ??= new TermFactory();
-
         if (isset($term)) {
-            return $factory->from($term);
+            return Term::from($term);
         }
 
         global $wp_query;
         if ($wp_query->queried_object instanceof WP_Term) {
-            return $factory->from_term($wp_query->queried_object);
+            return Term::from($wp_query->queried_object);
         }
 
         return null;
@@ -118,13 +100,12 @@ class Theme
 
     public static function get_terms(string|array $args): array
     {
-        $factory = self::$term_factory ??= new TermFactory();
-        return array_map($factory->from_term(...), get_terms($args));
+        return array_map(Term::from(...), get_terms($args));
     }
 
     public static function get_attachment(int $id): null|Attachment|Image
     {
-        return (self::$attachment_factory ??= new AttachmentFactory())->from_id($id);
+        return Attachment::from_id($id);
     }
 
     public static function get_image(int|string|null $id = null): ?Image
@@ -150,6 +131,6 @@ class Theme
     public static function get_pagination(): ?Pagination
     {
         global $wp_query;
-        return (self::$pagination_factory ??= new PaginationFactory())->from_query($wp_query);
+        return Pagination::build($wp_query);
     }
 }

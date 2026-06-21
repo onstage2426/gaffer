@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Gaffer\Factory;
 
 use WP_Post;
-use Gaffer\Support\Types\Post;
-use Gaffer\Support\Types\Product;
+use Gaffer\Types\Post;
+use Gaffer\Types\Product;
 
 class PostFactory
 {

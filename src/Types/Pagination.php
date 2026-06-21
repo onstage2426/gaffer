@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support\Types;
+namespace Gaffer\Types;
 
 use WP_Query;
 

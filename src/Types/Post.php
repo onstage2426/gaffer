@@ -2,21 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support\Types;
+namespace Gaffer\Types;
 
 use WP_Post;
 
-use Gaffer\Support\Facades\Theme;
-use Gaffer\Support\Types\Attachment;
-use Gaffer\Support\Types\Image;
-use Gaffer\Support\Types\PostType;
+use Gaffer\Facades\Theme;
+use Gaffer\Types\Attachment;
+use Gaffer\Types\Image;
+use Gaffer\Types\PostType;
 use Gaffer\Factory\PostFactory;
-use Gaffer\Factory\PostTypeFactory;
-use Gaffer\Support\Traits\ClassImporter;
-
-class Post
+class Post extends Model
 {
-    use ClassImporter;
 
     protected string $permalink;
     public int $ID;
@@ -100,7 +96,7 @@ class Post
     public function terms(string|array $taxonomy): array
     {
         return array_map(
-            Theme::get_term(...),
+            [Theme::class, "get_term"],
             \wp_get_object_terms($this->id(), $taxonomy),
         );
     }
@@ -117,7 +113,7 @@ class Post
 
     public function post_type_object(): PostType
     {
-        return new PostTypeFactory()->from($this->post_type());
+        return PostType::from_name($this->post_type());
     }
 
     public function timestamp(): int|false
@@ -135,8 +131,9 @@ class Post
         $format = $date_format ?: \get_option("date_format");
 
         $date = \wp_date($format, $this->timestamp());
+        $date = \apply_filters("get_the_date", $date, $date_format, $this->ID);
 
-        return \apply_filters("get_the_date", $date, $date_format, $this->ID);
+        return $date;
     }
 
     public function modified_date(?string $date_format = null): string|false
@@ -152,7 +149,7 @@ class Post
             return null;
         }
 
-        return new PostFactory()->from_id($this->post_parent);
+        return (new PostFactory())->from_id($this->post_parent);
     }
 
     public function children(): array

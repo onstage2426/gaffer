@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support\Facades;
+namespace Gaffer\Facades;
 
 class Config
 {

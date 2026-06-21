@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support\Facades;
+namespace Gaffer\Facades;
 
 class Vite
 {
@@ -91,8 +91,8 @@ class Vite
                 continue;
             }
 
-            $file_ext  = pathinfo((string) $asset, PATHINFO_EXTENSION);
-            $abs_path  = $is_dev ? null : self::path($asset);
+            $file_ext  = pathinfo($asset, PATHINFO_EXTENSION);
+            $abs_path  = !$is_dev ? self::path($asset) : null;
             $versioned = $abs_path ? self::versioned($file_url, $abs_path) : $file_url;
 
             if ($file_ext === "css") {

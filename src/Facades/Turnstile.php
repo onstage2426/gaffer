@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support;
+namespace Gaffer\Facades;
 
 final class Turnstile
 {

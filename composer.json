@@ -1,6 +1,6 @@
 {
     "name": "onstage2426/gaffer",
-    "description": "WordPress theme framework — Twig, WooCommerce types, Vite, and CLI scaffolding",
+    "description": "WordPress theme framework — Twig, WooCommerce types, and Vite",
     "type": "library",
     "license": "proprietary",
     "require": {
@@ -9,7 +9,6 @@
         "twig/string-extra": "^3.0"
     },
     "require-dev": {
-        "symfony/console": "^8.0",
         "symfony/var-dumper": "^8.0",
         "rector/rector": "^2.5"
     },

@@ -2,15 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Support\Types;
+namespace Gaffer\Types;
 
 use WP_Taxonomy;
-use Gaffer\Support\Facades\Theme;
-use Gaffer\Support\Traits\ClassImporter;
-
-class Taxonomy
+use Gaffer\Facades\Theme;
+class Taxonomy extends Model
 {
-    use ClassImporter;
 
     public string $name;
     public string $label;
@@ -23,6 +20,21 @@ class Taxonomy
         $taxonomy = new static();
         $taxonomy->import($wp_taxonomy);
         return $taxonomy;
+    }
+
+    public static function from_name(string $name): ?static
+    {
+        $wp = \get_taxonomy($name);
+        return $wp instanceof WP_Taxonomy ? static::build($wp) : null;
+    }
+
+    public static function from(mixed $data): ?static
+    {
+        return match(true) {
+            is_string($data)            => static::from_name($data),
+            $data instanceof WP_Taxonomy => static::build($data),
+            default                     => null,
+        };
     }
 
     public function name(): string

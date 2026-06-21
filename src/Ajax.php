@@ -54,7 +54,7 @@ class Ajax
 
         require_once $_SERVER['DOCUMENT_ROOT'] . '/wp-load.php';
 
-        if (!defined('SHORTINIT')) {
+        if (!$instance->shortinit) {
             $includes = Config::get('path.includes');
             if ($includes !== null) {
                 new IncludesBootstrapper($includes)->boot();

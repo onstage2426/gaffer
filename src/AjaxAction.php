@@ -9,6 +9,10 @@ abstract class AjaxAction
     public string $method = 'POST';
     public bool $shortinit = false;
 
-    abstract public function arguments(): array;
+    public function arguments(): array
+    {
+        return [];
+    }
+
     abstract public function run(array $data): void;
 }

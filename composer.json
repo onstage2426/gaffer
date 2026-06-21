@@ -1,0 +1,27 @@
+{
+    "name": "onstage2426/gaffer",
+    "description": "WordPress theme framework — Twig, WooCommerce types, Vite, and CLI scaffolding",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.5",
+        "twig/twig": "^3.0",
+        "twig/string-extra": "^3.0"
+    },
+    "require-dev": {
+        "symfony/console": "^8.0",
+        "symfony/var-dumper": "^8.0",
+        "rector/rector": "^2.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Gaffer\\": "src/"
+        }
+    },
+    "scripts": {
+        "rector": "rector process",
+        "rector:dry": "rector process --dry-run"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

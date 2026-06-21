@@ -6,6 +6,7 @@ namespace Gaffer\Types;
 
 final class Image extends Attachment
 {
+    #[\Override]
     public function src(string $size = "full"): string
     {
         $img = \wp_get_attachment_image_src($this->ID, $size);

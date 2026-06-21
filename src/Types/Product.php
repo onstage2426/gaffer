@@ -19,6 +19,7 @@ class Product extends Post
 
     public ?WC_Product $variation = null;
 
+    #[\Override]
     public static function build(WP_Post $wp_post, array $query_vars = []): static
     {
         $static = new static();
@@ -36,7 +37,7 @@ class Product extends Post
                         (isset($query_vars[$attr]) && $query_vars[$attr] === $val);
                 }
 
-                if (array_all($matches, fn($in) => $in)) {
+                if (array_all($matches, fn(bool $in): bool => $in)) {
                     $static->variation = \wc_get_product($row["variation_id"]);
                     break;
                 }
@@ -48,7 +49,7 @@ class Product extends Post
 
     public function add_to_cart_id(): int
     {
-        if ($this->variation !== null) {
+        if ($this->variation instanceof \WC_Product) {
             return $this->variation->get_id();
         }
         return $this->product->get_id();
@@ -56,7 +57,7 @@ class Product extends Post
 
     public function regular_price(): float
     {
-        if ($this->variation !== null) {
+        if ($this->variation instanceof \WC_Product) {
             return (float) $this->variation->get_regular_price();
         }
 
@@ -65,7 +66,7 @@ class Product extends Post
 
     public function sale_price(): float
     {
-        if ($this->variation !== null) {
+        if ($this->variation instanceof \WC_Product) {
             return (float) $this->variation->get_sale_price();
         }
 
@@ -86,7 +87,7 @@ class Product extends Post
 
     public function is_on_sale(): bool
     {
-        if ($this->variation !== null) {
+        if ($this->variation instanceof \WC_Product) {
             return $this->variation->is_on_sale();
         }
         return $this->product->is_on_sale();
@@ -97,14 +98,16 @@ class Product extends Post
         return $this->product->get_type() === ProductType::VARIABLE;
     }
 
+    #[\Override]
     public function thumbnail_id(): int
     {
-        if ($this->variation !== null) {
+        if ($this->variation instanceof \WC_Product) {
             return (int) $this->variation->get_image_id();
         }
         return (int) $this->product->get_image_id();
     }
 
+    #[\Override]
     public function thumbnail(): Image
     {
         return Theme::get_image($this->thumbnail_id());
@@ -123,13 +126,13 @@ class Product extends Post
     {
         if (!isset($this->attributeCache)) {
             $this->attributeCache = array_map(
-                fn($attribute) => [
+                fn(\WC_Product_Attribute $attribute): array => [
                     "key"       => strtolower($attribute->get_name()),
                     "title"     => ucfirst(\wc_attribute_label($attribute->get_name())),
                     "value"     => $this->product->get_attribute($attribute->get_name()),
                     "visible"   => $attribute->get_visible(),
                     "taxonomy"  => $attribute->is_taxonomy(),
-                    "terms"     => array_map([Theme::class, "get_term"], (array) $attribute->get_terms()),
+                    "terms"     => array_map(Theme::get_term(...), (array) $attribute->get_terms()),
                     "variation" => $attribute->get_variation(),
                     "options"   => $this->resolveAttributeOptions($attribute),
                     "selected"  => $this->query_vars["attribute_" . strtolower($attribute->get_name())] ?? false,

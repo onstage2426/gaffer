@@ -91,8 +91,8 @@ class Vite
                 continue;
             }
 
-            $file_ext  = pathinfo($asset, PATHINFO_EXTENSION);
-            $abs_path  = !$is_dev ? self::path($asset) : null;
+            $file_ext  = pathinfo((string) $asset, PATHINFO_EXTENSION);
+            $abs_path  = $is_dev ? null : self::path($asset);
             $versioned = $abs_path ? self::versioned($file_url, $abs_path) : $file_url;
 
             if ($file_ext === "css") {

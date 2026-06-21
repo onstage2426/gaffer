@@ -23,8 +23,9 @@ class ThemeExtension
     }
 
     #[AsTwigFunction("get_product")]
-    public static function getProduct(int|WP_Post|null $product = null): ?Product
-    {
+    public static function getProduct(
+        int|WP_Post|null $product = null,
+    ): ?Product {
         return Theme::get_product($product);
     }
 
@@ -39,17 +40,4 @@ class ThemeExtension
     {
         return Theme::get_image($id);
     }
-
-    #[AsTwigFunction("nav_tree")]
-    public static function navTree(int $menu_id): array
-    {
-        return bs_nav_tree($menu_id);
-    }
-
-    #[AsTwigFunction("fuzor_generate_token")]
-    public static function fuzorGenerateToken(array $params): string
-    {
-        return fuzor_generate_token($params);
-    }
-
 }

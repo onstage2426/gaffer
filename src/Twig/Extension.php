@@ -36,10 +36,22 @@ class Extension
     #[AsTwigFunction("background")]
     public static function background(?string $color): string
     {
-        return match ( $color ) {
+        return match ($color) {
             "primary" => "bg-white",
             "secondary" => "bg-light",
-            default => "bg-white"
+            default => "bg-white",
         };
+    }
+
+    #[AsTwigFunction("nav_tree")]
+    public static function navTree(int $menu_id): array
+    {
+        return bs_nav_tree($menu_id);
+    }
+
+    #[AsTwigFunction("fuzor_generate_token")]
+    public static function fuzorGenerateToken(array $params): string
+    {
+        return fuzor_generate_token($params);
     }
 }

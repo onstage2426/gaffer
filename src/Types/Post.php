@@ -96,7 +96,7 @@ class Post extends Model
     public function terms(string|array $taxonomy): array
     {
         return array_map(
-            [Theme::class, "get_term"],
+            Theme::get_term(...),
             \wp_get_object_terms($this->id(), $taxonomy),
         );
     }
@@ -131,9 +131,8 @@ class Post extends Model
         $format = $date_format ?: \get_option("date_format");
 
         $date = \wp_date($format, $this->timestamp());
-        $date = \apply_filters("get_the_date", $date, $date_format, $this->ID);
 
-        return $date;
+        return \apply_filters("get_the_date", $date, $date_format, $this->ID);
     }
 
     public function modified_date(?string $date_format = null): string|false
@@ -149,7 +148,7 @@ class Post extends Model
             return null;
         }
 
-        return (new PostFactory())->from_id($this->post_parent);
+        return new PostFactory()->from_id($this->post_parent);
     }
 
     public function children(): array

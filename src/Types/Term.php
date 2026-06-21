@@ -110,7 +110,7 @@ class Term extends Model
     public function children(): array
     {
         $children = \get_term_children($this->id(), $this->taxonomy());
-        return is_array($children) ? array_map([Theme::class, "get_term"], $children) : [];
+        return is_array($children) ? array_map(Theme::get_term(...), $children) : [];
     }
 
     public function meta(string $key = ""): mixed

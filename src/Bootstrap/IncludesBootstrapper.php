@@ -10,6 +10,10 @@ class IncludesBootstrapper
 
     public function boot(): void
     {
+        if (!function_exists('add_action')) {
+            return;
+        }
+
         foreach (glob("{$this->base}/*.php") ?: [] as $file) {
             include_once $file;
         }

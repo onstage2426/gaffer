@@ -9,9 +9,9 @@ use Gaffer\Bootstrap\IncludesBootstrapper;
 
 class Gaffer
 {
-    public static function boot(string $includes, array $paths): void
+    public static function boot(string $includes, array $paths, array $subdirs = []): void
     {
         new TwigBootstrapper($paths)->boot();
-        new IncludesBootstrapper($includes)->boot();
+        new IncludesBootstrapper($includes, $subdirs)->boot();
     }
 }

@@ -44,6 +44,10 @@ class TwigBootstrapper
         $twig->addExtension(new AttributeExtension(ThemeExtension::class));
         $twig->addExtension(new StringExtension());
 
+        foreach (Config::get('theme.extensions') ?? [] as $class) {
+            $twig->addExtension(new AttributeExtension($class));
+        }
+
         Twig::set($twig);
     }
 }

@@ -6,7 +6,7 @@ namespace Gaffer\Types;
 
 use WP_Term;
 use Gaffer\Facades\Theme;
-use Gaffer\Types\Attachment;
+use Gaffer\TypeResolver;
 use Gaffer\Types\Image;
 
 class Term extends Model
@@ -31,18 +31,18 @@ class Term extends Model
         return $term;
     }
 
-    public static function from_id(int $id): ?static
+    public static function from_id(int $id): ?Term
     {
         $term = \get_term($id);
-        return $term instanceof WP_Term ? static::build($term) : null;
+        return TypeResolver::term($term instanceof WP_Term ? $term : null);
     }
 
-    public static function from(mixed $data): ?static
+    public static function from(mixed $data): ?Term
     {
         return match(true) {
-            is_int($data)             => static::from_id($data),
-            $data instanceof WP_Term  => static::build($data),
-            default                   => null,
+            is_int($data)            => static::from_id($data),
+            $data instanceof WP_Term => TypeResolver::term($data),
+            default                  => null,
         };
     }
 

@@ -11,7 +11,7 @@ use Twig\Attribute\AsTwigFunction;
 use Gaffer\Facades\Config;
 use Gaffer\Facades\Theme;
 use Gaffer\Types\Image;
-use Gaffer\Types\Product;
+use Gaffer\Types\Post;
 use Gaffer\Types\Term;
 
 class ThemeExtension
@@ -22,11 +22,10 @@ class ThemeExtension
         return Config::get($key);
     }
 
-    #[AsTwigFunction("get_product")]
-    public static function getProduct(
-        int|WP_Post|null $product = null,
-    ): ?Product {
-        return Theme::get_product($product);
+    #[AsTwigFunction("get_post")]
+    public static function getPost(int|WP_Post|null $post = null): ?Post
+    {
+        return Theme::get_post($post);
     }
 
     #[AsTwigFunction("get_term")]

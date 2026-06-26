@@ -9,20 +9,17 @@ use WP_Post_Type;
 use WP_Taxonomy;
 use WP_Term;
 
+use Gaffer\TypeResolver;
 use Gaffer\Types\Attachment;
 use Gaffer\Types\Image;
 use Gaffer\Types\Post;
-use Gaffer\Types\Product;
 use Gaffer\Types\PostType;
 use Gaffer\Types\Term;
 use Gaffer\Types\Taxonomy;
 use Gaffer\Types\Pagination;
-use Gaffer\Factory\PostFactory;
 
 class Theme
 {
-    private static ?PostFactory $post_factory = null;
-
     public static function render(string $name, array $data = []): void
     {
         echo Twig::env()->render(
@@ -36,28 +33,18 @@ class Theme
 
     public static function get_post(int|WP_Post|null $post = null): ?Post
     {
-        $factory = self::$post_factory ??= new PostFactory();
+        $wp_post = isset($post) ? (is_int($post) ? \get_post($post) : $post) : \get_post();
 
-        return isset($post) ? $factory->from($post) : $factory->from(\get_post());
-    }
-
-    public static function get_product(int|WP_Post|null $product = null): ?Product
-    {
-        // Fresh factory per call — variation resolution depends on current $_GET.
-        $factory = new PostFactory($_GET);
-        $post    = isset($product) ? $factory->from($product) : $factory->from(\get_post());
-
-        return $post instanceof Product ? $post : null;
+        return TypeResolver::post($wp_post instanceof WP_Post ? $wp_post : null);
     }
 
     public static function get_posts(?array $args = null): array
     {
         global $wp_query;
 
-        $posts   = $args ? get_posts($args) : $wp_query->posts;
-        $factory = self::$post_factory ??= new PostFactory();
+        $posts = $args ? \get_posts($args) : $wp_query->posts;
 
-        return array_map($factory->from_post(...), $posts);
+        return array_map(TypeResolver::post(...), $posts);
     }
 
     public static function get_post_type(string|WP_Post_Type|null $post_type = null): ?PostType

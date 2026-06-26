@@ -7,13 +7,12 @@ namespace Gaffer\Types;
 use WP_Post;
 
 use Gaffer\Facades\Theme;
-use Gaffer\Types\Attachment;
+use Gaffer\TypeResolver;
 use Gaffer\Types\Image;
 use Gaffer\Types\PostType;
-use Gaffer\Factory\PostFactory;
+
 class Post extends Model
 {
-
     protected string $permalink;
     public int $ID;
     public string $post_author;
@@ -46,6 +45,15 @@ class Post extends Model
         $post->ID = $wp_post->ID;
         $post->import($wp_post);
         return $post;
+    }
+
+    public static function from(WP_Post|int|null $data): ?Post
+    {
+        if (is_int($data)) {
+            $data = \get_post($data);
+        }
+
+        return TypeResolver::post($data instanceof WP_Post ? $data : null);
     }
 
     public function id(): int
@@ -148,7 +156,7 @@ class Post extends Model
             return null;
         }
 
-        return new PostFactory()->from_id($this->post_parent);
+        return Post::from($this->post_parent);
     }
 
     public function children(): array

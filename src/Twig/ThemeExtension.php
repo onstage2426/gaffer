@@ -11,6 +11,7 @@ use Twig\Attribute\AsTwigFunction;
 use Gaffer\Facades\Config;
 use Gaffer\Facades\Theme;
 use Gaffer\Types\Image;
+use Gaffer\Types\Menu;
 use Gaffer\Types\Post;
 use Gaffer\Types\Term;
 
@@ -38,5 +39,11 @@ class ThemeExtension
     public static function getImage(int|string|null $id = null): ?Image
     {
         return Theme::get_image($id);
+    }
+
+    #[AsTwigFunction("menu")]
+    public static function menu(int|string $menu): ?Menu
+    {
+        return Theme::get_menu($menu);
     }
 }

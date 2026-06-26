@@ -12,23 +12,55 @@ use WP_Term;
 use Gaffer\TypeResolver;
 use Gaffer\Types\Attachment;
 use Gaffer\Types\Image;
+use Gaffer\Types\Menu;
 use Gaffer\Types\Post;
 use Gaffer\Types\PostType;
+use Gaffer\Types\Site;
 use Gaffer\Types\Term;
 use Gaffer\Types\Taxonomy;
 use Gaffer\Types\Pagination;
 
 class Theme
 {
-    public static function render(string $name, array $data = []): void
+    private static array $shared = [];
+
+    public static function share(string $key, mixed $value): void
     {
-        echo Twig::env()->render(
-            $name,
-            apply_filters("Theme/ViewData", [
-                ...apply_filters("Theme/ViewDataStatic", []),
-                ...$data,
-            ]),
+        self::$shared[$key] = $value;
+    }
+
+    public static function render(string|array $name, array $data = []): void
+    {
+        $shared = array_map(
+            fn($v) => is_callable($v) ? $v() : $v,
+            self::$shared,
         );
+
+        $context = apply_filters('Theme/ViewData', [
+            'site' => new Site(),
+            ...$shared,
+            ...apply_filters('Theme/ViewDataStatic', []),
+            ...$data,
+        ]);
+
+        $env = Twig::env();
+
+        if (is_array($name)) {
+            foreach ($name as $template) {
+                if ($env->getLoader()->exists($template)) {
+                    echo $env->render($template, $context);
+                    return;
+                }
+            }
+            return;
+        }
+
+        echo $env->render($name, $context);
+    }
+
+    public static function get_menu(int|string $menu): ?Menu
+    {
+        return Menu::from($menu);
     }
 
     public static function get_post(int|WP_Post|null $post = null): ?Post

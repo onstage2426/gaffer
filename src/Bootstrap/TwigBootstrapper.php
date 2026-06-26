@@ -40,7 +40,6 @@ class TwigBootstrapper
             $twig->addExtension(new DebugExtension());
         }
 
-        $twig->addExtension(new AttributeExtension(Extension::class));
         $twig->addExtension(new AttributeExtension(ThemeExtension::class));
         $twig->addExtension(new StringExtension());
 

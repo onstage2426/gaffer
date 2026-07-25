@@ -1,6 +1,6 @@
 {
     "name": "onstage2426/gaffer",
-    "description": "WordPress theme framework — Twig, WooCommerce types, and Vite",
+    "description": "WordPress theme framework — Twig and Vite",
     "type": "library",
     "license": "proprietary",
     "require": {

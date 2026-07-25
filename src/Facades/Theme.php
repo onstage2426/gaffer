@@ -19,6 +19,7 @@ use Gaffer\Types\Site;
 use Gaffer\Types\Term;
 use Gaffer\Types\Taxonomy;
 use Gaffer\Types\Pagination;
+use Gaffer\Types\Video;
 
 class Theme
 {
@@ -27,6 +28,11 @@ class Theme
     public static function share(string $key, mixed $value): void
     {
         self::$shared[$key] = $value;
+    }
+
+    public static function reset(): void
+    {
+        self::$shared = [];
     }
 
     public static function render(string|array $name, array $data = []): void
@@ -122,29 +128,37 @@ class Theme
         return array_map(Term::from(...), get_terms($args));
     }
 
-    public static function get_attachment(int $id): null|Attachment|Image
+    public static function get_attachment(int $id): null|Attachment|Image|Video
     {
         return Attachment::from_id($id);
     }
 
     public static function get_image(int|string|null $id = null): ?Image
     {
-        if (is_int($id) || is_string($id)) {
-            $attachment = self::get_attachment((int) $id);
-            if ($attachment instanceof Image) {
-                return $attachment;
-            }
+        if (!$id) {
+            return null;
         }
 
-        $fallback   = Config::get("theme.image_fallback");
-        $attachment = self::get_attachment($fallback);
+        $attachment = self::get_attachment((int) $id);
         if ($attachment instanceof Image) {
             return $attachment;
         }
 
-        throw new \RuntimeException(
-            'theme.image_fallback is not set or does not point to an image attachment. Check config/theme.php.',
-        );
+        $fallback   = Config::get("theme.image_fallback");
+        $attachment = $fallback ? self::get_attachment((int) $fallback) : null;
+
+        return $attachment instanceof Image ? $attachment : null;
+    }
+
+    public static function field_array(string $selector, int|string|null $post_id = null): array
+    {
+        if (!function_exists('get_field')) {
+            return [];
+        }
+
+        $value = get_field($selector, $post_id);
+
+        return is_array($value) ? $value : [];
     }
 
     public static function get_pagination(): ?Pagination

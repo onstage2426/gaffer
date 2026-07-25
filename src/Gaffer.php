@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
+use Gaffer\Bootstrap\AcfBootstrapper;
+use Gaffer\Bootstrap\BlocksBootstrapper;
 use Gaffer\Bootstrap\TwigBootstrapper;
 use Gaffer\Bootstrap\IncludesBootstrapper;
 use Gaffer\Facades\Config;
@@ -28,6 +30,16 @@ class Gaffer
         $includes = Config::get('path.includes');
         if ($includes !== null) {
             new IncludesBootstrapper($includes)->boot();
+        }
+
+        $storage = Config::get('path.storage');
+        if ($storage !== null) {
+            new AcfBootstrapper("{$storage}/acf-json")->boot();
+        }
+
+        $blocks = Config::get('path.blocks');
+        if ($blocks !== null) {
+            new BlocksBootstrapper($blocks)->boot();
         }
     }
 }

@@ -8,7 +8,7 @@ use WP_Post;
 
 class Attachment extends Post
 {
-    public static function from_id(int $id): static|Image|null
+    public static function from_id(int $id): static|Image|Video|null
     {
         $post = \get_post($id);
         if (!$post instanceof WP_Post) {
@@ -16,6 +16,9 @@ class Attachment extends Post
         }
         if (str_contains($post->post_mime_type, 'image')) {
             return Image::build($post);
+        }
+        if (str_contains($post->post_mime_type, 'video')) {
+            return Video::build($post);
         }
         return static::build($post);
     }

@@ -6,9 +6,15 @@ namespace Gaffer;
 
 use Gaffer\Bootstrap\IncludesBootstrapper;
 use Gaffer\Facades\Config;
+use Gaffer\Facades\Paths;
 
 class Ajax
 {
+    public static function boot(): void
+    {
+        self::handle(Paths::ajax(), (string) Config::get('theme.ajax_namespace'));
+    }
+
     public static function handle(string $dir, string $namespace): void
     {
         $method = $_SERVER['REQUEST_METHOD'] ?? '';
@@ -55,10 +61,7 @@ class Ajax
         require_once $_SERVER['DOCUMENT_ROOT'] . '/wp-load.php';
 
         if (!$instance->shortinit) {
-            $includes = Config::get('path.includes');
-            if ($includes !== null) {
-                new IncludesBootstrapper($includes)->boot();
-            }
+            new IncludesBootstrapper(Paths::includes())->boot();
         }
 
         $input = $method === 'POST' ? $_POST : $_GET;

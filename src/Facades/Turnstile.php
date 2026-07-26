@@ -27,7 +27,7 @@ final class Turnstile
 
     public static function log_spam(string $log_name, array $fields): void
     {
-        $log_dir  = Config::get('path.storage') . '/logs';
+        $log_dir  = Paths::storage() . '/logs';
         $log_file = $log_dir . '/' . $log_name . '.log';
 
         if (!is_dir($log_dir)) {

@@ -24,7 +24,7 @@ class Vite
         $manifest = self::manifest();
 
         if (isset($manifest[$asset])) {
-            return \get_template_directory_uri() . "/public/" . $manifest[$asset]["file"];
+            return self::public_url() . "/" . $manifest[$asset]["file"];
         }
 
         return "";
@@ -41,7 +41,7 @@ class Vite
         $manifest = self::manifest();
 
         if (isset($manifest[$asset])) {
-            return Config::get("path.public") . "/" . $manifest[$asset]["file"];
+            return Paths::public() . "/" . $manifest[$asset]["file"];
         }
 
         return null;
@@ -56,7 +56,7 @@ class Vite
     public static function manifest(): array
     {
         if (self::$manifest === null) {
-            $public_path = Config::get("path.public");
+            $public_path = Paths::public();
             $file_path   = "$public_path/.vite/manifest.json";
 
             $contents     = file_exists($file_path) ? file_get_contents($file_path) : null;
@@ -75,15 +75,23 @@ class Vite
 
     public static function hotfile(): string
     {
-        return Config::get("path.public") . "/.vite/hotfile";
+        return Paths::public() . "/.vite/hotfile";
+    }
+
+    private static function public_url(): string
+    {
+        $public_path = Paths::public();
+        $theme_dir   = \get_template_directory();
+        $theme_uri   = \get_template_directory_uri();
+
+        return $theme_uri . substr($public_path, strlen($theme_dir));
     }
 
     public static function tags(array $assets): void
     {
         $is_dev     = self::is_dev_mode();
         $manifest   = self::manifest();
-        $public_path = Config::get("path.public");
-        $theme_uri  = \get_template_directory_uri();
+        $public_path = Paths::public();
 
         foreach ($assets as $asset) {
             $file_url = self::url($asset);
@@ -103,7 +111,7 @@ class Vite
             } elseif ($file_ext === "js") {
                 if (!$is_dev && !empty($manifest[$asset]["css"])) {
                     foreach ($manifest[$asset]["css"] as $css_file) {
-                        $css_url       = "$theme_uri/public/$css_file";
+                        $css_url       = self::public_url() . "/$css_file";
                         $css_versioned = self::versioned($css_url, "$public_path/$css_file");
                         echo <<<HTML
                         <link rel="preload" as="style" href="{$css_versioned}" />
@@ -133,7 +141,7 @@ class Vite
 
         $manifest = self::manifest();
         if (!empty($manifest[$js_asset]["css"][0])) {
-            return \get_template_directory_uri() . "/public/" . $manifest[$js_asset]["css"][0];
+            return self::public_url() . "/" . $manifest[$js_asset]["css"][0];
         }
 
         return "";

@@ -8,38 +8,22 @@ use Gaffer\Bootstrap\AcfBootstrapper;
 use Gaffer\Bootstrap\BlocksBootstrapper;
 use Gaffer\Bootstrap\TwigBootstrapper;
 use Gaffer\Bootstrap\IncludesBootstrapper;
-use Gaffer\Facades\Config;
+use Gaffer\Facades\Paths;
 use Twig\Loader\FilesystemLoader;
 
 class Gaffer
 {
     public static function boot(): void
     {
-        $paths = [];
+        $paths = [FilesystemLoader::MAIN_NAMESPACE => Paths::views()];
 
-        if ($views = Config::get('path.views')) {
-            $paths[FilesystemLoader::MAIN_NAMESPACE] = $views;
-        }
-
-        foreach (Config::get('path.namespaces') ?? [] as $namespace => $path) {
+        foreach (Paths::namespaces() as $namespace => $path) {
             $paths[$namespace] = $path;
         }
 
         new TwigBootstrapper($paths)->boot();
-
-        $includes = Config::get('path.includes');
-        if ($includes !== null) {
-            new IncludesBootstrapper($includes)->boot();
-        }
-
-        $storage = Config::get('path.storage');
-        if ($storage !== null) {
-            new AcfBootstrapper("{$storage}/acf-json")->boot();
-        }
-
-        $blocks = Config::get('path.blocks');
-        if ($blocks !== null) {
-            new BlocksBootstrapper($blocks)->boot();
-        }
+        new IncludesBootstrapper(Paths::includes())->boot();
+        new AcfBootstrapper(Paths::storage() . '/acf-json')->boot();
+        new BlocksBootstrapper(Paths::blocks())->boot();
     }
 }

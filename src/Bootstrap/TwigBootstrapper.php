@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Bootstrap;
 
 use Gaffer\Facades\Config;
+use Gaffer\Facades\Paths;
 use Gaffer\Facades\Twig;
 use Gaffer\Twig\ThemeExtension;
 use Twig\Environment;
@@ -29,7 +30,7 @@ class TwigBootstrapper
 
         $twig = new Environment($loader, [
             'cache'     => Config::get('theme.cache')
-                ? Config::get('path.storage') . '/cache/views'
+                ? Paths::storage() . '/cache/views'
                 : false,
             'debug'     => $debug,
             'use_yield' => true,

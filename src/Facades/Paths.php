@@ -43,6 +43,13 @@ class Paths
 
     private static function base(string $dir): string
     {
-        return \get_template_directory() . "/{$dir}";
+        // get_template_directory() doesn't exist yet when Gaffer::boot() runs via Composer's
+        // "files" autoload before wp-load.php (e.g. the ajax dispatch path) — fall back to
+        // deriving the theme root from this package's own install location instead.
+        $theme = function_exists('get_template_directory')
+            ? \get_template_directory()
+            : dirname(__DIR__, 5);
+
+        return "{$theme}/{$dir}";
     }
 }

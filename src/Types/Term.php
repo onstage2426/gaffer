@@ -80,10 +80,9 @@ class Term extends Model
         return (int) $this->meta("thumbnail_id");
     }
 
-    public function thumbnail(): Image
+    public function thumbnail(): ?Image
     {
-        $id = $this->thumbnail_id();
-        return Theme::get_image($id > 0 ? $id : null);
+        return Theme::get_image($this->thumbnail_id());
     }
 
     public function taxonomy(): string

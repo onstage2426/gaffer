@@ -8,7 +8,7 @@ use WP_Post;
 
 class Attachment extends Post
 {
-    public static function from_id(int $id): static|Image|Video|null
+    public static function from_id(int $id): Attachment|Image|Video|null
     {
         $post = \get_post($id);
         if (!$post instanceof WP_Post) {

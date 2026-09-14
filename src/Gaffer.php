@@ -17,7 +17,7 @@ class Gaffer
     {
         $paths = [FilesystemLoader::MAIN_NAMESPACE => Paths::views()];
 
-        foreach (Paths::namespaces() as $namespace => $path) {
+        foreach (Paths::view_namespaces() as $namespace => $path) {
             $paths[$namespace] = $path;
         }
 

@@ -23,7 +23,9 @@ class TwigBootstrapper
         $loader = new FilesystemLoader();
 
         foreach ($this->paths as $namespace => $path) {
-            $loader->addPath($path, $namespace);
+            if (is_dir($path)) {
+                $loader->addPath($path, $namespace);
+            }
         }
 
         $debug = (bool) Config::get('theme.debug');
@@ -43,7 +45,7 @@ class TwigBootstrapper
         $twig->addExtension(new AttributeExtension(ThemeExtension::class));
         $twig->addExtension(new StringExtension());
 
-        foreach (Config::get('theme.extensions') ?? [] as $class) {
+        foreach (Config::get('theme.twig_extensions') ?? [] as $class) {
             $twig->addExtension(new AttributeExtension($class));
         }
 

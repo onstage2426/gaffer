@@ -21,7 +21,7 @@
     "scripts": {
         "rector": "rector process",
         "rector:dry": "rector process --dry-run",
-        "phpstan": "phpstan analyse --memory-limit=512M"
+        "phpstan": "phpstan analyse --memory-limit=1G"
     },
     "minimum-stability": "stable",
     "prefer-stable": true

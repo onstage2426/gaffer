@@ -131,7 +131,7 @@ class Post extends Model
         return $this->post_type;
     }
 
-    public function post_type_object(): PostType
+    public function post_type_object(): ?PostType
     {
         return PostType::from_name($this->post_type());
     }

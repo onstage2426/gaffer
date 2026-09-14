@@ -12,7 +12,7 @@ class Ajax
 {
     public static function boot(): void
     {
-        self::handle(Paths::ajax(), (string) Config::get('theme.ajax_namespace'));
+        self::handle(Paths::ajax(), (string) (Config::get('theme.ajax_namespace') ?? 'Theme\\Ajax'));
     }
 
     public static function handle(string $dir, string $namespace): void

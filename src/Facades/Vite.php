@@ -12,11 +12,16 @@ class Vite
 
     public static function url(string $asset): string
     {
-        if (self::is_dev_mode() && \current_user_can("manage_options")) {
+        if (self::is_dev_asset()) {
             return self::dev_url($asset);
         }
 
         return self::build_url($asset);
+    }
+
+    protected static function is_dev_asset(): bool
+    {
+        return self::is_dev_mode() && \current_user_can("manage_options");
     }
 
     protected static function build_url(string $asset): string
@@ -89,7 +94,7 @@ class Vite
 
     public static function tags(array $assets): void
     {
-        $is_dev     = self::is_dev_mode();
+        $is_dev     = self::is_dev_asset();
         $manifest   = self::manifest();
         $public_path = Paths::public();
 
@@ -134,7 +139,7 @@ class Vite
 
     public static function css_url(string $js_asset): string
     {
-        if (self::is_dev_mode() && \current_user_can("manage_options")) {
+        if (self::is_dev_asset()) {
             $css_asset = preg_replace('#^assets/js/#', 'assets/css/', substr($js_asset, 0, -3) . '.css');
             return self::dev_url($css_asset);
         }

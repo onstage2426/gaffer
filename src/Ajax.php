@@ -66,6 +66,11 @@ class Ajax
 
         $input = $method === 'POST' ? $_POST : $_GET;
 
+        // wp-load.php runs wp_magic_quotes(), except under SHORTINIT
+        if (!$instance->shortinit) {
+            $input = \wp_unslash($input);
+        }
+
         $data = [];
         foreach ($instance->arguments() as $key => $default) {
             if (!array_key_exists($key, $input)) {

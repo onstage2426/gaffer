@@ -24,23 +24,28 @@ use Gaffer\Types\Video;
 class Theme
 {
     private static array $shared = [];
+    private static array $resolved = [];
 
     public static function share(string $key, mixed $value): void
     {
         self::$shared[$key] = $value;
+        unset(self::$resolved[$key]);
     }
 
     public static function reset(): void
     {
-        self::$shared = [];
+        self::$shared   = [];
+        self::$resolved = [];
     }
 
     public static function render(string|array $name, array $data = []): void
     {
-        $shared = array_map(
-            fn($v) => is_callable($v) ? $v() : $v,
-            self::$shared,
-        );
+        foreach (self::$shared as $key => $value) {
+            if (!array_key_exists($key, self::$resolved)) {
+                self::$resolved[$key] = $value instanceof \Closure ? $value() : $value;
+            }
+        }
+        $shared = self::$resolved;
 
         $context = apply_filters('Theme/ViewData', [
             'site' => new Site(),

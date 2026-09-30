@@ -15,7 +15,6 @@ use Gaffer\Types\Image;
 use Gaffer\Types\Menu;
 use Gaffer\Types\Post;
 use Gaffer\Types\PostType;
-use Gaffer\Types\Site;
 use Gaffer\Types\Term;
 use Gaffer\Types\Taxonomy;
 use Gaffer\Types\Pagination;
@@ -48,7 +47,6 @@ class Theme
         $shared = self::$resolved;
 
         $context = apply_filters('Theme/ViewData', [
-            'site' => new Site(),
             ...$shared,
             ...apply_filters('Theme/ViewDataStatic', []),
             ...$data,

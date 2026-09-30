@@ -1,0 +1,241 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Gaffer\\AjaxAction\:\:arguments\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/AjaxAction.php
+
+		-
+			message: '#^Method Gaffer\\AjaxAction\:\:run\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/AjaxAction.php
+
+		-
+			message: '#^Method Gaffer\\Bootstrap\\TwigBootstrapper\:\:__construct\(\) has parameter \$paths with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Bootstrap/TwigBootstrapper.php
+
+		-
+			message: '#^Property Gaffer\\Facades\\Config\:\:\$config type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Config.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Paths\:\:view_namespaces\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Paths.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Theme\:\:field_array\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Theme\:\:get_posts\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Theme\:\:get_posts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Theme\:\:get_terms\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Theme\:\:get_terms\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Theme\:\:render\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Theme\:\:render\(\) has parameter \$name with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Property Gaffer\\Facades\\Theme\:\:\$resolved type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Property Gaffer\\Facades\\Theme\:\:\$shared type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Theme.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Turnstile\:\:log_spam\(\) has parameter \$fields with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Turnstile.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Vite\:\:manifest\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Vite.php
+
+		-
+			message: '#^Method Gaffer\\Facades\\Vite\:\:tags\(\) has parameter \$assets with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Vite.php
+
+		-
+			message: '#^Property Gaffer\\Facades\\Vite\:\:\$manifest type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Facades/Vite.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Image\:\:sizes\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Image.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Menu\:\:__construct\(\) has parameter \$items with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Menu.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Menu\:\:build_tree\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Menu.php
+
+		-
+			message: '#^Method Gaffer\\Types\\MenuItem\:\:children\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/MenuItem.php
+
+		-
+			message: '#^Method Gaffer\\Types\\MenuItem\:\:classes\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/MenuItem.php
+
+		-
+			message: '#^Property Gaffer\\Types\\MenuItem\:\:\$classes type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/MenuItem.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Types/MenuItem.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Pagination\:\:pages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Pagination.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Types/Pagination.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Post\:\:blocks\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Post.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Post\:\:categories\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Post.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Post\:\:children\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Post.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Post\:\:tags\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Post.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Post\:\:taxonomies\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Post.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Post\:\:terms\(\) has parameter \$taxonomy with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Post.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Post\:\:terms\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Post.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Types/Post.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Types/PostType.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Taxonomy\:\:terms\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Taxonomy.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Types/Taxonomy.php
+
+		-
+			message: '#^Method Gaffer\\Types\\Term\:\:children\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Types/Term.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Types/Term.php

@@ -10,7 +10,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | When true, enables Twig's DebugExtension (adds the {% dump %} tag and
-    | dump() function) and Twig's own internal debug mode. Defaults to false.
+    | dump() function), Twig's own internal debug mode, and strict_variables
+    | (undefined variables, attributes and methods throw instead of silently
+    | rendering empty). Defaults to false.
     |
     */
 

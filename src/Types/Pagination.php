@@ -66,6 +66,10 @@ class Pagination
         $total = $this->total_pages;
         $current = $this->current();
 
+        if ($total < 1) {
+            return [];
+        }
+
         $startPage = $current - $padding;
         $endPage = $current + $padding;
 

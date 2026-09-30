@@ -35,6 +35,7 @@ class TwigBootstrapper
                 ? Paths::storage() . '/cache/views'
                 : false,
             'debug'     => $debug,
+            'strict_variables' => $debug,
             'use_yield' => true,
         ]);
 

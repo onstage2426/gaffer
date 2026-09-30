@@ -11,11 +11,7 @@ final class Image extends Attachment
     {
         $img = \wp_get_attachment_image_src($this->ID, $size);
 
-        if (is_array($img) && isset($img[0]) && is_string($img[0])) {
-            return $img[0];
-        }
-
-        return "";
+        return is_array($img) ? $img[0] : "";
     }
 
     public function file(): string
@@ -48,7 +44,7 @@ final class Image extends Attachment
 
     public function atts(): string
     {
-        $alt = 'alt="' . $this->alt() . '"';
+        $alt = 'alt="' . \esc_attr($this->alt()) . '"';
         $width = 'width="' . $this->width() . '"';
         $height = 'height="' . $this->height() . '"';
 
@@ -64,14 +60,8 @@ final class Image extends Attachment
     public function data(string $data, string $size = "full"): mixed
     {
         $metadata = $this->meta("_wp_attachment_metadata");
+        $source = "full" === $size ? $metadata : ($metadata["sizes"][$size] ?? null);
 
-        if (isset($metadata[$data])) {
-            if ("full" === $size) {
-                return $metadata[$data];
-            }
-            return $metadata[$size][$data];
-        }
-
-        return "";
+        return is_array($source) ? ($source[$data] ?? "") : "";
     }
 }

@@ -9,15 +9,49 @@ use Twig\Markup;
 final class Image extends Attachment
 {
     /**
-     * Full <img> tag via wp_get_attachment_image(): srcset/sizes, escaped alt,
-     * width/height, loading/decoding. Returned as Twig Markup so
-     * {{ image.img('large', {class: 'w-full'}) }} needs no |raw.
+     * Everything inside an <img> tag for the given size: src, srcset, sizes,
+     * width/height of that size and the escaped alt. The tag itself (class,
+     * loading, fetchpriority, data/Alpine attributes) stays in the template:
+     * <img class="..." {{ image.attrs('large') }} loading="lazy">
      *
-     * @param array<string, string|bool> $attrs
+     * sizes starts with "auto", which browsers only honor on lazy images and
+     * skip otherwise.
      */
-    public function img(string $size = "full", array $attrs = []): Markup
+    public function attrs(string $size = "full"): Markup
     {
-        return new Markup(\wp_get_attachment_image($this->ID, $size, false, $attrs), "UTF-8");
+        $img = \wp_get_attachment_image_src($this->ID, $size);
+
+        if (!is_array($img)) {
+            return new Markup("", "UTF-8");
+        }
+
+        [$src, $width, $height] = $img;
+
+        $attrs = ["src" => \esc_url($src)];
+
+        $srcset = \wp_get_attachment_image_srcset($this->ID, $size);
+        if ($srcset) {
+            $attrs["srcset"] = \esc_attr($srcset);
+            $sizes = \wp_get_attachment_image_sizes($this->ID, $size);
+            if ($sizes) {
+                $attrs["sizes"] = \esc_attr("auto, " . $sizes);
+            }
+        }
+
+        if ($width && $height) {
+            $attrs["width"] = (int) $width;
+            $attrs["height"] = (int) $height;
+        }
+
+        $attrs["alt"] = \esc_attr(trim(strip_tags($this->alt())));
+
+        $html = implode(" ", array_map(
+            static fn(string $key, string|int $value): string => $key . '="' . $value . '"',
+            array_keys($attrs),
+            $attrs,
+        ));
+
+        return new Markup($html, "UTF-8");
     }
 
     #[\Override]
@@ -54,15 +88,6 @@ final class Image extends Attachment
     public function alt(): string
     {
         return $this->meta("_wp_attachment_image_alt");
-    }
-
-    public function atts(): string
-    {
-        $alt = 'alt="' . \esc_attr($this->alt()) . '"';
-        $width = 'width="' . $this->width() . '"';
-        $height = 'height="' . $this->height() . '"';
-
-        return "$alt $width $height";
     }
 
     public function sizes(): array

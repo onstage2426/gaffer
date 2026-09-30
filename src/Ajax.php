@@ -46,7 +46,14 @@ class Ajax
 
         require_once $action_file;
 
-        $class    = "{$namespace}\\{$action}\\{$action}";
+        $class = "{$namespace}\\{$action}\\{$action}";
+
+        if (!is_subclass_of($class, AjaxAction::class)) {
+            error_log("Gaffer Ajax: {$class} is not defined in {$action_file} or does not extend " . AjaxAction::class);
+            http_response_code(500);
+            exit();
+        }
+
         $instance = new $class();
 
         if ($instance->method !== $method) {

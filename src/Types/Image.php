@@ -4,8 +4,22 @@ declare(strict_types=1);
 
 namespace Gaffer\Types;
 
+use Twig\Markup;
+
 final class Image extends Attachment
 {
+    /**
+     * Full <img> tag via wp_get_attachment_image(): srcset/sizes, escaped alt,
+     * width/height, loading/decoding. Returned as Twig Markup so
+     * {{ image.img('large', {class: 'w-full'}) }} needs no |raw.
+     *
+     * @param array<string, string|bool> $attrs
+     */
+    public function img(string $size = "full", array $attrs = []): Markup
+    {
+        return new Markup(\wp_get_attachment_image($this->ID, $size, false, $attrs), "UTF-8");
+    }
+
     #[\Override]
     public function src(string $size = "full"): string
     {

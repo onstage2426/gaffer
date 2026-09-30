@@ -147,7 +147,10 @@ class Theme
             return $attachment;
         }
 
-        $fallback   = Config::get("theme.image_fallback");
+        $fallback = Config::get("theme.image_fallback");
+        if ($fallback instanceof \Closure) {
+            $fallback = $fallback();
+        }
         $attachment = $fallback ? self::get_attachment((int) $fallback) : null;
 
         return $attachment instanceof Image ? $attachment : null;

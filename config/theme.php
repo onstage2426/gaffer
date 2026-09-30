@@ -69,6 +69,11 @@ return [
     | ID doesn't resolve to a valid image. A falsy id passed in still
     | returns null without consulting this fallback. Unset means no fallback.
     |
+    | May be a closure, called only when the fallback is needed (so it can
+    | use WordPress functions even though config loads before WordPress in
+    | ajax.php), e.g. WooCommerce's placeholder:
+    | fn() => (int) get_option('woocommerce_placeholder_image')
+    |
     */
 
     // 'image_fallback' => 0,

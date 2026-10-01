@@ -6,6 +6,7 @@ namespace Gaffer\Console\Commands;
 
 use Closure;
 use Gaffer\Console\Command;
+use Gaffer\Console\ConfigStubs;
 use Gaffer\Facades\Config;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\Table;
@@ -37,7 +38,7 @@ final class ConfigShow extends Command
             return self::SUCCESS;
         }
 
-        $stubs = self::stub_keys();
+        $stubs = ConfigStubs::keys();
         $rows = [];
 
         foreach (Config::all() as $file => $values) {
@@ -46,7 +47,7 @@ final class ConfigShow extends Command
                 [$status, $hint] = match (true) {
                     $known === null => ['theme', null],
                     in_array($name, $known, true) => ['gaffer', null],
-                    default => ['unknown', self::did_you_mean($name, $known)],
+                    default => ['unknown', ConfigStubs::did_you_mean($name, $known)],
                 };
                 $rows[] = [
                     'key' => "{$file}.{$name}",
@@ -75,42 +76,6 @@ final class ConfigShow extends Command
         $table->render();
 
         return self::SUCCESS;
-    }
-
-    /**
-     * Top-level keys documented in Gaffer's own config stubs, per file.
-     *
-     * @return array<string, list<string>>
-     */
-    private static function stub_keys(): array
-    {
-        $keys = [];
-
-        foreach (glob(dirname(__DIR__, 3) . '/config/*.php') ?: [] as $file) {
-            preg_match_all("/^    (?:\/\/ )?'(\w+)'\s*=>/m", (string) file_get_contents($file), $m);
-            $keys[basename($file, '.php')] = $m[1];
-        }
-
-        return $keys;
-    }
-
-    /** @param list<string> $known */
-    private static function did_you_mean(string $name, array $known): ?string
-    {
-        $best = null;
-        $distance = 4;
-
-        foreach ($known as $candidate) {
-            // "extensions" → "twig_extensions": a substring counts as a close match
-            $d = str_contains($candidate, $name) || str_contains($name, $candidate)
-                ? 1
-                : levenshtein($name, $candidate);
-            if ($d < $distance) {
-                [$best, $distance] = [$candidate, $d];
-            }
-        }
-
-        return $best;
     }
 
     /**

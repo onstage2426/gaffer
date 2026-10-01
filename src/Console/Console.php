@@ -6,7 +6,10 @@ namespace Gaffer\Console;
 
 use Composer\InstalledVersions;
 use Gaffer\Console\Commands\ConfigShow;
+use Gaffer\Console\Commands\Doctor;
+use Gaffer\Console\Commands\DoctorRender;
 use Gaffer\Console\Commands\TwigClear;
+use Gaffer\Console\Commands\TwigLint;
 use Gaffer\Gaffer;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\InputOption;
@@ -34,7 +37,10 @@ final class Console
         ));
         $app->addCommands([
             new ConfigShow(),
+            new Doctor(),
+            new DoctorRender(),
             new TwigClear(),
+            new TwigLint(),
         ]);
 
         return $app->run();

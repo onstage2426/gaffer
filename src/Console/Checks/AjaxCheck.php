@@ -13,8 +13,9 @@ use Throwable;
 
 /**
  * Each ajax/{Name}/{Name}.php defines {ajax_namespace}\{Name}\{Name} extending AjaxAction,
- * with a GET or POST method and a run() Gaffer can fill. Loads the files the same
- * way the dispatcher does.
+ * with a GET or POST METHOD and a run() Gaffer can fill, and warns about SHORTINIT
+ * actions using things SHORTINIT doesn't load. Loads the files the same way the
+ * dispatcher does.
  */
 final class AjaxCheck implements Check
 {
@@ -48,17 +49,52 @@ final class AjaxCheck implements Check
                 continue;
             }
 
-            $instance = new $class();
-            if (!in_array($instance->method, ['GET', 'POST'], true)) {
-                $report->error('ajax', "\$method is \"{$instance->method}\"; the dispatcher only accepts GET or POST", $file);
+            if (!in_array($class::METHOD, ['GET', 'POST'], true)) {
+                $report->error('ajax', 'METHOD is "' . $class::METHOD . '"; the dispatcher only accepts GET or POST', $file);
             }
 
+            // Pre-constants actions: these properties are ignored now.
+            foreach (['method' => 'METHOD', 'shortinit' => 'SHORTINIT'] as $property => $constant) {
+                if (property_exists($class, $property)) {
+                    $report->error('ajax', "\${$property} is ignored; declare `public const {$constant} = ...` instead", $file);
+                }
+            }
+
+            $instance = new $class();
             $problem = method_exists($instance, 'run')
                 ? AjaxArguments::problem(AjaxArguments::run_method($instance))
                 : "{$class} has no run() method";
             if ($problem !== null) {
                 $report->error('ajax', $problem, $file, null,
-                    'run() parameters are the request keys: typed string, int, float, bool or array; no default = required.');
+                    'run() parameters are the request keys: typed string, int, float, bool, array or a Gaffer type (from an ID); no default = required.');
+            }
+
+            if ($class::SHORTINIT) {
+                self::shortinit($report, $file);
+            }
+        }
+    }
+
+    /**
+     * SHORTINIT loads no plugins, no theme and no pluggable functions. Flag code
+     * in the action that needs them (pattern-based, so warnings).
+     */
+    private static function shortinit(Report $report, string $file): void
+    {
+        $unavailable = [
+            '/Gaffer\\\\Types\\\\|\b(?:Post|Term|Image|Attachment|Menu|Pagination)::/' => 'Gaffer types (no WordPress query layer)',
+            '/\bWC\(|\bwc_[a-z_]+\(/' => 'WooCommerce (plugins are not loaded)',
+            '/\bget_field\(|\bAcf::/' => 'ACF (plugins are not loaded)',
+            '/\b(?:current_user_can|wp_verify_nonce|is_user_logged_in|wp_get_current_user)\(/' => 'users and nonces (pluggable functions are not loaded)',
+            '/\bajax_url\(|\bget_template_directory/' => 'theme functions (the theme is not loaded)',
+        ];
+
+        foreach (file($file) ?: [] as $i => $line) {
+            foreach ($unavailable as $pattern => $what) {
+                if (preg_match($pattern, $line)) {
+                    $report->warning('ajax', "SHORTINIT action uses {$what}", $file, $i + 1,
+                        'SHORTINIT has $wpdb, get_option(), config and Twig only. Drop SHORTINIT or read the data with $wpdb.');
+                }
             }
         }
     }

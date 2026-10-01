@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
-use Gaffer\Bootstrap\AcfBootstrapper;
-use Gaffer\Bootstrap\BlocksBootstrapper;
-use Gaffer\Bootstrap\IncludesBootstrapper;
-use Gaffer\Bootstrap\TwigBootstrapper;
-use Gaffer\Config;
-use Gaffer\Paths;
+use Composer\InstalledVersions;
+use Gaffer\Twig\Extension;
+use Twig\Environment;
+use Twig\Extension\AttributeExtension;
+use Twig\Extension\DebugExtension;
+use Twig\Extra\String\StringExtension;
 use Twig\Loader\FilesystemLoader;
 
 class Gaffer
@@ -44,13 +44,14 @@ class Gaffer
 
         self::configure($dir);
         self::twig();
-        new IncludesBootstrapper(Paths::includes())->boot();
-        new AcfBootstrapper(Paths::storage() . '/acf-json')->boot();
-        new BlocksBootstrapper(Paths::blocks())->boot();
+        self::includes();
+        self::acf();
+        self::blocks();
+        AdminBar::register();
     }
 
     /**
-     * Twig environment only (also used for SHORTINIT ajax, where functions.php never runs).
+     * The Twig environment only (also used for SHORTINIT ajax, where functions.php never runs).
      */
     public static function twig(): void
     {
@@ -59,9 +60,79 @@ class Gaffer
         }
         self::$twig = true;
 
-        new TwigBootstrapper([
-            FilesystemLoader::MAIN_NAMESPACE => Paths::views(),
-            ...Paths::view_namespaces(),
-        ])->boot();
+        $loader = new FilesystemLoader();
+        foreach ([FilesystemLoader::MAIN_NAMESPACE => Paths::views(), ...Paths::view_namespaces()] as $namespace => $path) {
+            if (is_dir($path)) {
+                $loader->addPath($path, $namespace);
+            }
+        }
+
+        $debug = (bool) Config::get('theme.debug');
+
+        $twig = new Environment($loader, [
+            'cache' => Config::get('theme.cache') ? Paths::twig_cache() : false,
+            'debug' => $debug,
+            'strict_variables' => $debug,
+            'use_yield' => true,
+        ]);
+
+        if ($debug) {
+            $twig->addExtension(new DebugExtension());
+        }
+        $twig->addExtension(new AttributeExtension(Extension::class));
+        $twig->addExtension(new StringExtension());
+        foreach (Config::get('theme.twig_extensions') ?? [] as $class) {
+            $twig->addExtension(new AttributeExtension($class));
+        }
+
+        View::set_env($twig);
+    }
+
+    /**
+     * Installed Gaffer version, e.g. "0.x-dev @ 1a2b3c4".
+     */
+    public static function version(): string
+    {
+        if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled('onstage2426/gaffer')) {
+            return 'dev';
+        }
+
+        $reference = InstalledVersions::getReference('onstage2426/gaffer');
+
+        return InstalledVersions::getPrettyVersion('onstage2426/gaffer') . ($reference ? ' @ ' . substr($reference, 0, 7) : '');
+    }
+
+    /**
+     * inc/*.php, then inc/*\/*.php.
+     */
+    private static function includes(): void
+    {
+        foreach ([...glob(Paths::includes() . '/*.php') ?: [], ...glob(Paths::includes() . '/*/*.php') ?: []] as $file) {
+            include_once $file;
+        }
+    }
+
+    /**
+     * ACF local JSON is saved to and loaded from storage/acf-json.
+     */
+    private static function acf(): void
+    {
+        $dir = Paths::storage() . '/acf-json';
+
+        add_filter('acf/settings/save_json', fn(): string => $dir);
+        add_filter('acf/settings/load_json', function (array $paths) use ($dir): array {
+            $paths[] = $dir;
+            return $paths;
+        });
+    }
+
+    /**
+     * Every blocks/*\/block.json.
+     */
+    private static function blocks(): void
+    {
+        foreach (glob(Paths::blocks() . '/*/block.json') ?: [] as $block) {
+            register_block_type($block);
+        }
     }
 }

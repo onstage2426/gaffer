@@ -15,7 +15,7 @@ use Gaffer\Paths;
 final class SourceCheck implements Check
 {
     private const array PATTERNS = [
-        'php' => '/\b(?:[A-Z]\w*::from|get_post|get_term|wp_get_nav_menu_items)\(\s*\d+\s*[,)]/',
+        'php' => '/\b(?:[A-Z]\w*::from|get_post|get_term|wp_get_nav_menu_items|GFAPI::(?:submit_form|get_form|get_entries)|gravity_form)\(\s*\d+\s*[,)]|\[gravityforms? id=["\']?\d+/',
         'twig' => '/\bwp\.ID\s*==\s*\d+|\bid\(\)\s*==\s*\d+/',
     ];
 

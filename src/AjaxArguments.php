@@ -9,14 +9,18 @@ use LogicException;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
+use Gaffer\Types\Post;
+use Gaffer\Types\Term;
 
 /**
  * Maps request input onto an ajax action's run() parameters: parameter name =
  * request key, no default = required, values cast to the declared type.
  *
- * Supported types: string, int, float, bool, array (and nullable versions).
- * Bad or missing input throws InvalidArgumentException (a 400); a run()
- * signature Gaffer can't fill throws LogicException (a bug in the action).
+ * Supported types: string, int, float, bool, array, and Gaffer types (Post,
+ * Term and their subclasses, resolved from an ID), all optionally nullable.
+ * Bad or missing input throws InvalidArgumentException (a 400), an ID that
+ * doesn't resolve throws AjaxNotFound (a 404), and a run() signature Gaffer
+ * can't fill throws LogicException (a bug in the action).
  */
 final class AjaxArguments
 {
@@ -57,19 +61,39 @@ final class AjaxArguments
      */
     public static function problem(ReflectionMethod $run): ?string
     {
+        /** @var class-string<AjaxAction> $class */
+        $class = $run->class;
+
         foreach ($run->getParameters() as $parameter) {
             $type = $parameter->getType();
-            $where = "{$run->class}::run() parameter \${$parameter->getName()}";
+            $where = "{$class}::run() parameter \${$parameter->getName()}";
 
             if ($parameter->isVariadic()) {
                 return "{$where} is variadic; ajax arguments must be named.";
             }
-            if (!$type instanceof ReflectionNamedType || !in_array($type->getName(), self::TYPES, true)) {
-                return "{$where} must be typed as string, int, float, bool or array (optionally nullable).";
+            if (!$type instanceof ReflectionNamedType) {
+                return "{$where} must have a single type (string, int, float, bool, array or a Gaffer type).";
+            }
+            if (self::is_model($type->getName())) {
+                if ($class::SHORTINIT) {
+                    return "{$where} is a Gaffer type, which needs a full WordPress load; SHORTINIT actions can only take scalars and arrays.";
+                }
+                continue;
+            }
+            if (!in_array($type->getName(), self::TYPES, true)) {
+                return "{$where} must be typed as string, int, float, bool, array or a Gaffer type (optionally nullable).";
             }
         }
 
         return null;
+    }
+
+    /**
+     * Post, Term and their subclasses (Image, Attachment, a theme's Product, ...).
+     */
+    private static function is_model(string $type): bool
+    {
+        return is_a($type, Post::class, true) || is_a($type, Term::class, true);
     }
 
     public static function run_method(AjaxAction $action): ReflectionMethod
@@ -90,6 +114,18 @@ final class AjaxArguments
         // An empty field means "no value" for nullable non-string parameters.
         if ($value === '' && $type->allowsNull() && $type->getName() !== 'string') {
             return null;
+        }
+
+        if (self::is_model($type->getName())) {
+            $id = is_int($value) ? $value : filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
+            if ($id === null) {
+                throw new InvalidArgumentException("Argument \"{$name}\" must be an ID.");
+            }
+
+            /** @var class-string<Post>|class-string<Term> $class */
+            $class = $type->getName();
+
+            return $class::from($id) ?? throw new AjaxNotFound("No {$class} with ID {$id} for \"{$name}\".");
         }
 
         $cast = match ($type->getName()) {

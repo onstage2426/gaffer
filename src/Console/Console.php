@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Gaffer\Console;
 
-use Composer\InstalledVersions;
 use Gaffer\Console\Commands\ConfigShow;
 use Gaffer\Console\Commands\Doctor;
 use Gaffer\Console\Commands\DoctorRender;
@@ -28,7 +27,7 @@ final class Console
 
         Gaffer::configure($dir);
 
-        $app = new Application('Gaffer', self::version());
+        $app = new Application('Gaffer', Gaffer::version());
         $app->getDefinition()->addOption(new InputOption(
             'url',
             null,
@@ -44,16 +43,5 @@ final class Console
         ]);
 
         return $app->run();
-    }
-
-    private static function version(): string
-    {
-        if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled('onstage2426/gaffer')) {
-            return 'dev';
-        }
-
-        $reference = InstalledVersions::getReference('onstage2426/gaffer');
-
-        return InstalledVersions::getPrettyVersion('onstage2426/gaffer') . ($reference ? ' @ ' . substr($reference, 0, 7) : '');
     }
 }

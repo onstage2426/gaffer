@@ -9,3 +9,18 @@ if (!function_exists('get_pagenum_link')) {
         return "/page/{$page}/";
     }
 }
+
+// Nothing exists in unit tests: lookups find nothing (the 404 path).
+if (!function_exists('get_post')) {
+    function get_post(mixed $post = null): null
+    {
+        return null;
+    }
+}
+
+if (!function_exists('get_term')) {
+    function get_term(mixed $term = null): null
+    {
+        return null;
+    }
+}

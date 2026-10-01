@@ -46,9 +46,21 @@ final class MenuItem
         return array_values(array_filter((array) $this->field('classes')));
     }
 
+    /**
+     * The link points at the current page (paths compared, so query strings
+     * like ?per_page=24 don't matter; links to other hosts never match).
+     */
     public function is_current(): bool
     {
-        return rtrim($this->link(), '/') === rtrim(\home_url(\add_query_arg([])), '/');
+        $link = \wp_parse_url($this->link());
+        $host = \wp_parse_url(\home_url(), PHP_URL_HOST);
+        if (isset($link['host']) && $link['host'] !== $host) {
+            return false;
+        }
+
+        $current = (string) \wp_parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+
+        return \untrailingslashit($link['path'] ?? '/') === \untrailingslashit($current);
     }
 
     public function is_current_ancestor(): bool

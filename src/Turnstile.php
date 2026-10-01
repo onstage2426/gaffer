@@ -53,29 +53,23 @@ final class Turnstile
         return (string) (Config::get('turnstile.secret_constant') ?? 'TURNSTILE_SECRET_KEY');
     }
 
-    /** @param array<string, string> $fields */
-    public static function log_spam(string $log_name, array $fields): void
+    /**
+     * Logs a rejected submission to storage/logs/spam.log: time, form and
+     * reason only. No names, emails or IPs (personal data).
+     */
+    public static function log_spam(string $form, string $reason): void
     {
-        $log_dir  = Paths::storage() . '/logs';
-        $log_file = $log_dir . '/' . $log_name . '.log';
+        $dir = Paths::storage() . '/logs';
 
-        if (!is_dir($log_dir)) {
-            wp_mkdir_p($log_dir);
-            file_put_contents($log_dir . '/.htaccess', "Deny from all\n");
+        if (!is_dir($dir)) {
+            wp_mkdir_p($dir);
+            file_put_contents("{$dir}/.htaccess", "Require all denied\n");
         }
 
-        $parts = array_map(
-            static fn(string $k, string $v): string => $k . '=' . $v,
-            array_keys($fields),
-            array_values($fields),
-        );
-
-        $parts[] = 'ip=' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-
         file_put_contents(
-            $log_file,
-            sprintf("[%s] %s\n", date('Y-m-d H:i:s'), implode(' ', $parts)),
-            FILE_APPEND | LOCK_EX
+            "{$dir}/spam.log",
+            sprintf("[%s] %s %s\n", wp_date('Y-m-d H:i:s'), $form, $reason),
+            FILE_APPEND | LOCK_EX,
         );
     }
 }

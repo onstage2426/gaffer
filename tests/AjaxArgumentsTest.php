@@ -6,6 +6,10 @@ namespace Gaffer\Tests;
 
 use Gaffer\AjaxAction;
 use Gaffer\AjaxArguments;
+use Gaffer\AjaxNotFound;
+use Gaffer\Types\Image;
+use Gaffer\Types\Post;
+use Gaffer\Types\Term;
 use InvalidArgumentException;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -132,5 +136,66 @@ final class AjaxArgumentsTest extends TestCase
 
         $this->expectException(LogicException::class);
         AjaxArguments::resolve($action, []);
+    }
+
+    public function test_gaffer_types_are_accepted_as_parameters(): void
+    {
+        $action = new class extends AjaxAction {
+            public function run(Post $post, ?Term $term = null, ?Image $image = null): void {}
+        };
+
+        self::assertNull(AjaxArguments::problem(AjaxArguments::run_method($action)));
+    }
+
+    public function test_gaffer_types_are_not_allowed_under_shortinit(): void
+    {
+        $action = new class extends AjaxAction {
+            public const bool SHORTINIT = true;
+
+            public function run(Post $post): void {}
+        };
+
+        self::assertStringContainsString('SHORTINIT', (string) AjaxArguments::problem(AjaxArguments::run_method($action)));
+    }
+
+    public function test_shortinit_with_scalars_is_fine(): void
+    {
+        $action = new class extends AjaxAction {
+            public const bool SHORTINIT = true;
+
+            public function run(int $product_id): void {}
+        };
+
+        self::assertNull(AjaxArguments::problem(AjaxArguments::run_method($action)));
+    }
+
+    public function test_model_id_must_be_an_integer(): void
+    {
+        $action = new class extends AjaxAction {
+            public function run(Post $post): void {}
+        };
+
+        $this->expectException(InvalidArgumentException::class);
+        AjaxArguments::resolve($action, ['post' => 'abc']);
+    }
+
+    public function test_model_that_does_not_exist_is_not_found(): void
+    {
+        $action = new class extends AjaxAction {
+            public function run(Post $post): void {}
+        };
+
+        $this->expectException(AjaxNotFound::class);
+        AjaxArguments::resolve($action, ['post' => '999']);
+    }
+
+    public function test_nullable_model_empty_or_missing_is_null(): void
+    {
+        $action = new class extends AjaxAction {
+            public function run(?Term $term = null, ?Post $post = null): void {}
+        };
+
+        self::assertSame(['term' => null], AjaxArguments::resolve($action, ['term' => '']));
+        self::assertSame([], AjaxArguments::resolve($action, []));
     }
 }

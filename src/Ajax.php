@@ -63,14 +63,13 @@ class Ajax
             exit();
         }
 
-        $instance = new $class();
-
-        if ($instance->method !== $method) {
+        if ($class::METHOD !== $method) {
             http_response_code(405);
             exit();
         }
 
-        if ($instance->shortinit) {
+        $shortinit = $class::SHORTINIT;
+        if ($shortinit) {
             define('SHORTINIT', true);
         }
 
@@ -78,21 +77,26 @@ class Ajax
         // SHORTINIT never loads the theme, so only Twig is set up here.
         require_once Paths::wordpress() . '/wp-load.php';
 
-        if ($instance->shortinit) {
+        if ($shortinit) {
             Gaffer::twig();
         }
 
         $input = $method === 'POST' ? $_POST : $_GET;
 
         // wp-load.php runs wp_magic_quotes(), except under SHORTINIT
-        if (!$instance->shortinit) {
+        if (!$shortinit) {
             $input = \wp_unslash($input);
         }
+
+        $instance = new $class();
 
         try {
             $args = AjaxArguments::resolve($instance, $input);
         } catch (InvalidArgumentException) {
             http_response_code(400);
+            exit();
+        } catch (AjaxNotFound) {
+            http_response_code(404);
             exit();
         } catch (LogicException $e) {
             error_log('Gaffer Ajax: ' . $e->getMessage());

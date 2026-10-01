@@ -6,56 +6,71 @@ namespace Gaffer\Facades;
 
 class Paths
 {
-    public static function views(): string
+    private static ?string $base = null;
+
+    public static function set_base(string $dir): void
     {
-        return Config::get('path.views') ?? self::base('views');
+        self::$base = rtrim($dir, '/');
     }
 
+    /**
+     * Theme root, or a path inside it.
+     */
+    public static function base(string $path = ''): string
+    {
+        if (self::$base === null) {
+            throw new \LogicException('Gaffer::configure() or Gaffer::boot() has not run yet.');
+        }
+
+        return $path === '' ? self::$base : self::$base . '/' . ltrim($path, '/');
+    }
+
+    public static function views(): string
+    {
+        return self::from_config('views', 'views');
+    }
+
+    /** @return array<string, string> */
     public static function view_namespaces(): array
     {
-        return Config::get('path.view_namespaces') ?? [];
+        return array_map(self::resolve(...), Config::get('path.view_namespaces') ?? []);
     }
 
     public static function includes(): string
     {
-        return Config::get('path.includes') ?? self::base('inc');
+        return self::from_config('includes', 'inc');
     }
 
     public static function storage(): string
     {
-        return Config::get('path.storage') ?? self::base('storage');
+        return self::from_config('storage', 'storage');
     }
 
     public static function blocks(): string
     {
-        return Config::get('path.blocks') ?? self::base('blocks');
+        return self::from_config('blocks', 'blocks');
     }
 
     public static function ajax(): string
     {
-        return Config::get('path.ajax') ?? self::base('ajax');
+        return self::from_config('ajax', 'ajax');
     }
 
     public static function public(): string
     {
-        return Config::get('path.public') ?? self::base('public');
+        return self::from_config('public', 'public');
     }
 
-    private static function base(string $dir): string
+    private static function from_config(string $key, string $default): string
     {
-        // get_template_directory() doesn't exist yet when Gaffer::boot() runs via Composer's
-        // "files" autoload before wp-load.php (e.g. the ajax/SHORTINIT dispatch path), so it
-        // can't be the primary source. Prefer a BS_TEMPLATE_DIR constant if the consuming
-        // theme's bootstrap defines one (a plain define(), safe in every request context,
-        // including SHORTINIT) — we can't require themes define it, so fall back to the WP
-        // function when available, and last-resort guess the theme root from this package's
-        // own vendor install depth otherwise.
-        $theme = match (true) {
-            defined('BS_TEMPLATE_DIR') => BS_TEMPLATE_DIR,
-            function_exists('get_template_directory') => \get_template_directory(),
-            default => dirname(__DIR__, 5),
-        };
+        return self::resolve(Config::get("path.{$key}") ?? $default);
+    }
 
-        return "{$theme}/{$dir}";
+    /**
+     * Config paths are relative to the theme root; absolute paths are kept as-is.
+     */
+    private static function resolve(string $path): string
+    {
+        return str_starts_with($path, '/') ? rtrim($path, '/') : self::base($path);
     }
 }

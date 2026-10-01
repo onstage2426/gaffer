@@ -10,12 +10,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | Directory Twig templates are loaded from, registered under the main
-    | filesystem loader namespace. Defaults to "views" under the theme root
-    | (BS_TEMPLATE_DIR if bootstrap.php defines it, else get_template_directory()).
+    | filesystem loader namespace. Defaults to "views".
+    |
+    | All paths in this file are relative to the theme root (the directory
+    | passed to Gaffer::boot()). Absolute paths are used as-is.
     |
     */
 
-    // 'views' => BS_TEMPLATE_DIR . '/views',
+    // 'views' => 'views',
 
     /*
     |--------------------------------------------------------------------------
@@ -29,8 +31,8 @@ return [
     */
 
     // 'view_namespaces' => [
-    //     'block' => BS_TEMPLATE_DIR . '/blocks',
-    //     'ajax' => BS_TEMPLATE_DIR . '/ajax',
+    //     'block' => 'blocks',
+    //     'ajax' => 'ajax',
     // ],
 
     /*
@@ -39,11 +41,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Directory of plain PHP files auto-included on boot (flat files, plus
-    | one level of subdirectories). Defaults to "inc" under the theme root.
+    | one level of subdirectories). Defaults to "inc".
     |
     */
 
-    // 'includes' => BS_TEMPLATE_DIR . '/inc',
+    // 'includes' => 'inc',
 
     /*
     |--------------------------------------------------------------------------
@@ -51,12 +53,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Writable runtime directory used for ACF JSON sync ("acf-json"),
-    | compiled Twig cache ("cache/views"), and logs. Defaults to "storage"
-    | under the theme root.
+    | compiled Twig cache ("cache/views"), and logs. Defaults to "storage".
     |
     */
 
-    // 'storage' => BS_TEMPLATE_DIR . '/storage',
+    // 'storage' => 'storage',
 
     /*
     |--------------------------------------------------------------------------
@@ -64,11 +65,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Directory scanned for "*block.json" files, each registered as a block
-    | type on boot. Defaults to "blocks" under the theme root.
+    | type on boot. Defaults to "blocks".
     |
     */
 
-    // 'blocks' => BS_TEMPLATE_DIR . '/blocks',
+    // 'blocks' => 'blocks',
 
     /*
     |--------------------------------------------------------------------------
@@ -76,11 +77,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Directory Ajax::boot() dispatches actions from, expecting each action
-    | at "{action}/{action}.php". Defaults to "ajax" under the theme root.
+    | at "{action}/{action}.php". Defaults to "ajax".
     |
     */
 
-    // 'ajax' => BS_TEMPLATE_DIR . '/ajax',
+    // 'ajax' => 'ajax',
 
     /*
     |--------------------------------------------------------------------------
@@ -88,10 +89,10 @@ return [
     |--------------------------------------------------------------------------
     |
     | Directory Vite's build output (and manifest.json/hotfile) is read
-    | from. Defaults to "public" under the theme root.
+    | from. Defaults to "public".
     |
     */
 
-    // 'public' => BS_TEMPLATE_DIR . '/public',
+    // 'public' => 'public',
 
 ];

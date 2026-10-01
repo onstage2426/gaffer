@@ -10,10 +10,6 @@ class BlocksBootstrapper
 
     public function boot(): void
     {
-        if (!function_exists('register_block_type')) {
-            return;
-        }
-
         foreach (glob("{$this->dir}/*/block.json") ?: [] as $block) {
             register_block_type($block);
         }

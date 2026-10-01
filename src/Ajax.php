@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
-use Gaffer\Bootstrap\IncludesBootstrapper;
 use Gaffer\Facades\Config;
 use Gaffer\Facades\Paths;
 
 class Ajax
 {
-    public static function boot(): void
+    public static function boot(string $dir): void
     {
+        Gaffer::configure($dir);
+
         self::handle(Paths::ajax(), (string) (Config::get('theme.ajax_namespace') ?? 'Theme\\Ajax'));
     }
 
@@ -65,10 +66,12 @@ class Ajax
             define('SHORTINIT', true);
         }
 
+        // A full load runs the theme's functions.php, which calls Gaffer::boot().
+        // SHORTINIT never loads the theme, so only Twig is set up here.
         require_once $_SERVER['DOCUMENT_ROOT'] . '/wp-load.php';
 
-        if (!$instance->shortinit) {
-            new IncludesBootstrapper(Paths::includes())->boot();
+        if ($instance->shortinit) {
+            Gaffer::twig();
         }
 
         $input = $method === 'POST' ? $_POST : $_GET;

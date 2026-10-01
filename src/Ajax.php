@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
-use Gaffer\Facades\Config;
-use Gaffer\Facades\Paths;
+use Gaffer\Config;
+use Gaffer\Paths;
 
 class Ajax
 {
@@ -14,6 +14,14 @@ class Ajax
         Gaffer::configure($dir);
 
         self::handle(Paths::ajax(), (string) (Config::get('theme.ajax_namespace') ?? 'Theme\\Ajax'));
+    }
+
+    /**
+     * Public URL of an ajax action, e.g. Ajax::url('CartAdd').
+     */
+    public static function url(string $action): string
+    {
+        return \get_template_directory_uri() . '/ajax.php?action=' . rawurlencode($action);
     }
 
     public static function handle(string $dir, string $namespace): void

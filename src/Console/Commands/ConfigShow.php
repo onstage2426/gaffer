@@ -7,7 +7,7 @@ namespace Gaffer\Console\Commands;
 use Closure;
 use Gaffer\Console\Command;
 use Gaffer\Console\ConfigStubs;
-use Gaffer\Facades\Config;
+use Gaffer\Config;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;

@@ -8,8 +8,8 @@ use Gaffer\Bootstrap\AcfBootstrapper;
 use Gaffer\Bootstrap\BlocksBootstrapper;
 use Gaffer\Bootstrap\IncludesBootstrapper;
 use Gaffer\Bootstrap\TwigBootstrapper;
-use Gaffer\Facades\Config;
-use Gaffer\Facades\Paths;
+use Gaffer\Config;
+use Gaffer\Paths;
 use Twig\Loader\FilesystemLoader;
 
 class Gaffer

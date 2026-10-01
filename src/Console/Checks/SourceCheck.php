@@ -6,8 +6,8 @@ namespace Gaffer\Console\Checks;
 
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
-use Gaffer\Facades\Config;
-use Gaffer\Facades\Paths;
+use Gaffer\Config;
+use Gaffer\Paths;
 
 /**
  * Line-level scans of the theme's PHP and Twig: hardcoded IDs, uploads paths, |raw.

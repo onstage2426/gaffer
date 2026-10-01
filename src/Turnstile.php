@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Facades;
+namespace Gaffer;
 
 final class Turnstile
 {
@@ -53,6 +53,7 @@ final class Turnstile
         return (string) (Config::get('turnstile.secret_constant') ?? 'TURNSTILE_SECRET_KEY');
     }
 
+    /** @param array<string, string> $fields */
     public static function log_spam(string $log_name, array $fields): void
     {
         $log_dir  = Paths::storage() . '/logs';

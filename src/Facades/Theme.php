@@ -9,6 +9,7 @@ use WP_Post_Type;
 use WP_Taxonomy;
 use WP_Term;
 
+use Gaffer\Config;
 use Gaffer\TypeResolver;
 use Gaffer\Types\Attachment;
 use Gaffer\Types\Image;
@@ -20,53 +21,11 @@ use Gaffer\Types\Taxonomy;
 use Gaffer\Types\Pagination;
 use Gaffer\Types\Video;
 
+/**
+ * Temporary: lookups only, replaced by the type factories in the next overhaul phase.
+ */
 class Theme
 {
-    private static array $shared = [];
-    private static array $resolved = [];
-
-    public static function share(string $key, mixed $value): void
-    {
-        self::$shared[$key] = $value;
-        unset(self::$resolved[$key]);
-    }
-
-    public static function reset(): void
-    {
-        self::$shared   = [];
-        self::$resolved = [];
-    }
-
-    public static function render(string|array $name, array $data = []): void
-    {
-        foreach (self::$shared as $key => $value) {
-            if (!array_key_exists($key, self::$resolved)) {
-                self::$resolved[$key] = $value instanceof \Closure ? $value() : $value;
-            }
-        }
-        $shared = self::$resolved;
-
-        $context = apply_filters('Theme/ViewData', [
-            ...$shared,
-            ...apply_filters('Theme/ViewDataStatic', []),
-            ...$data,
-        ]);
-
-        $env = Twig::env();
-
-        if (is_array($name)) {
-            foreach ($name as $template) {
-                if ($env->getLoader()->exists($template)) {
-                    echo $env->render($template, $context);
-                    return;
-                }
-            }
-            return;
-        }
-
-        echo $env->render($name, $context);
-    }
-
     public static function get_menu(int|string $menu): ?Menu
     {
         return Menu::from($menu);
@@ -154,17 +113,6 @@ class Theme
         $attachment = $fallback ? self::get_attachment((int) $fallback) : null;
 
         return $attachment instanceof Image ? $attachment : null;
-    }
-
-    public static function field_array(string $selector, int|string|null $post_id = null): array
-    {
-        if (!function_exists('get_field')) {
-            return [];
-        }
-
-        $value = get_field($selector, $post_id);
-
-        return is_array($value) ? $value : [];
     }
 
     public static function get_pagination(): ?Pagination

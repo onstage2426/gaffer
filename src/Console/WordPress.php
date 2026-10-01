@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gaffer\Console;
 
-use Gaffer\Facades\Config;
-use Gaffer\Facades\Paths;
+use Gaffer\Config;
+use Gaffer\Paths;
 use Gaffer\Gaffer;
 use RuntimeException;
 

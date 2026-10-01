@@ -6,8 +6,8 @@ namespace Gaffer\Console\Checks;
 
 use Closure;
 use Gaffer\Console\Report;
-use Gaffer\Facades\Config;
-use Gaffer\Facades\Paths;
+use Gaffer\Config;
+use Gaffer\Paths;
 use Gaffer\Facades\Theme;
 use Gaffer\Types\Image;
 use WP_Block_Type_Registry;

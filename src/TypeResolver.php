@@ -6,7 +6,7 @@ namespace Gaffer;
 
 use WP_Post;
 use WP_Term;
-use Gaffer\Facades\Config;
+use Gaffer\Config;
 use Gaffer\Types\Post;
 use Gaffer\Types\Term;
 

@@ -6,8 +6,8 @@ namespace Gaffer\Console\Checks;
 
 use Gaffer\AjaxAction;
 use Gaffer\Console\Report;
-use Gaffer\Facades\Config;
-use Gaffer\Facades\Paths;
+use Gaffer\Config;
+use Gaffer\Paths;
 use Throwable;
 
 /**

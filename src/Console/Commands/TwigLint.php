@@ -7,8 +7,8 @@ namespace Gaffer\Console\Commands;
 use Gaffer\Console\Command;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
-use Gaffer\Facades\Paths;
-use Gaffer\Facades\Twig;
+use Gaffer\Paths;
+use Gaffer\View;
 use Gaffer\Gaffer;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -32,7 +32,7 @@ final class TwigLint extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         Gaffer::twig();
-        $env = Twig::env();
+        $env = View::env();
         $report = new Report();
 
         $only = $input->getArgument('path');

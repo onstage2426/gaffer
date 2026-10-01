@@ -6,7 +6,7 @@ namespace Gaffer\Console\Commands;
 
 use FilesystemIterator;
 use Gaffer\Console\Command;
-use Gaffer\Facades\Paths;
+use Gaffer\Paths;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Symfony\Component\Console\Attribute\AsCommand;

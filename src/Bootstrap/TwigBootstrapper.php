@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Gaffer\Bootstrap;
 
-use Gaffer\Facades\Config;
-use Gaffer\Facades\Paths;
-use Gaffer\Facades\Twig;
-use Gaffer\Twig\ThemeExtension;
+use Gaffer\Config;
+use Gaffer\Paths;
+use Gaffer\View;
+use Gaffer\Twig\Extension;
 use Twig\Environment;
 use Twig\Extension\AttributeExtension;
 use Twig\Extension\DebugExtension;
@@ -41,13 +41,13 @@ class TwigBootstrapper
             $twig->addExtension(new DebugExtension());
         }
 
-        $twig->addExtension(new AttributeExtension(ThemeExtension::class));
+        $twig->addExtension(new AttributeExtension(Extension::class));
         $twig->addExtension(new StringExtension());
 
         foreach (Config::get('theme.twig_extensions') ?? [] as $class) {
             $twig->addExtension(new AttributeExtension($class));
         }
 
-        Twig::set($twig);
+        View::set_env($twig);
     }
 }

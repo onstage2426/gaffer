@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Checks;
 
 use Gaffer\Console\Report;
-use Gaffer\Facades\Paths;
+use Gaffer\Paths;
 
 /**
  * ACF local JSON parses, and block location rules point at blocks that exist.

@@ -6,8 +6,8 @@ namespace Gaffer\Console\Commands;
 
 use Gaffer\Console\Command;
 use Gaffer\Console\WordPress;
-use Gaffer\Facades\Paths;
-use Gaffer\Facades\Twig;
+use Gaffer\Paths;
+use Gaffer\View;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -60,7 +60,7 @@ final class DoctorRender extends Command
         $_SERVER['REQUEST_URI'] = $path;
         define('WP_USE_THEMES', true);
         WordPress::load($input->getOption('url'));
-        Twig::env()->enableStrictVariables();
+        View::env()->enableStrictVariables();
 
         add_filter('wp_redirect', function (string $location): string {
             $this->result['status'] = 'redirect';

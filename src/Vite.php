@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Facades;
+namespace Gaffer;
 
 class Vite
 {
+    /** @var array<string, array<string, mixed>>|null */
     protected static ?array $manifest = null;
     protected static string $dev_url;
     protected static ?bool $dev_mode = null;
@@ -58,6 +59,7 @@ class Vite
         return $asset_path ? filemtime($asset_path) : null;
     }
 
+    /** @return array<string, array<string, mixed>> */
     public static function manifest(): array
     {
         if (self::$manifest === null) {
@@ -92,6 +94,7 @@ class Vite
         return $theme_uri . substr($public_path, strlen($theme_dir));
     }
 
+    /** @param list<string> $assets */
     public static function tags(array $assets): void
     {
         $is_dev     = self::is_dev_asset();

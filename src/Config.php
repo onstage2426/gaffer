@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Gaffer\Facades;
+namespace Gaffer;
 
 class Config
 {
-    protected static array $config;
+    /** @var array<string, array<string, mixed>> */
+    protected static array $config = [];
 
     public static function load(string $dir): void
     {

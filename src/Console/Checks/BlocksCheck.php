@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Checks;
 
 use Gaffer\Console\Report;
-use Gaffer\Facades\Paths;
+use Gaffer\Paths;
 
 /**
  * Each block: block.json + functions.php + {dir}.twig, name = acf/ + kebab-case of the

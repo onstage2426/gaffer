@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console;
 
 use FilesystemIterator;
-use Gaffer\Facades\Paths;
+use Gaffer\Paths;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;

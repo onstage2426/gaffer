@@ -55,13 +55,16 @@ final class AdminBar
             'meta' => ['title' => $status['reason']],
         ]);
 
-        foreach (self::lines($twig, $environment, $status['reason']) as $id => $text) {
-            $bar->add_node(['parent' => 'gaffer', 'id' => "gaffer-{$id}", 'title' => \esc_html($text)]);
+        foreach (self::sections($twig, $environment, $status['reason']) as $section => $lines) {
+            $bar->add_group(['parent' => 'gaffer', 'id' => "gaffer-{$section}"]);
+            foreach ($lines as $id => $text) {
+                $bar->add_node(['parent' => "gaffer-{$section}", 'id' => "gaffer-{$id}", 'title' => \esc_html($text)]);
+            }
         }
 
         if (TwigCache::enabled()) {
             $bar->add_node([
-                'parent' => 'gaffer',
+                'parent' => 'gaffer-twig',
                 'id' => 'gaffer-clear',
                 'title' => 'Clear Twig cache',
                 'href' => \wp_nonce_url(\admin_url('admin-post.php?action=' . self::CLEAR_ACTION), self::CLEAR_ACTION),
@@ -70,9 +73,11 @@ final class AdminBar
     }
 
     /**
-     * @return array<string, string>
+     * The dropdown, in sections (each rendered as its own group with a divider).
+     *
+     * @return array<string, array<string, string>>
      */
-    private static function lines(Environment $twig, string $environment, string $reason): array
+    private static function sections(Environment $twig, string $environment, string $reason): array
     {
         $on = static fn(bool $value): string => $value ? 'on' : 'off';
 
@@ -83,13 +88,21 @@ final class AdminBar
         }
 
         return [
-            'status' => "Status: {$reason}",
-            'environment' => "Environment: {$environment}",
-            'version' => 'Gaffer ' . Gaffer::version(),
-            'twig' => 'Twig ' . Environment::VERSION,
-            'cache' => "Twig cache: {$cache}",
-            'debug' => 'Debug: ' . $on($twig->isDebug()) . ', strict variables: ' . $on($twig->isStrictVariables()) . ', auto-reload: ' . $on($twig->isAutoReload()),
-            'vite' => 'Vite: ' . (Vite::is_dev_mode() ? 'dev server' : 'built assets'),
+            'site' => [
+                'status' => "Status: {$reason}",
+                'environment' => "Environment: {$environment}",
+            ],
+            'versions' => [
+                'version' => 'Gaffer ' . Gaffer::version(),
+                'twig-version' => 'Twig ' . Environment::VERSION,
+            ],
+            'twig' => [
+                'cache' => "Twig cache: {$cache}",
+                'debug' => 'Debug: ' . $on($twig->isDebug()) . ', strict variables: ' . $on($twig->isStrictVariables()) . ', auto-reload: ' . $on($twig->isAutoReload()),
+            ],
+            'assets' => [
+                'vite' => 'Vite: ' . (Vite::is_dev_mode() ? 'dev server' : 'built assets'),
+            ],
         ];
     }
 
@@ -118,6 +131,7 @@ final class AdminBar
             #wp-admin-bar-gaffer .gaffer-dot--green { background: #00a32a; }
             #wp-admin-bar-gaffer .gaffer-dot--orange { background: #dba617; }
             #wp-admin-bar-gaffer .gaffer-dot--red { background: #d63638; }
+            #wp-admin-bar-gaffer .ab-submenu + .ab-submenu { border-top: 1px solid rgba(240, 246, 252, 0.15); }
         </style>
         HTML;
     }

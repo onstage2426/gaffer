@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
-use Composer\InstalledVersions;
 use Gaffer\Twig\Extension;
 use Twig\Environment;
 use Twig\Extension\AttributeExtension;
@@ -89,17 +88,25 @@ class Gaffer
     }
 
     /**
-     * Installed Gaffer version, e.g. "0.x-dev @ 1a2b3c4".
+     * Installed Gaffer version, e.g. "0.x-dev @ 1a2b3c4", or "dev" when Gaffer
+     * isn't installed as a Composer dependency (its own repository).
+     *
+     * Reads the theme's vendor/composer/installed.php directly: plugins bundle
+     * their own copy of Composer\InstalledVersions, and whichever loads first
+     * may not know the theme's packages.
      */
     public static function version(): string
     {
-        if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled('onstage2426/gaffer')) {
+        $installed = dirname(__DIR__, 3) . '/composer/installed.php';
+        $package = is_file($installed) ? ((require $installed)['versions']['onstage2426/gaffer'] ?? null) : null;
+
+        if (!is_array($package)) {
             return 'dev';
         }
 
-        $reference = InstalledVersions::getReference('onstage2426/gaffer');
+        $reference = (string) ($package['reference'] ?? '');
 
-        return InstalledVersions::getPrettyVersion('onstage2426/gaffer') . ($reference ? ' @ ' . substr($reference, 0, 7) : '');
+        return ($package['pretty_version'] ?? 'unknown') . ($reference !== '' ? ' @ ' . substr($reference, 0, 7) : '');
     }
 
     /**

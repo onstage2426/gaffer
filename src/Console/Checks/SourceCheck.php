@@ -15,8 +15,8 @@ use Gaffer\Paths;
 final class SourceCheck implements Check
 {
     private const array PATTERNS = [
-        'php' => '/\b(?:get_menu|get_image|get_attachment|get_post|get_term|Menu::from)\(\s*\d+\s*[,)]/',
-        'twig' => '/\b(?:menu|get_image|get_post|get_term)\(\s*\d+\s*[,)]/',
+        'php' => '/\b(?:[A-Z]\w*::from|get_post|get_term|wp_get_nav_menu_items)\(\s*\d+\s*[,)]/',
+        'twig' => '/\bwp\.ID\s*==\s*\d+|\bid\(\)\s*==\s*\d+/',
     ];
 
     #[\Override]

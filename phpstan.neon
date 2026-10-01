@@ -7,3 +7,6 @@ parameters:
     paths:
         - src
         - tests
+    excludePaths:
+        - tests/stubs
+        - tests/bootstrap.php

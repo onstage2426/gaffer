@@ -4,207 +4,192 @@ declare(strict_types=1);
 
 namespace Gaffer\Types;
 
+use Gaffer\Config;
 use WP_Post;
 
-use Gaffer\Facades\Theme;
-use Gaffer\TypeResolver;
-use Gaffer\Types\Image;
-use Gaffer\Types\PostType;
-
-class Post extends Model
+/**
+ * A post of any type, wrapping its WP_Post. Raw fields live on `wp`
+ * (`$post->wp->post_name`, `post.wp.post_name`); methods only exist where they
+ * add something (filters, URLs, related objects).
+ *
+ * `theme.types` maps post types to subclasses, so Post::from() can return e.g.
+ * a theme's Product. Attachments become Attachment or Image.
+ */
+class Post
 {
-    protected string $permalink;
-    public int $ID;
-    public string $post_author;
-    public string $post_title;
-    public string $post_excerpt;
-    public string $post_content;
-    public string $post_date;
-    public string $post_date_gmt;
-    public string $post_status;
-    public string $comment_status;
-    public string $ping_status;
-    public string $post_password;
-    public string $post_name;
-    public string $to_ping;
-    public string $pinged;
-    public string $post_modified;
-    public string $post_modified_gmt;
-    public string $post_content_filtered;
-    public int $post_parent;
-    public string $guid;
-    public int $menu_order;
-    public string $post_type;
-    public string $post_mime_type;
-    public string $comment_count;
-    public string $filter;
+    private ?string $link = null;
 
-    public static function build(WP_Post $wp_post): static
+    protected function __construct(public readonly WP_Post $wp) {}
+
+    /**
+     * The post with this ID, as its mapped class. Null when it doesn't exist,
+     * or when called on a subclass (Product::from()) and the post isn't one.
+     */
+    public static function from(int $id): ?static
     {
-        $post = new static();
-        $post->ID = $wp_post->ID;
-        $post->import($wp_post);
-        return $post;
+        $wp = $id > 0 ? \get_post($id) : null;
+
+        return $wp instanceof WP_Post ? self::narrow(self::wrap($wp)) : null;
     }
 
-    public static function from(WP_Post|int|null $data): ?Post
+    /**
+     * The current post (the loop's post, or the queried singular post).
+     */
+    public static function current(): ?static
     {
-        if (is_int($data)) {
-            $data = \get_post($data);
-        }
+        $wp = \get_post();
 
-        return TypeResolver::post($data instanceof WP_Post ? $data : null);
+        return $wp instanceof WP_Post ? self::narrow(self::wrap($wp)) : null;
+    }
+
+    /**
+     * Posts from get_posts($args). On a subclass, only posts of that class.
+     *
+     * @param array<string, mixed> $args
+     * @return list<static>
+     */
+    public static function query(array $args): array
+    {
+        unset($args['fields']);
+
+        return self::wrap_all(\get_posts($args));
+    }
+
+    /**
+     * The main query's posts (archives, search results).
+     *
+     * @return list<static>
+     */
+    public static function main_query(): array
+    {
+        global $wp_query;
+
+        return self::wrap_all($wp_query->posts ?? []);
     }
 
     public function id(): int
     {
-        return $this->ID;
+        return $this->wp->ID;
     }
 
     public function title(): string
     {
-        return \apply_filters("the_title", $this->post_title, $this->ID);
-    }
-
-    public function content(): string
-    {
-        return \apply_filters("the_content", $this->post_content);
-    }
-
-    public function blocks(): array
-    {
-        return array_values(array_filter(
-            \parse_blocks($this->post_content),
-            fn(array $block): bool => $block["blockName"] !== null,
-        ));
-    }
-
-    public function first_block_name(): ?string
-    {
-        return $this->blocks()[0]["blockName"] ?? null;
+        return \apply_filters('the_title', $this->wp->post_title, $this->wp->ID);
     }
 
     public function link(): string
     {
-        if (isset($this->permalink)) {
-            return $this->permalink;
-        }
-        $link = \get_permalink($this->ID);
-        return $this->permalink = $link !== false ? $link : '';
+        return $this->link ??= (\get_permalink($this->wp) ?: '');
     }
 
-    public function thumbnail_id(): int
+    public function content(): string
     {
-        return (int) $this->meta("_thumbnail_id");
+        return \apply_filters('the_content', $this->wp->post_content);
     }
 
-    public function thumbnail(): ?Image
+    public function excerpt(): string
     {
-        return Theme::get_image($this->thumbnail_id());
+        return \get_the_excerpt($this->wp);
     }
 
-    public function tags(): array
+    public function date(?string $format = null): string
     {
-        return $this->terms("post_tag");
+        return (string) \get_the_date($format ?? '', $this->wp);
     }
 
-    public function categories(): array
+    public function modified_date(?string $format = null): string
     {
-        return $this->terms("category");
-    }
-
-    public function terms(string|array $taxonomy): array
-    {
-        return array_map(
-            Theme::get_term(...),
-            \wp_get_object_terms($this->id(), $taxonomy),
-        );
-    }
-
-    public function taxonomies(): array
-    {
-        return \get_post_taxonomies($this->id());
-    }
-
-    public function post_type(): string
-    {
-        return $this->post_type;
-    }
-
-    public function post_type_object(): ?PostType
-    {
-        return PostType::from_name($this->post_type());
-    }
-
-    public function timestamp(): int|false
-    {
-        return \get_post_timestamp($this->ID);
-    }
-
-    public function modified_timestamp(): int|false
-    {
-        return \get_post_timestamp($this->ID, "modified");
-    }
-
-    public function date(?string $date_format = null): string|false
-    {
-        $format = $date_format ?: \get_option("date_format");
-
-        $date = \wp_date($format, $this->timestamp());
-
-        return \apply_filters("get_the_date", $date, $date_format, $this->ID);
-    }
-
-    public function modified_date(?string $date_format = null): string|false
-    {
-        $format = $date_format ?: \get_option("date_format");
-        $date   = \wp_date($format, $this->modified_timestamp());
-        return \apply_filters("get_the_modified_date", $date, $date_format, $this->ID);
+        return (string) \get_the_modified_date($format ?? '', $this->wp);
     }
 
     public function parent(): ?Post
     {
-        if (0 === $this->post_parent) {
-            return null;
-        }
-
-        return Post::from($this->post_parent);
+        return self::from($this->wp->post_parent);
     }
 
+    /** @return list<Post> */
     public function children(): array
     {
-        return Theme::get_posts(
-            [
-                "numberposts" => -1,
-                "post_type" => $this->post_type,
-                "post_status" => "publish",
-                "post_parent" => $this->ID,
-            ]
-        );
+        return self::query([
+            'post_type' => $this->wp->post_type,
+            'post_parent' => $this->wp->ID,
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'orderby' => 'menu_order',
+            'order' => 'ASC',
+        ]);
     }
 
-    public function comment_count(): int
+    /** @return list<Term> */
+    public function terms(string $taxonomy): array
     {
-        return (int) \get_comments_number($this->ID);
+        $terms = \get_the_terms($this->wp, $taxonomy);
+
+        return is_array($terms)
+            ? array_values(array_filter(array_map(static fn(\WP_Term $t): ?Term => Term::from($t->term_id), $terms)))
+            : [];
     }
 
-    public function status(): string
+    /**
+     * Parsed blocks, without the empty "null" blocks between them.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function blocks(): array
     {
-        return $this->post_status;
+        return array_values(array_filter(
+            \parse_blocks($this->wp->post_content),
+            static fn(array $block): bool => $block['blockName'] !== null,
+        ));
     }
 
-    public function mime(): string
+    public function meta(string $key): mixed
     {
-        return $this->post_mime_type;
+        return \get_post_meta($this->wp->ID, $key, true);
     }
 
-    public function meta(string $key = ""): mixed
+    public function thumbnail(): ?Image
     {
-        return \get_post_meta($this->ID, $key, "" !== $key);
+        return Image::from((int) \get_post_thumbnail_id($this->wp));
     }
 
-    public function current(): bool
+    public function is_current(): bool
     {
-        return $this->ID === get_the_ID();
+        return $this->wp->ID === \get_the_ID();
+    }
+
+    /**
+     * The class for a WP_Post: attachments by mime type, everything else via theme.types.
+     */
+    private static function wrap(WP_Post $wp): Post
+    {
+        $class = match (true) {
+            $wp->post_type === 'attachment' => str_starts_with($wp->post_mime_type, 'image/') ? Image::class : Attachment::class,
+            default => (Config::get('theme.types') ?? [])[$wp->post_type] ?? Post::class,
+        };
+
+        return new $class($wp);
+    }
+
+    /**
+     * @param array<mixed> $posts
+     * @return list<static>
+     */
+    private static function wrap_all(array $posts): array
+    {
+        $wrapped = [];
+        foreach ($posts as $wp) {
+            $post = $wp instanceof WP_Post ? self::narrow(self::wrap($wp)) : null;
+            if ($post !== null) {
+                $wrapped[] = $post;
+            }
+        }
+
+        return $wrapped;
+    }
+
+    private static function narrow(Post $post): ?static
+    {
+        return $post instanceof static ? $post : null;
     }
 }

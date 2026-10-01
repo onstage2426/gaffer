@@ -19,7 +19,7 @@ final class Image extends Attachment
      */
     public function attrs(string $size = "full"): Markup
     {
-        $img = \wp_get_attachment_image_src($this->ID, $size);
+        $img = \wp_get_attachment_image_src($this->wp->ID, $size);
 
         if (!is_array($img)) {
             return new Markup("", "UTF-8");
@@ -29,10 +29,10 @@ final class Image extends Attachment
 
         $attrs = ["src" => \esc_url($src)];
 
-        $srcset = \wp_get_attachment_image_srcset($this->ID, $size);
+        $srcset = \wp_get_attachment_image_srcset($this->wp->ID, $size);
         if ($srcset) {
             $attrs["srcset"] = \esc_attr($srcset);
-            $sizes = \wp_get_attachment_image_sizes($this->ID, $size);
+            $sizes = \wp_get_attachment_image_sizes($this->wp->ID, $size);
             if ($sizes) {
                 $attrs["sizes"] = \esc_attr("auto, " . $sizes);
             }
@@ -54,23 +54,16 @@ final class Image extends Attachment
         return new Markup($html, "UTF-8");
     }
 
-    #[\Override]
     public function src(string $size = "full"): string
     {
-        $img = \wp_get_attachment_image_src($this->ID, $size);
+        $img = \wp_get_attachment_image_src($this->wp->ID, $size);
 
         return is_array($img) ? $img[0] : "";
     }
 
     public function file(): string
     {
-        return \get_attached_file($this->ID) ?: '';
-    }
-
-    public function file_contents(): string
-    {
-        $path = $this->file();
-        return $path !== '' ? (file_get_contents($path) ?: '') : '';
+        return \get_attached_file($this->wp->ID) ?: '';
     }
 
     public function width(): int
@@ -90,6 +83,7 @@ final class Image extends Attachment
         return $this->meta("_wp_attachment_image_alt");
     }
 
+    /** @return list<string> generated size names */
     public function sizes(): array
     {
         $sizes = $this->data("sizes");

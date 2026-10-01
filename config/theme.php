@@ -62,29 +62,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Image Fallback
+    | Post Type Classes
     |--------------------------------------------------------------------------
     |
-    | Attachment ID used by Theme::get_image() when a given (truthy) image
-    | ID doesn't resolve to a valid image. A falsy id passed in still
-    | returns null without consulting this fallback. Unset means no fallback.
-    |
-    | May be a closure, called only when the fallback is needed (so it can
-    | use WordPress functions even though config loads before WordPress in
-    | ajax.php), e.g. WooCommerce's placeholder:
-    | fn() => (int) get_option('woocommerce_placeholder_image')
-    |
-    */
-
-    // 'image_fallback' => 0,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Post Type Model Overrides
-    |--------------------------------------------------------------------------
-    |
-    | Map of post_type => FQCN, letting TypeResolver build a custom Post
-    | subclass for a given post type instead of the base Gaffer\Types\Post.
+    | Map of post_type => class (a subclass of Gaffer\Types\Post). Post::from()
+    | and the other Post factories return that class for posts of that type.
     |
     */
 
@@ -94,11 +76,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Taxonomy Model Overrides
+    | Taxonomy Classes
     |--------------------------------------------------------------------------
     |
-    | Map of taxonomy => FQCN, letting TypeResolver build a custom Term
-    | subclass for a given taxonomy instead of the base Gaffer\Types\Term.
+    | Map of taxonomy => class (a subclass of Gaffer\Types\Term). Term::from()
+    | and the other Term factories return that class for terms of that taxonomy.
     |
     */
 

@@ -4,116 +4,119 @@ declare(strict_types=1);
 
 namespace Gaffer\Types;
 
+use Gaffer\Config;
 use WP_Term;
-use Gaffer\Facades\Theme;
-use Gaffer\TypeResolver;
-use Gaffer\Types\Image;
 
-class Term extends Model
+/**
+ * A taxonomy term, wrapping its WP_Term (`$term->wp->slug`, `term.wp.slug`).
+ * `theme.terms` maps taxonomies to subclasses.
+ */
+class Term
 {
+    private ?string $link = null;
 
-    protected string $permalink;
-    public int $term_id;
-    public string $name;
-    public string $slug;
-    public int $term_group;
-    public int $term_taxonomy_id;
-    public string $taxonomy;
-    public string $description;
-    public int $parent;
-    public int $count;
-    public string $filter;
+    protected function __construct(public readonly WP_Term $wp) {}
 
-    public static function build(WP_Term $wp_term): static
+    /**
+     * The term with this ID, as its mapped class. Null when it doesn't exist,
+     * or when called on a subclass and the term isn't one.
+     */
+    public static function from(int $id): ?static
     {
-        $term = new static();
-        $term->import($wp_term);
-        return $term;
+        $wp = $id > 0 ? \get_term($id) : null;
+
+        return $wp instanceof WP_Term ? self::narrow(self::wrap($wp)) : null;
     }
 
-    public static function from_id(int $id): ?Term
+    /**
+     * The queried term (taxonomy archives).
+     */
+    public static function current(): ?static
     {
-        $term = \get_term($id);
-        return TypeResolver::term($term instanceof WP_Term ? $term : null);
+        $wp = \get_queried_object();
+
+        return $wp instanceof WP_Term ? self::narrow(self::wrap($wp)) : null;
     }
 
-    public static function from(mixed $data): ?Term
+    /**
+     * Terms from get_terms($args). On a subclass, only terms of that class.
+     *
+     * @param array<string, mixed> $args
+     * @return list<static>
+     */
+    public static function query(array $args): array
     {
-        return match(true) {
-            is_int($data)            => static::from_id($data),
-            $data instanceof WP_Term => TypeResolver::term($data),
-            default                  => null,
-        };
+        unset($args['fields']);
+        $terms = \get_terms($args);
+
+        $wrapped = [];
+        foreach (is_array($terms) ? $terms : [] as $wp) {
+            $term = $wp instanceof WP_Term ? self::narrow(self::wrap($wp)) : null;
+            if ($term !== null) {
+                $wrapped[] = $term;
+            }
+        }
+
+        return $wrapped;
     }
 
     public function id(): int
     {
-        return $this->term_id;
+        return $this->wp->term_id;
     }
 
     public function title(): string
     {
-        return $this->name;
-    }
-
-    public function slug(): string
-    {
-        return $this->slug;
-    }
-
-    public function description(): string
-    {
-        return \term_description($this->term_id);
+        return $this->wp->name;
     }
 
     public function link(): string
     {
-        if (isset($this->permalink)) {
-            return $this->permalink;
+        if ($this->link === null) {
+            $link = \get_term_link($this->wp);
+            $this->link = is_string($link) ? $link : '';
         }
-        $link = \get_term_link($this->term_id);
-        return $this->permalink = \is_wp_error($link) ? '' : $link;
+
+        return $this->link;
     }
 
-    public function thumbnail_id(): int
+    public function description(): string
     {
-        return (int) $this->meta("thumbnail_id");
-    }
-
-    public function thumbnail(): ?Image
-    {
-        return Theme::get_image($this->thumbnail_id());
-    }
-
-    public function taxonomy(): string
-    {
-        return $this->taxonomy;
-    }
-
-    public function parent_id(): int
-    {
-        return $this->parent;
+        return \term_description($this->wp->term_id);
     }
 
     public function parent(): ?Term
     {
-        $parent_id = $this->parent_id();
-
-        if (0 === $parent_id) {
-            return null;
-        }
-
-        return static::from_id($parent_id);
+        return self::from($this->wp->parent);
     }
 
+    /** @return list<Term> */
     public function children(): array
     {
-        $children = \get_term_children($this->id(), $this->taxonomy());
-        return is_array($children) ? array_map(Theme::get_term(...), $children) : [];
+        $ids = \get_term_children($this->wp->term_id, $this->wp->taxonomy);
+
+        return is_array($ids) ? array_values(array_filter(array_map(self::from(...), $ids))) : [];
     }
 
-    public function meta(string $key = ""): mixed
+    public function meta(string $key): mixed
     {
-        return \get_term_meta($this->term_id, $key, "" !== $key);
+        return \get_term_meta($this->wp->term_id, $key, true);
+    }
+
+    public function thumbnail(): ?Image
+    {
+        return Image::from((int) $this->meta('thumbnail_id'));
+    }
+
+    private static function wrap(WP_Term $wp): Term
+    {
+        $class = (Config::get('theme.terms') ?? [])[$wp->taxonomy] ?? Term::class;
+
+        return new $class($wp);
+    }
+
+    private static function narrow(Term $term): ?static
+    {
+        return $term instanceof static ? $term : null;
     }
 }

@@ -6,69 +6,60 @@ namespace Gaffer\Types;
 
 use WP_Post;
 
-class Menu
+/**
+ * A nav menu as a tree of MenuItems, looked up by menu location.
+ */
+final class Menu
 {
-    /** @var MenuItem[] */
-    private array $items;
+    /** @param list<MenuItem> $items */
+    private function __construct(private readonly array $items) {}
 
-    private function __construct(array $items)
+    /**
+     * The menu assigned to a registered location. Null when the location has
+     * no menu, or the menu is empty.
+     */
+    public static function location(string $location): ?Menu
     {
-        $this->items = $items;
+        $menu = \get_nav_menu_locations()[$location] ?? 0;
+        $items = $menu ? \wp_get_nav_menu_items($menu) : false;
+
+        return is_array($items) && $items !== [] ? new self(self::build_tree($items)) : null;
     }
 
-    public static function from(int|string $menu): ?Menu
-    {
-        if (is_string($menu)) {
-            $locations = \get_nav_menu_locations();
-            if (isset($locations[$menu])) {
-                $menu = $locations[$menu];
-            }
-        }
-
-        $items = \wp_get_nav_menu_items($menu) ?: [];
-
-        if (empty($items)) {
-            return null;
-        }
-
-        return new self(self::build_tree($items));
-    }
-
-    /** @return MenuItem[] */
+    /** @return list<MenuItem> */
     public function items(): array
     {
         return $this->items;
     }
 
-    /** @param WP_Post[] $items */
-    private static function build_tree(array $items): array
+    /**
+     * @param array<WP_Post> $wp_items
+     * @return list<MenuItem>
+     */
+    private static function build_tree(array $wp_items): array
     {
-        $indexed = [];
-
-        foreach ($items as $item) {
-            $indexed[$item->ID] = MenuItem::build($item);
+        $items = [];
+        foreach ($wp_items as $wp) {
+            $items[$wp->ID] = new MenuItem($wp);
         }
 
         $tree = [];
-
-        foreach ($indexed as $item) {
+        foreach ($items as $item) {
             $parent = $item->parent_id();
-            if ($parent > 0 && isset($indexed[$parent])) {
-                $indexed[$parent]->add_child($item);
+            if ($parent > 0 && isset($items[$parent])) {
+                $items[$parent]->add_child($item);
             } else {
                 $tree[] = $item;
             }
         }
 
-        // Walk up from each current item to mark ancestors.
-        foreach ($indexed as $item) {
+        // Mark every ancestor of the current item.
+        foreach ($items as $item) {
             if (!$item->is_current()) {
                 continue;
             }
-            $parent_id = $item->parent_id();
-            while ($parent_id > 0 && isset($indexed[$parent_id])) {
-                $indexed[$parent_id]->current_item_ancestor = true;
-                $parent_id = $indexed[$parent_id]->parent_id();
+            for ($parent = $item->parent_id(); $parent > 0 && isset($items[$parent]); $parent = $items[$parent]->parent_id()) {
+                $items[$parent]->mark_current_ancestor();
             }
         }
 

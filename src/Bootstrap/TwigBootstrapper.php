@@ -16,6 +16,7 @@ use Twig\Loader\FilesystemLoader;
 
 class TwigBootstrapper
 {
+    /** @param array<string, string> $paths Twig namespace => directory */
     public function __construct(private readonly array $paths) {}
 
     public function boot(): void

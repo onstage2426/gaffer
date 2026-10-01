@@ -8,7 +8,6 @@ use Closure;
 use Gaffer\Console\Report;
 use Gaffer\Config;
 use Gaffer\Paths;
-use Gaffer\Facades\Theme;
 use Gaffer\Types\Image;
 use WP_Block_Type_Registry;
 
@@ -24,7 +23,6 @@ final class WordPressCheck implements Check
         $this->blocks($report);
         $this->acf_sync($report);
         $this->menus($report);
-        $this->image_fallback($report);
     }
 
     private function blocks(Report $report): void
@@ -97,19 +95,6 @@ final class WordPressCheck implements Check
             } elseif (!wp_get_nav_menu_object($menu)) {
                 $report->error('wp', "Menu location \"{$location}\" points at menu {$menu}, which doesn't exist");
             }
-        }
-    }
-
-    private function image_fallback(Report $report): void
-    {
-        $fallback = Config::get('theme.image_fallback');
-        if ($fallback === null) {
-            return;
-        }
-
-        $id = (int) ($fallback instanceof Closure ? $fallback() : $fallback);
-        if (!Theme::get_attachment($id) instanceof Image) {
-            $report->error('wp', "theme.image_fallback resolves to {$id}, which is not an image attachment", Paths::base('config/theme.php'));
         }
     }
 }

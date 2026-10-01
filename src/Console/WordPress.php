@@ -7,7 +7,6 @@ namespace Gaffer\Console;
 use Gaffer\Config;
 use Gaffer\Paths;
 use Gaffer\Gaffer;
-use RuntimeException;
 
 /**
  * Loads WordPress for CLI commands, once.
@@ -34,7 +33,7 @@ final class WordPress
         // WordPress reads $table_prefix as a global, so bind it before loading.
         global $table_prefix;
 
-        require_once self::find_wp_load();
+        require_once Paths::wordpress() . '/wp-load.php';
 
         // functions.php boots Gaffer when this theme is active; this covers the case
         // where it isn't (and is a no-op otherwise).
@@ -60,16 +59,5 @@ final class WordPress
         $_SERVER['SERVER_NAME'] ??= 'localhost';
         $_SERVER['REQUEST_URI'] ??= '/';
         $_SERVER['REQUEST_METHOD'] ??= 'GET';
-    }
-
-    private static function find_wp_load(): string
-    {
-        for ($dir = Paths::base(); $dir !== dirname($dir); $dir = dirname($dir)) {
-            if (is_file("{$dir}/wp-load.php")) {
-                return "{$dir}/wp-load.php";
-            }
-        }
-
-        throw new RuntimeException('wp-load.php not found in any parent directory of ' . Paths::base());
     }
 }

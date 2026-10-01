@@ -25,6 +25,21 @@ final class PathsTest extends TestCase
         self::assertSame(self::THEME . '/views/x.svg', Paths::base('/views/x.svg'));
     }
 
+    public function test_wordpress_root_is_found_above_the_theme(): void
+    {
+        Paths::set_base(__DIR__ . '/fixtures/site/wp-content/themes/demo');
+
+        self::assertSame(__DIR__ . '/fixtures/site', Paths::wordpress());
+    }
+
+    public function test_wordpress_root_missing_throws(): void
+    {
+        Paths::set_base(self::THEME);
+
+        $this->expectException(\RuntimeException::class);
+        Paths::wordpress();
+    }
+
     public function test_defaults_without_config(): void
     {
         Paths::set_base(self::THEME);

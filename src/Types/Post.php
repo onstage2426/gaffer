@@ -115,8 +115,7 @@ class Post
             'post_parent' => $this->wp->ID,
             'post_status' => 'publish',
             'numberposts' => -1,
-            'orderby' => 'menu_order',
-            'order' => 'ASC',
+            'orderby' => ['menu_order' => 'ASC', 'title' => 'ASC'],
         ]);
     }
 

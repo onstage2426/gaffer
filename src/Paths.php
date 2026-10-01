@@ -8,9 +8,12 @@ class Paths
 {
     private static ?string $base = null;
 
+    private static ?string $wordpress = null;
+
     public static function set_base(string $dir): void
     {
         self::$base = rtrim($dir, '/');
+        self::$wordpress = null;
     }
 
     /**
@@ -44,6 +47,25 @@ class Paths
     public static function storage(): string
     {
         return self::from_config('storage', 'storage');
+    }
+
+    /**
+     * The WordPress root (the directory with wp-load.php), found by walking up
+     * from the theme. Used by ajax.php and the CLI to load WordPress.
+     */
+    public static function wordpress(): string
+    {
+        if (self::$wordpress !== null) {
+            return self::$wordpress;
+        }
+
+        for ($dir = self::base(); $dir !== dirname($dir); $dir = dirname($dir)) {
+            if (is_file("{$dir}/wp-load.php")) {
+                return self::$wordpress = $dir;
+            }
+        }
+
+        throw new \RuntimeException('wp-load.php not found in any parent directory of ' . self::base());
     }
 
     /**

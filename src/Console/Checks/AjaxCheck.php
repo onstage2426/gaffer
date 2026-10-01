@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Checks;
 
 use Gaffer\AjaxAction;
+use Gaffer\AjaxArguments;
 use Gaffer\Console\Report;
 use Gaffer\Config;
 use Gaffer\Paths;
@@ -12,7 +13,8 @@ use Throwable;
 
 /**
  * Each ajax/{Name}/{Name}.php defines {ajax_namespace}\{Name}\{Name} extending AjaxAction,
- * with a GET or POST method. Loads the files the same way the dispatcher does.
+ * with a GET or POST method and a run() Gaffer can fill. Loads the files the same
+ * way the dispatcher does.
  */
 final class AjaxCheck implements Check
 {
@@ -46,9 +48,17 @@ final class AjaxCheck implements Check
                 continue;
             }
 
-            $method = new $class()->method;
-            if (!in_array($method, ['GET', 'POST'], true)) {
-                $report->error('ajax', "\$method is \"{$method}\"; the dispatcher only accepts GET or POST", $file);
+            $instance = new $class();
+            if (!in_array($instance->method, ['GET', 'POST'], true)) {
+                $report->error('ajax', "\$method is \"{$instance->method}\"; the dispatcher only accepts GET or POST", $file);
+            }
+
+            $problem = method_exists($instance, 'run')
+                ? AjaxArguments::problem(AjaxArguments::run_method($instance))
+                : "{$class} has no run() method";
+            if ($problem !== null) {
+                $report->error('ajax', $problem, $file, null,
+                    'run() parameters are the request keys: typed string, int, float, bool or array; no default = required.');
             }
         }
     }

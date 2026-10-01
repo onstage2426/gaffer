@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
-use Gaffer\Config;
-use Gaffer\Paths;
+use InvalidArgumentException;
+use LogicException;
 
 class Ajax
 {
@@ -76,7 +76,7 @@ class Ajax
 
         // A full load runs the theme's functions.php, which calls Gaffer::boot().
         // SHORTINIT never loads the theme, so only Twig is set up here.
-        require_once $_SERVER['DOCUMENT_ROOT'] . '/wp-load.php';
+        require_once Paths::wordpress() . '/wp-load.php';
 
         if ($instance->shortinit) {
             Gaffer::twig();
@@ -89,19 +89,17 @@ class Ajax
             $input = \wp_unslash($input);
         }
 
-        $data = [];
-        foreach ($instance->arguments() as $key => $default) {
-            if (!array_key_exists($key, $input)) {
-                if ($default === null) {
-                    http_response_code(400);
-                    exit();
-                }
-                $data[$key] = $default;
-            } else {
-                $data[$key] = $input[$key];
-            }
+        try {
+            $args = AjaxArguments::resolve($instance, $input);
+        } catch (InvalidArgumentException) {
+            http_response_code(400);
+            exit();
+        } catch (LogicException $e) {
+            error_log('Gaffer Ajax: ' . $e->getMessage());
+            http_response_code(500);
+            exit();
         }
 
-        $instance->run($data);
+        AjaxArguments::run_method($instance)->invokeArgs($instance, $args);
     }
 }

@@ -6,6 +6,8 @@ namespace Gaffer\Tests;
 
 use Gaffer\Paths;
 use LogicException;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use RuntimeException;
 
 final class PathsTest extends TestCase
 {
@@ -25,6 +27,31 @@ final class PathsTest extends TestCase
         self::assertSame(self::THEME . '/views/x.svg', Paths::base('/views/x.svg'));
     }
 
+    public function test_the_layout_is_fixed(): void
+    {
+        Paths::set_base(self::THEME);
+
+        self::assertSame(self::THEME . '/views', Paths::views());
+        self::assertSame(self::THEME . '/inc', Paths::includes());
+        self::assertSame(self::THEME . '/blocks', Paths::blocks());
+        self::assertSame(self::THEME . '/ajax', Paths::ajax());
+        self::assertSame(self::THEME . '/public', Paths::public());
+        self::assertSame(self::THEME . '/storage', Paths::storage());
+        self::assertSame(self::THEME . '/storage/cache/views', Paths::twig_cache());
+        self::assertSame(['block' => self::THEME . '/blocks', 'ajax' => self::THEME . '/ajax'], Paths::view_namespaces());
+    }
+
+    #[RunInSeparateProcess]
+    public function test_storage_can_be_moved_by_the_server(): void
+    {
+        define('GAFFER_STORAGE', '/var/lib/site-storage/');
+        Paths::set_base(self::THEME);
+
+        self::assertSame('/var/lib/site-storage', Paths::storage());
+        self::assertSame('/var/lib/site-storage/cache/views', Paths::twig_cache());
+        self::assertSame(self::THEME . '/blocks', Paths::blocks());
+    }
+
     public function test_wordpress_root_is_found_above_the_theme(): void
     {
         Paths::set_base(__DIR__ . '/fixtures/site/wp-content/themes/demo');
@@ -36,32 +63,7 @@ final class PathsTest extends TestCase
     {
         Paths::set_base(self::THEME);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         Paths::wordpress();
-    }
-
-    public function test_defaults_without_config(): void
-    {
-        Paths::set_base(self::THEME);
-
-        self::assertSame(self::THEME . '/views', Paths::views());
-        self::assertSame(self::THEME . '/inc', Paths::includes());
-        self::assertSame(self::THEME . '/blocks', Paths::blocks());
-        self::assertSame(self::THEME . '/ajax', Paths::ajax());
-        self::assertSame(self::THEME . '/storage/cache/views', Paths::twig_cache());
-        self::assertSame([], Paths::view_namespaces());
-    }
-
-    public function test_config_paths_are_relative_to_the_theme_unless_absolute(): void
-    {
-        self::boot_fixture();
-
-        self::assertSame(self::THEME . '/var/storage', Paths::storage());
-        self::assertSame(self::THEME . '/var/storage/cache/views', Paths::twig_cache());
-        self::assertSame('/srv/elsewhere/public', Paths::public());
-        self::assertSame(
-            ['block' => self::THEME . '/blocks', 'abs' => '/srv/elsewhere/views'],
-            Paths::view_namespaces(),
-        );
     }
 }

@@ -12,7 +12,7 @@ final class ConfigTest extends TestCase
     {
         self::boot_fixture();
 
-        self::assertSame(['path', 'theme'], array_keys(Config::all()));
+        self::assertSame(['theme'], array_keys(Config::all()));
     }
 
     public function test_dot_notation(): void

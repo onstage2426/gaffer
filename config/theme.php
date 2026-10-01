@@ -47,21 +47,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Ajax Namespace
-    |--------------------------------------------------------------------------
-    |
-    | Namespace prefix an ajax "{action}" name is resolved against, i.e.
-    | "{namespace}\{action}\{action}". Purely a resolution string, not a real
-    | PSR-4 root (Ajax::handle() require_once's the file directly), so it's
-    | safe to leave at the default unless it collides with an existing class.
-    | Defaults to "Theme\Ajax".
-    |
-    */
-
-    // 'ajax_namespace' => 'Theme\\Ajax',
-
-    /*
-    |--------------------------------------------------------------------------
     | Post Type Classes
     |--------------------------------------------------------------------------
     |

@@ -9,11 +9,14 @@ use LogicException;
 
 class Ajax
 {
+    /** Actions are {NAMESPACE}\{Name}\{Name} in ajax/{Name}/{Name}.php. */
+    public const string NAMESPACE = 'Theme\\Ajax';
+
     public static function boot(string $dir): void
     {
         Gaffer::configure($dir);
 
-        self::handle(Paths::ajax(), (string) (Config::get('theme.ajax_namespace') ?? 'Theme\\Ajax'));
+        self::handle(Paths::ajax(), self::NAMESPACE);
     }
 
     /**

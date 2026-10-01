@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Checks;
 
+use Gaffer\Ajax;
 use Gaffer\AjaxAction;
 use Gaffer\AjaxArguments;
 use Gaffer\Console\Report;
-use Gaffer\Config;
 use Gaffer\Paths;
 use Throwable;
 
 /**
- * Each ajax/{Name}/{Name}.php defines {ajax_namespace}\{Name}\{Name} extending AjaxAction,
+ * Each ajax/{Name}/{Name}.php defines Theme\Ajax\{Name}\{Name} extending AjaxAction,
  * with a GET or POST METHOD and a run() Gaffer can fill, and warns about SHORTINIT
  * actions using things SHORTINIT doesn't load. Loads the files the same way the
  * dispatcher does.
@@ -23,7 +23,7 @@ final class AjaxCheck implements Check
     public function run(Report $report): void
     {
         $dir = Paths::ajax();
-        $namespace = (string) (Config::get('theme.ajax_namespace') ?? 'Theme\\Ajax');
+        $namespace = Ajax::NAMESPACE;
         $files = glob("{$dir}/*/*.php") ?: [];
 
         // Support files (traits, helpers) first, like Ajax::handle().

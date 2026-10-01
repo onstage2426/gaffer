@@ -15,7 +15,7 @@ final class ConfigStubsTest extends TestCase
 
         self::assertContains('debug', $keys['theme']);
         self::assertContains('twig_extensions', $keys['theme']);
-        self::assertContains('view_namespaces', $keys['path']);
+        self::assertArrayNotHasKey('path', $keys);
         self::assertContains('site_key', $keys['turnstile']);
         self::assertContains('url', $keys['console']);
     }
@@ -25,7 +25,7 @@ final class ConfigStubsTest extends TestCase
     {
         yield 'substring' => ['extensions', 'twig_extensions'];
         yield 'one letter missing' => ['debg', 'debug'];
-        yield 'swapped letters' => ['ajax_nmaespace', 'ajax_namespace'];
+        yield 'swapped letters' => ['twig_extensoins', 'twig_extensions'];
         yield 'nothing close' => ['completely_unrelated', null];
     }
 

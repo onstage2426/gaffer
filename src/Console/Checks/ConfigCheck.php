@@ -21,8 +21,13 @@ final class ConfigCheck implements Check
     {
         $stubs = ConfigStubs::keys();
 
+        if (Config::get('path') !== null) {
+            $report->error('config', 'config/path.php is no longer used: the theme layout is fixed', Paths::base('config/path.php'), null,
+                'Delete it. Move any folder it pointed elsewhere back to views/, inc/, blocks/, ajax/ or public/; storage can be moved with GAFFER_STORAGE in wp-config.php.');
+        }
+
         foreach (Config::all() as $file => $values) {
-            if (!isset($stubs[$file])) {
+            if (!isset($stubs[$file]) || $file === 'path') {
                 continue; // the theme's own config file
             }
             foreach (array_keys($values) as $key) {

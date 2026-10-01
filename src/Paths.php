@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
-class Paths
+/**
+ * The theme's fixed layout: views/, inc/, blocks/, ajax/, public/, storage/.
+ */
+final class Paths
 {
     private static ?string $base = null;
 
@@ -30,23 +33,55 @@ class Paths
 
     public static function views(): string
     {
-        return self::from_config('views', 'views');
-    }
-
-    /** @return array<string, string> */
-    public static function view_namespaces(): array
-    {
-        return array_map(self::resolve(...), Config::get('path.view_namespaces') ?? []);
+        return self::base('views');
     }
 
     public static function includes(): string
     {
-        return self::from_config('includes', 'inc');
+        return self::base('inc');
     }
 
+    public static function blocks(): string
+    {
+        return self::base('blocks');
+    }
+
+    public static function ajax(): string
+    {
+        return self::base('ajax');
+    }
+
+    public static function public(): string
+    {
+        return self::base('public');
+    }
+
+    /**
+     * Twig namespaces next to views/: `@block/x/x.twig` and `@ajax/X/x.twig`.
+     *
+     * @return array<string, string>
+     */
+    public static function view_namespaces(): array
+    {
+        return ['block' => self::blocks(), 'ajax' => self::ajax()];
+    }
+
+    /**
+     * Writable runtime files: Twig cache, ACF JSON, logs. storage/ in the theme,
+     * unless the server defines GAFFER_STORAGE in wp-config.php (e.g. when the
+     * theme directory isn't writable).
+     */
     public static function storage(): string
     {
-        return self::from_config('storage', 'storage');
+        return defined('GAFFER_STORAGE') ? rtrim((string) constant('GAFFER_STORAGE'), '/') : self::base('storage');
+    }
+
+    /**
+     * Compiled Twig templates (when theme.cache is on).
+     */
+    public static function twig_cache(): string
+    {
+        return self::storage() . '/cache/views';
     }
 
     /**
@@ -66,41 +101,5 @@ class Paths
         }
 
         throw new \RuntimeException('wp-load.php not found in any parent directory of ' . self::base());
-    }
-
-    /**
-     * Compiled Twig templates (when theme.cache is on).
-     */
-    public static function twig_cache(): string
-    {
-        return self::storage() . '/cache/views';
-    }
-
-    public static function blocks(): string
-    {
-        return self::from_config('blocks', 'blocks');
-    }
-
-    public static function ajax(): string
-    {
-        return self::from_config('ajax', 'ajax');
-    }
-
-    public static function public(): string
-    {
-        return self::from_config('public', 'public');
-    }
-
-    private static function from_config(string $key, string $default): string
-    {
-        return self::resolve(Config::get("path.{$key}") ?? $default);
-    }
-
-    /**
-     * Config paths are relative to the theme root; absolute paths are kept as-is.
-     */
-    private static function resolve(string $path): string
-    {
-        return str_starts_with($path, '/') ? rtrim($path, '/') : self::base($path);
     }
 }

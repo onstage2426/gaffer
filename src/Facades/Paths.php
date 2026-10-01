@@ -46,6 +46,14 @@ class Paths
         return self::from_config('storage', 'storage');
     }
 
+    /**
+     * Compiled Twig templates (when theme.cache is on).
+     */
+    public static function twig_cache(): string
+    {
+        return self::storage() . '/cache/views';
+    }
+
     public static function blocks(): string
     {
         return self::from_config('blocks', 'blocks');

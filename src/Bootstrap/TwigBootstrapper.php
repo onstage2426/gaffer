@@ -31,9 +31,7 @@ class TwigBootstrapper
         $debug = (bool) Config::get('theme.debug');
 
         $twig = new Environment($loader, [
-            'cache'     => Config::get('theme.cache')
-                ? Paths::storage() . '/cache/views'
-                : false,
+            'cache'     => Config::get('theme.cache') ? Paths::twig_cache() : false,
             'debug'     => $debug,
             'strict_variables' => $debug,
             'use_yield' => true,

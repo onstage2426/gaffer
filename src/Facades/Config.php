@@ -23,6 +23,12 @@ class Config
         self::$config = $config;
     }
 
+    /** @return array<string, array<string, mixed>> */
+    public static function all(): array
+    {
+        return self::$config;
+    }
+
     public static function get(string $key): mixed
     {
         $parts = explode(".", $key);

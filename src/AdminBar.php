@@ -84,9 +84,9 @@ final class AdminBar
 
         return [
             'status' => "Status: {$reason}",
+            'environment' => "Environment: {$environment}",
             'version' => 'Gaffer ' . Gaffer::version(),
             'twig' => 'Twig ' . Environment::VERSION,
-            'environment' => "Environment: {$environment}",
             'cache' => "Twig cache: {$cache}",
             'debug' => 'Debug: ' . $on($twig->isDebug()) . ', strict variables: ' . $on($twig->isStrictVariables()) . ', auto-reload: ' . $on($twig->isAutoReload()),
             'vite' => 'Vite: ' . (Vite::is_dev_mode() ? 'dev server' : 'built assets'),

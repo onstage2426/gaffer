@@ -7,6 +7,8 @@ namespace Gaffer\Tests;
 use Gaffer\Config;
 use Gaffer\Gaffer;
 use Gaffer\View;
+use Gaffer\Vite;
+use Gaffer\Console\Checks\AssetsCheck;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Checks\Check;
 use Gaffer\Console\Checks\ConfigCheck;
@@ -124,6 +126,31 @@ final class ChecksTest extends TestCase
             [['function', 'bs_helper()', 3], ['function', 'bs_guarded()', 4], ['class', 'Thing', 5], ['enum', 'Mode', 6]],
             IncCheck::declarations($code),
         );
+    }
+
+    public function test_assets_build_missing_stale_and_unknown_entries(): void
+    {
+        mkdir("{$this->theme}/assets/js", 0755, true);
+        file_put_contents("{$this->theme}/assets/js/app.js", '');
+        self::reset(Vite::class, 'manifest', null);
+        self::reset(Vite::class, 'dev_mode', null);
+        self::assertStringContainsString('No Vite build', $this->messages(new AssetsCheck()));
+
+        mkdir("{$this->theme}/public/.vite", 0755, true);
+        file_put_contents("{$this->theme}/public/.vite/manifest.json", '{"assets/js/app.js": {"file": "assets/app-1.js"}}');
+        touch("{$this->theme}/public/.vite/manifest.json", time() - 60);
+        file_put_contents("{$this->theme}/page.php", "<?php Vite::tags([\"assets/js/app.js\", 'assets/js/gone.js']);\n");
+        self::reset(Vite::class, 'manifest', null);
+
+        $messages = $this->messages(new AssetsCheck());
+        self::assertStringContainsString('older than its sources (assets/js/app.js', $messages);
+        self::assertStringContainsString('assets/js/gone.js is not a Vite entry', $messages);
+        self::assertStringNotContainsString('assets/js/app.js is not', $messages);
+
+        touch("{$this->theme}/public/.vite/hotfile");
+        self::reset(Vite::class, 'dev_mode', null);
+        self::assertSame('', $this->messages(new AssetsCheck())); // dev server running: not checked
+        self::reset(Vite::class, 'dev_mode', null);
     }
 
     private function messages(Check $check): string

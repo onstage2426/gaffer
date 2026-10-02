@@ -62,10 +62,3 @@
 - `|raw` only for HTML that is already trusted (WordPress content, notices);
   `doctor` counts it against `console.raw_baseline`.
 - Twig gotcha: `and` binds tighter than `or`; use parentheses.
-
-### Assets (Vite)
-
-Sources in `assets/`, built by Vite into `public/`. Never reference files in
-`public/` directly: use `Vite::tags([...])`, `Vite::url()`, `Vite::path()` or
-`Vite::css_url()`. While the Vite dev server runs, only administrators get
-dev-server assets; everyone else gets the build.

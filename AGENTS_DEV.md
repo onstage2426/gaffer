@@ -133,7 +133,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Templates` (template names, includes and variables from Twig's parse tree; used by `twig:lint`, `TemplatesCheck`, the reference), `Commands\*`, `Checks\*` (doctor) |
 | Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed), `Log` (`storage/logs/migrate.log`, JSON line per `--run` with outcome). Commands `migrate:block`, `migrate:field`, `migrate:remove-block`, `migrate:remove-field`, `migrate:rollback` (`MigrateCommand` base) |
-| (doctor) | `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
+| (doctor) | `Checks\AssetsCheck` (Vite build present, not older than `assets/`, `Vite::` entries in the manifest; skipped in dev mode), `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
 | AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code: config, Twig, types, ajax, blocks, views, `inc/` hooks by comment), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear` |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/`), `resources/ai/skills/{name}/SKILL.md`. Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
@@ -171,13 +171,13 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 ## Current state (2026-10-02)
 
 - **Pushed through `06d03c4`**; blueprint is on it. Unpushed: `inc/`
-  guideline (`resources/ai/guidelines/inc.md`), `IncCheck`, the hooks
-  reference. Blueprint already follows it (logic in `Theme\Cart`,
-  `Theme\Sitemap`; `inc/functions/` and `inc/shortcodes/` gone); only
-  `inc/rest/` still declares functions (forms round).
+  (guideline, `IncCheck`, hooks reference) and assets (`assets.md`
+  guideline, `AssetsCheck`). Blueprint follows both; its JS restructure
+  (components/, one `slider`) still needs a browser test (no browser on the
+  host: Chromium lacks system libraries; the Playwright image would work).
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
-- **Migration book:** 38 entries, for the user's two other sites (still on an
+- **Migration book:** 39 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
   (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).

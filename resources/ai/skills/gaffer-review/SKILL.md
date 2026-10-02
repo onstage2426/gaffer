@@ -27,5 +27,8 @@ description: Review changes in a Gaffer theme before calling them done - run the
    - `inc/`: only hook registrations, each with a `/* Area - what */`
      comment and typed closures; no functions or classes declared there
      (they go in `app/`).
+   - Assets: modules import what they use (globals only for HTML attributes,
+     with a comment); no hardcoded colours (theme tokens); custom CSS only
+     for markup the theme doesn't write or library state classes; built.
    - snake_case methods, explicit return types, no alias methods.
 3. Report what you checked and anything left over, plainly.

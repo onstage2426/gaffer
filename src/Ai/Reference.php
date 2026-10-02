@@ -7,6 +7,7 @@ namespace Gaffer\Ai;
 use Gaffer\Ajax;
 use Gaffer\AjaxAction;
 use Gaffer\AjaxArguments;
+use Gaffer\BlockFields;
 use Gaffer\Config;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\ConfigStubs;
@@ -145,19 +146,30 @@ final class Reference
     }
 
     /**
-     * ACF fields per block name, from the local JSON field groups.
+     * ACF fields per block name: blocks/*\/fields.php, plus local JSON field groups
+     * that target a block (themes that haven't moved those fields to code).
      *
      * @return array<string, list<string>>
      */
     private static function block_fields(): array
     {
-        $fields = [];
-
+        $groups = [];
+        foreach (glob(Paths::blocks() . '/*/fields.php') ?: [] as $file) {
+            try {
+                $groups[] = BlockFields::group(basename(dirname($file)));
+            } catch (\Throwable) {
+                continue; // doctor reports it
+            }
+        }
         foreach (glob(Paths::storage() . '/acf-json/group_*.json') ?: [] as $file) {
             $group = json_decode((string) file_get_contents($file), true);
-            if (!is_array($group)) {
-                continue;
+            if (is_array($group)) {
+                $groups[] = $group;
             }
+        }
+
+        $fields = [];
+        foreach ($groups as $group) {
             foreach ($group['location'] ?? [] as $or) {
                 foreach ($or as $rule) {
                     if (($rule['param'] ?? null) === 'block' && ($rule['operator'] ?? '==') === '==') {

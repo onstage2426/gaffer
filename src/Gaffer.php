@@ -134,12 +134,13 @@ class Gaffer
     }
 
     /**
-     * Every blocks/*\/block.json.
+     * Every blocks/*\/block.json, and their fields.php as ACF field groups.
      */
     private static function blocks(): void
     {
         foreach (glob(Paths::blocks() . '/*/block.json') ?: [] as $block) {
             register_block_type($block);
         }
+        add_action('acf/include_fields', BlockFields::register(...));
     }
 }

@@ -10,7 +10,7 @@ site-specific code.
   `inc/`, subclasses in `app/`).
 - **The layout is fixed:** `views/` (Twig), `blocks/` (ACF blocks), `ajax/`
   (ajax actions), `inc/` (hooks, auto-included), `app/` (`Theme\Types\`,
-  `Theme\Twig\`), `config/` (PHP arrays), `public/` (Vite build output),
+  `Theme\Twig\`, `Theme\Fields` for shared block fields), `config/` (PHP arrays), `public/` (Vite build output),
   `assets/` (sources), `storage/` (Twig cache, ACF JSON, logs; can be moved by
   the server with `GAFFER_STORAGE` in `wp-config.php`).
 - **Boot:** `functions.php` requires `vendor/autoload.php` and calls

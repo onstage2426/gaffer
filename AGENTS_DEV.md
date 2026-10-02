@@ -56,9 +56,7 @@ win for any class not loaded yet):
 require getenv('HOME') . '/workspace/gaffer/vendor/autoload.php';
 $theme = getenv('HOME') . '/docker/appdata/websites/blueprint/wp-content/themes/blueprint';
 spl_autoload_register(function ($c) use ($theme) {
-    foreach (['Theme\\Twig\\' => 'app/Twig/', 'Theme\\Types\\' => 'app/Types/'] as $ns => $dir) {
-        if (str_starts_with($c, $ns)) { $f = "$theme/$dir" . str_replace('\\', '/', substr($c, strlen($ns))) . '.php'; if (is_file($f)) require $f; }
-    }
+    if (str_starts_with($c, 'Theme\\')) { $f = "$theme/app/" . str_replace('\\', '/', substr($c, 6)) . '.php'; if (is_file($f)) require $f; }
 });
 $src = getenv('HOME') . '/workspace/gaffer/src';
 foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS)) as $f) {
@@ -122,7 +120,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Area | Files |
 |---|---|
 | Boot | `Gaffer::configure()` (theme root + config, no WordPress), `Gaffer::boot()` (Twig, `inc/`, ACF JSON path, blocks, admin bar), `Gaffer::twig()` (SHORTINIT), `Gaffer::version()` |
-| Static services | `Config`, `Paths` (fixed layout), `View` (render/fetch/share, owns the Twig env), `Acf`, `Vite`, `Turnstile`, `TwigCache`, `AdminBar` |
+| Static services | `Config`, `Paths` (fixed layout), `View` (render/fetch/share, owns the Twig env), `Acf`, `BlockFields` (`blocks/*/fields.php` → local ACF groups, derived keys), `Vite`, `Turnstile`, `TwigCache`, `AdminBar` |
 | Types | `Types\Post` (+ `Attachment`, `Image`), `Term`, `Menu`/`MenuItem`, `Pagination`. Wrap the WP object (`->wp`), protected constructors, factories `from(int)`, `current()`, `query()`. Class maps `theme.types` / `theme.terms` |
 | Ajax | `Ajax` (dispatcher, `url()`, `NAMESPACE`), `AjaxAction` (`METHOD`/`SHORTINIT` constants), `AjaxArguments` (typed `run()` params incl. route model binding), `AjaxNotFound` |
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
@@ -152,12 +150,14 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Current state (2026-10-02)
 
-- **Pushed through `dd54be5`**; blueprint is updated to it (`a3b6b04`).
-  Unpushed: the `ai:clear` commit. After the user pushes: in blueprint
-  `composer update onstage2426/gaffer`, `php gaffer ai:update`, commit
-  `composer.lock`. Suggested: add `"post-update-cmd": ["@php gaffer ai:update --ansi"]`
+- **Pushed through `0d5e6f1`** (`ai:clear`); blueprint's lock has it,
+  uncommitted. Unpushed: block fields in code (`BlockFields`). Blueprint already has
+  its `fields.php` files, `Theme\Fields` and migrated content (done with the
+  clone), uncommitted until the user pushes: then
+  `composer update onstage2426/gaffer`, `php gaffer ai:update`, check through
+  Apache, commit. Suggested: add `"post-update-cmd": ["@php gaffer ai:update --ansi"]`
   to blueprint's `composer.json` (not done yet).
-- **Migration book:** 32 entries, for the user's two other sites (still on an
+- **Migration book:** 33 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
   (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).

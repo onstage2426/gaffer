@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Checks;
 
+use Gaffer\BlockFields;
 use Gaffer\Console\Report;
 use Gaffer\Paths;
 
 /**
  * Each block: block.json + functions.php + {dir}.twig, name = acf/ + kebab-case of the
- * directory, a real description, and the is_admin() guard.
+ * directory, a real description, the is_admin() guard, and a valid fields.php if it has one.
  */
 final class BlocksCheck implements Check
 {
@@ -62,6 +63,14 @@ final class BlocksCheck implements Check
             if ($php !== '' && !preg_match('/if\s*\(\s*is_admin\(\)\s*\)\s*\{?\s*return/', $php)) {
                 $report->warning('blocks', 'No early `if (is_admin()) return;` guard', "{$dir}/functions.php", null,
                     'Blocks render nothing in the editor on purpose.');
+            }
+
+            if (is_file("{$dir}/fields.php")) {
+                try {
+                    BlockFields::group($block);
+                } catch (\Throwable $e) {
+                    $report->error('blocks', $e->getMessage(), "{$dir}/fields.php");
+                }
             }
         }
     }

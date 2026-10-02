@@ -17,6 +17,8 @@ description: Review changes in a Gaffer theme before calling them done - run the
    - Images use `{{ image.attrs(size) }}` inside a written `<img>` tag; no new
      `|raw` without a reason.
    - Ajax: typed `run()` parameters, correct `METHOD`, no manual casting.
-   - Blocks: `is_admin()` guard, name matches the directory.
+   - Blocks: `is_admin()` guard, name matches the directory, fields in
+     `fields.php` (no renamed field names or tab labels without a content
+     migration).
    - snake_case methods, explicit return types, no alias methods.
 3. Report what you checked and anything left over, plainly.

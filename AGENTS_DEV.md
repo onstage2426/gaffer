@@ -127,7 +127,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Ajax | `Ajax` (dispatcher, `url()`, `NAMESPACE`), `AjaxAction` (`METHOD`/`SHORTINIT` constants), `AjaxArguments` (typed `run()` params incl. route model binding), `AjaxNotFound` |
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Commands\*`, `Checks\*` (doctor) |
-| AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block). Commands `ai:install`, `ai:update` |
+| AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear` |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/`), `resources/ai/skills/{name}/SKILL.md`. Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
 | Tests | `tests/` (+ `tests/stubs/wordpress.php` for the few WP functions unit tests touch) |
@@ -152,13 +152,11 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Current state (2026-10-02)
 
-- **Unpushed on `0.x`** (as of writing): `f4b3340` (dev notes + skill),
-  `8db4756` (AI boost), and the `AGENTS_DEV.md` commit. After the user
-  pushes: in blueprint `composer update onstage2426/gaffer`, then
-  `php gaffer ai:update` (regenerates its gitignored `AGENTS.md`/`CLAUDE.md`/
-  skills from the installed Gaffer), then `twig:lint` + `doctor --wp`.
-  Suggested: add `"post-update-cmd": ["@php gaffer ai:update --ansi"]` to
-  blueprint's `composer.json` (not done yet).
+- **Pushed through `dd54be5`**; blueprint is updated to it (`a3b6b04`).
+  Unpushed: the `ai:clear` commit. After the user pushes: in blueprint
+  `composer update onstage2426/gaffer`, `php gaffer ai:update`, commit
+  `composer.lock`. Suggested: add `"post-update-cmd": ["@php gaffer ai:update --ansi"]`
+  to blueprint's `composer.json` (not done yet).
 - **Migration book:** 32 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
@@ -173,14 +171,6 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   reCAPTCHA provider for clients who want it), Gravity Forms form/field IDs to
   config, moving `inc/rest/` contact/newsletter into `ajax/` with a JSON
   response helper on `AjaxAction`.
-- **AI boost, small gap (do first):** when an agent is deselected,
-  `ai:install`/`ai:update` must remove that agent's generated output (the
-  marked block in its file, deleting the file if nothing else is left, and
-  skill dirs with the `.gaffer-generated` marker); today they stay on disk
-  while dropping out of the `.gitignore` block, so they'd become committable.
-  Same code gives a `php gaffer ai:clear` (all generated output; keeps `.ai/`,
-  `config/ai.php`, the `.gitignore` block and hand-written content). Agreed
-  with the user, not built yet.
 - **AI boost, next:** an MCP server (blocks + ACF fields, hooks, render a
   template, last error), more agent adapters when someone uses them (Cursor,
   Copilot, Gemini), maybe versioned plugin guidelines.

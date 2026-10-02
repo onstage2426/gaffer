@@ -134,6 +134,43 @@ final class AiTest extends TestCase
         self::assertStringNotContainsString('.grok', $ignore);
     }
 
+    public function test_deselected_agent_output_is_removed(): void
+    {
+        mkdir("{$this->theme}/.agents/skills/my-own", 0755, true);
+        file_put_contents("{$this->theme}/.agents/skills/my-own/SKILL.md", 'mine');
+        mkdir("{$this->theme}/.claude", 0755, true);
+        file_put_contents("{$this->theme}/.claude/settings.local.json", '{}');
+        Installer::update(['claude', 'codex', 'grok'], []);
+
+        $written = Installer::update(['codex'], []);
+
+        self::assertFileDoesNotExist("{$this->theme}/CLAUDE.md");
+        self::assertFileDoesNotExist("{$this->theme}/.claude/skills");   // emptied, so removed
+        self::assertFileExists("{$this->theme}/.claude/settings.local.json"); // not ours
+        self::assertFileDoesNotExist("{$this->theme}/.grok");             // emptied up to the theme root
+        self::assertFileExists("{$this->theme}/.agents/skills/gaffer-block/SKILL.md");
+        self::assertContains('removed CLAUDE.md', $written);
+    }
+
+    public function test_clear_removes_generated_output_only(): void
+    {
+        file_put_contents("{$this->theme}/CLAUDE.md", "# Hand-written notes\n");
+        mkdir("{$this->theme}/.claude/skills/my-own", 0755, true);
+        file_put_contents("{$this->theme}/.claude/skills/my-own/SKILL.md", 'mine');
+        Installer::update(['claude', 'codex'], []);
+
+        $removed = Installer::clear();
+
+        self::assertSame("My own notes above.\n\nAnd below.\n", file_get_contents("{$this->theme}/AGENTS.md"));
+        self::assertSame("# Hand-written notes\n", file_get_contents("{$this->theme}/CLAUDE.md"));
+        self::assertSame(['my-own'], array_values(array_diff((array) scandir("{$this->theme}/.claude/skills"), ['.', '..'])));
+        self::assertFileDoesNotExist("{$this->theme}/.agents");
+        self::assertFileExists("{$this->theme}/.ai/skills/site-deploy/SKILL.md");
+        self::assertStringContainsString('# gaffer:ai', (string) file_get_contents("{$this->theme}/.gitignore"));
+        self::assertSame([], Installer::clear());
+        self::assertCount(4, $removed);
+    }
+
     public function test_unknown_agent_is_rejected(): void
     {
         $this->expectException(InvalidArgumentException::class);

@@ -54,8 +54,8 @@ final class AiUpdate extends Command
             ]));
         }
 
-        foreach (Installer::update($agents, $plugins) as $path) {
-            $output->writeln("  wrote {$path}");
+        foreach (Installer::update($agents, $plugins) as $line) {
+            $output->writeln("  {$line}");
         }
         $output->writeln('Plugin guidelines: ' . ($plugins === [] ? 'none' : implode(', ', $plugins)) . '. These files are gitignored; regenerate after updating Gaffer.');
 

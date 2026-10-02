@@ -24,9 +24,11 @@ final class Installer
     private const string SKILL_MARKER = '.gaffer-generated';
 
     /**
+     * Writes the output for these agents and removes the output of every other agent.
+     *
      * @param list<string> $agent_names
      * @param list<string> $plugins
-     * @return list<string> files and directories written, relative to the theme
+     * @return list<string> what was written or removed ("wrote AGENTS.md"), paths relative to the theme
      */
     public static function update(array $agent_names, array $plugins): array
     {
@@ -35,14 +37,14 @@ final class Installer
 
         $kept = ' (kept its existing content above the generated block: move it to .ai/guidelines/)';
 
-        $written[] = 'AGENTS.md' . (self::write_marked('AGENTS.md', Guidelines::build($plugins)) ? $kept : '');
+        $written[] = 'wrote AGENTS.md' . (self::write_marked('AGENTS.md', Guidelines::build($plugins)) ? $kept : '');
 
         // AGENTS_DEV.md: hand-written notes for developing this theme itself (committed).
         $import = "@AGENTS.md\n" . (is_file(Paths::base('AGENTS_DEV.md')) ? "@AGENTS_DEV.md\n" : '');
 
         foreach ($agents as $agent) {
             if ($agent->file !== null) {
-                $written[] = $agent->file . (self::write_marked($agent->file, $import) ? $kept : '');
+                $written[] = "wrote {$agent->file}" . (self::write_marked($agent->file, $import) ? $kept : '');
             }
         }
 
@@ -50,13 +52,58 @@ final class Installer
         foreach ($agents as $agent) {
             if ($agent->skills !== null) {
                 self::write_skills($agent->skills, $skills);
-                $written[] = "{$agent->skills}/ (" . count($skills) . ' skills)';
+                $written[] = "wrote {$agent->skills}/ (" . count($skills) . ' skills)';
             }
+        }
+
+        // Deselected agents: their files would drop out of the .gitignore block and become committable.
+        foreach (array_diff_key(Agent::all(), array_flip($agent_names)) as $agent) {
+            array_push($written, ...self::remove_agent($agent));
         }
 
         self::gitignore($agents);
 
         return $written;
+    }
+
+    /**
+     * Removes all generated output: AGENTS.md's block and every agent's files and
+     * skills. Keeps .ai/, config/ai.php, the .gitignore block and hand-written content.
+     *
+     * @return list<string> what was removed, paths relative to the theme
+     */
+    public static function clear(): array
+    {
+        $removed = self::remove_marked('AGENTS.md');
+        foreach (Agent::all() as $agent) {
+            array_push($removed, ...self::remove_agent($agent));
+        }
+
+        return $removed;
+    }
+
+    /** @return list<string> */
+    private static function remove_agent(Agent $agent): array
+    {
+        $removed = $agent->file !== null ? self::remove_marked($agent->file) : [];
+
+        $target = $agent->skills !== null ? Paths::base($agent->skills) : null;
+        $markers = $target !== null ? glob("{$target}/*/" . self::SKILL_MARKER) ?: [] : [];
+        if ($target === null || $markers === []) {
+            return $removed;
+        }
+
+        foreach ($markers as $marker) {
+            self::remove(dirname($marker));
+        }
+        $removed[] = "removed {$agent->skills}/ (" . count($markers) . ' skills)';
+
+        // Empty directories left behind (.claude/skills, then .claude), never the theme itself.
+        for ($dir = $target; $dir !== Paths::base() && is_dir($dir) && (scandir($dir) ?: []) === ['.', '..']; $dir = dirname($dir)) {
+            rmdir($dir);
+        }
+
+        return $removed;
     }
 
     /**
@@ -143,6 +190,37 @@ final class Installer
         file_put_contents($file, $result);
 
         return !$marked && trim($existing) !== '';
+    }
+
+    /**
+     * Removes the gaffer block from a file; deletes the file when nothing else is left.
+     *
+     * @return list<string>
+     */
+    private static function remove_marked(string $relative): array
+    {
+        $file = Paths::base($relative);
+        $existing = is_file($file) ? (string) file_get_contents($file) : '';
+
+        $start = strpos($existing, self::START);
+        $end = strpos($existing, self::END);
+        if ($start === false || $end === false || $end < $start) {
+            return [];
+        }
+
+        $rest = implode("\n\n", array_filter([
+            rtrim(substr($existing, 0, $start)),
+            ltrim(substr($existing, $end + strlen(self::END))),
+        ], static fn(string $part): bool => $part !== ''));
+
+        if (trim($rest) === '') {
+            unlink($file);
+            return ["removed {$relative}"];
+        }
+
+        file_put_contents($file, rtrim($rest) . "\n");
+
+        return ["removed the generated block from {$relative} (kept the rest)"];
     }
 
     /**

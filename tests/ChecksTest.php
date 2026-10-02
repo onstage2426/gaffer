@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Gaffer\Tests;
 
 use Gaffer\Config;
-use Gaffer\Gaffer;
-use Gaffer\View;
-use Gaffer\Vite;
 use Gaffer\Console\Checks\AppCheck;
 use Gaffer\Console\Checks\AssetsCheck;
 use Gaffer\Console\Checks\BlocksCheck;
@@ -16,8 +13,12 @@ use Gaffer\Console\Checks\ConfigCheck;
 use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
+use Gaffer\Console\Env;
 use Gaffer\Console\Report;
+use Gaffer\Gaffer;
 use Gaffer\Paths;
+use Gaffer\View;
+use Gaffer\Vite;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 final class ChecksTest extends TestCase
@@ -171,6 +172,30 @@ final class ChecksTest extends TestCase
             PHP;
 
         self::assertSame([['relativeLink', 4], ['helperThing', 5]], AppCheck::camel_case_methods($code));
+    }
+
+    public function test_keys_that_moved_out_of_config(): void
+    {
+        file_put_contents("{$this->theme}/config/theme.php", "<?php return ['debug' => true, 'cache' => false];");
+        file_put_contents("{$this->theme}/config/console.php", "<?php return ['url' => 'https://x.test'];");
+        Config::load("{$this->theme}/config");
+
+        $messages = $this->messages(new ConfigCheck());
+
+        self::assertStringContainsString('theme.debug is no longer read', $messages);
+        self::assertStringContainsString('console.url is no longer read', $messages);
+        self::assertStringNotContainsString('theme.cache', $messages);
+    }
+
+    public function test_env_file(): void
+    {
+        file_put_contents("{$this->theme}/.env", "# comment\nSITE_URL=\"https://blueprint.test\"\nEMPTY=\n");
+        self::reset(Env::class, 'values', null);
+
+        self::assertSame('https://blueprint.test', Env::get('SITE_URL'));
+        self::assertNull(Env::get('EMPTY'));
+        self::assertNull(Env::get('MISSING'));
+        self::reset(Env::class, 'values', null);
     }
 
     private function messages(Check $check): string

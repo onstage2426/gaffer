@@ -65,8 +65,9 @@ php gaffer twig:lint      # every template compiles; unknown functions/filters f
 php gaffer doctor --wp    # conventions + renders every page with strict variables
 ```
 
-Fix what they report (exit code 1 = errors). `theme.debug` turns on Twig
-`strict_variables`, so undefined variables fail instead of rendering empty.
+Fix what they report (exit code 1 = errors). WordPress's `WP_DEBUG` turns on
+Twig debug and `strict_variables`, so undefined variables fail instead of
+rendering empty.
 
 Administrators see **Gaffer** in the admin bar: a status dot (red: debug on in
 production/staging; orange: debug on, or Twig cache off in production), the

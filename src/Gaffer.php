@@ -66,7 +66,7 @@ class Gaffer
             }
         }
 
-        $debug = (bool) Config::get('theme.debug');
+        $debug = self::debug();
 
         $twig = new Environment($loader, [
             'cache' => Config::get('theme.cache') ? Paths::twig_cache() : false,
@@ -85,6 +85,15 @@ class Gaffer
         }
 
         View::set_env($twig);
+    }
+
+    /**
+     * Twig debug mode (DebugExtension, strict_variables): on when WordPress's
+     * WP_DEBUG is, so it's set per server in wp-config.php, never in theme config.
+     */
+    public static function debug(): bool
+    {
+        return defined('WP_DEBUG') && WP_DEBUG;
     }
 
     /**

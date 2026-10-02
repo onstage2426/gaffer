@@ -60,6 +60,43 @@ final class ConfigStubs
         return $descriptions;
     }
 
+    /**
+     * The theme's own config keys: the `// comment` line(s) right above each
+     * top-level key of a theme config file.
+     *
+     * @return array<string, string> key => comment
+     */
+    public static function theme_comments(string $file): array
+    {
+        $tokens = array_values(array_filter(
+            \PhpToken::tokenize(is_file($file) ? (string) file_get_contents($file) : ''),
+            static fn(\PhpToken $t): bool => !$t->is(T_WHITESPACE),
+        ));
+        $comments = [];
+        $depth = 0;
+        $pending = [];
+
+        foreach ($tokens as $i => $token) {
+            if ($token->text === '[' || $token->text === '(') {
+                $depth++;
+            } elseif ($token->text === ']' || $token->text === ')') {
+                $depth--;
+            }
+            if ($token->is(T_COMMENT) && str_starts_with($token->text, '//')) {
+                $pending[] = trim(substr($token->text, 2));
+                continue;
+            }
+            if ($depth === 1 && $token->is(T_CONSTANT_ENCAPSED_STRING) && ($tokens[$i + 1] ?? null)?->is(T_DOUBLE_ARROW) && $pending !== []) {
+                $comments[trim($token->text, '\'"')] = implode(' ', $pending);
+            }
+            if (!$token->is(T_COMMENT)) {
+                $pending = [];
+            }
+        }
+
+        return $comments;
+    }
+
     /** @param list<string> $known */
     public static function did_you_mean(string $name, array $known): ?string
     {

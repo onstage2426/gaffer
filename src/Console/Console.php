@@ -40,7 +40,7 @@ final class Console
             'url',
             null,
             InputOption::VALUE_REQUIRED,
-            'Site URL for commands that load WordPress (default: console.url)',
+            'Site URL for commands that load WordPress (default: SITE_URL in the theme\'s .env)',
         ));
         $app->addCommands([
             new AiClear(),

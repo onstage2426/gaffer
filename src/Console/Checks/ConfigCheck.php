@@ -17,6 +17,12 @@ use Gaffer\Types\Term;
  */
 final class ConfigCheck implements Check
 {
+    /** Keys that moved out of theme config: where they went. */
+    private const array MOVED = [
+        'theme.debug' => 'Twig debug follows WP_DEBUG now (wp-config.php, per server). Delete the key.',
+        'console.url' => 'The CLI reads SITE_URL from the theme\'s .env now (per checkout, not committed). Move the value there and delete the key.',
+    ];
+
     #[\Override]
     public function run(Report $report): void
     {
@@ -33,7 +39,9 @@ final class ConfigCheck implements Check
                 continue; // the theme's own config file
             }
             foreach (array_keys($values) as $key) {
-                if (!in_array($key, $stubs[$file], true)) {
+                if (isset(self::MOVED["{$file}.{$key}"])) {
+                    $report->error('config', "{$file}.{$key} is no longer read", Paths::base("config/{$file}.php"), null, self::MOVED["{$file}.{$key}"]);
+                } elseif (!in_array($key, $stubs[$file], true)) {
                     $hint = ConfigStubs::did_you_mean($key, $stubs[$file]);
                     $report->error('config', "Unknown key {$file}.{$key} (Gaffer ignores it)", Paths::base("config/{$file}.php"), null,
                         $hint !== null ? "Did you mean {$file}.{$hint}?" : null);

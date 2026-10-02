@@ -52,8 +52,9 @@ final class Reference
 
         foreach (Config::all() as $file => $values) {
             $lines[] = "- `config/{$file}.php`" . (isset($descriptions[$file]) ? '' : ' (theme-specific)');
+            $own = isset($descriptions[$file]) ? [] : ConfigStubs::theme_comments(Paths::base("config/{$file}.php"));
             foreach (array_keys($values) as $key) {
-                $about = $descriptions[$file][$key] ?? null;
+                $about = $descriptions[$file][$key] ?? $own[$key] ?? null;
                 $lines[] = "  - `{$file}.{$key}`" . ($about !== null ? " — {$about}" : '');
             }
         }

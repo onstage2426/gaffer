@@ -1,7 +1,7 @@
 ## CLI (`php gaffer`)
 
 Run from the theme directory. Commands that need WordPress load it themselves
-(site URL from `config/console.php` `url`, or `--url`).
+(site URL from `SITE_URL` in the theme's `.env`, or `--url`).
 
 | Command | What it does |
 |---|---|

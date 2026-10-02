@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Gaffer\Console;
 
-use Gaffer\Config;
 use Gaffer\Paths;
 use Gaffer\Gaffer;
 
@@ -22,7 +21,7 @@ final class WordPress
         }
         self::$loaded = true;
 
-        self::fake_request($url ?? Config::get('console.url'));
+        self::fake_request($url ?? Env::get('SITE_URL'));
 
         // Let fatal errors reach the terminal instead of WordPress's HTML error page.
         if (!defined('WP_DISABLE_FATAL_ERROR_HANDLER')) {

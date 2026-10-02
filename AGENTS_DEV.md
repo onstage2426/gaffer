@@ -153,8 +153,8 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 - **Everything pushed through `9fc9fcc`** (block fields in code); blueprint
   is on it and committed (`76b034a`): `fields.php` per block, `Theme\Fields`,
   content keys migrated, block JSON groups deleted.
-  Suggested: add `"post-update-cmd": ["@php gaffer ai:update --ansi"]`
-  to blueprint's `composer.json` (not done yet).
+  Blueprint's `composer.json` runs `php gaffer ai:update` after every
+  `composer update` (`post-update-cmd`).
 - **Migration book:** 33 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings

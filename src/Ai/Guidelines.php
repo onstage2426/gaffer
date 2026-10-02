@@ -15,7 +15,7 @@ use Gaffer\Paths;
 final class Guidelines
 {
     /** Gaffer's guidelines, in reading order. */
-    private const array GAFFER = ['core', 'views', 'assets', 'types', 'ajax', 'blocks', 'inc', 'config', 'cli'];
+    private const array GAFFER = ['core', 'views', 'assets', 'types', 'app', 'ajax', 'blocks', 'inc', 'config', 'cli'];
 
     /** @param list<string> $plugins Active plugins with a guideline (e.g. "woocommerce") */
     public static function build(array $plugins): string

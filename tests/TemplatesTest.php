@@ -59,6 +59,13 @@ final class TemplatesTest extends TestCase
         self::assertSame([1, 2, 3, 4, 5], array_column($refs, 'line'));
     }
 
+    public function test_getter_calls(): void
+    {
+        self::env(['t.twig' => "{{ post.title() }}\n{{ product.get_title() }}\n{{ product.get_meta('label') }} {{ post.wp.post_name }}"]);
+
+        self::assertSame([['get_title', 2], ['get_meta', 3]], Templates::getter_calls(Templates::parse('t.twig')));
+    }
+
     public function test_a_template_that_does_not_compile_is_null(): void
     {
         self::env(['t.twig' => '{% if %}']);

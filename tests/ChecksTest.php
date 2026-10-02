@@ -8,6 +8,7 @@ use Gaffer\Config;
 use Gaffer\Gaffer;
 use Gaffer\View;
 use Gaffer\Vite;
+use Gaffer\Console\Checks\AppCheck;
 use Gaffer\Console\Checks\AssetsCheck;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Checks\Check;
@@ -151,6 +152,25 @@ final class ChecksTest extends TestCase
         self::reset(Vite::class, 'dev_mode', null);
         self::assertSame('', $this->messages(new AssetsCheck())); // dev server running: not checked
         self::reset(Vite::class, 'dev_mode', null);
+    }
+
+    public function test_camel_case_methods_in_app(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            final class X implements \JsonSerializable {
+                public function snake_case(): void {}
+                public static function relativeLink(): void {}
+                private function helperThing(): void {}
+                public function __toString(): string { return ''; }
+                #[\Override]
+                public function jsonSerialize(): mixed { return null; }
+                #[\Deprecated] #[\Override] public static function getIterator(): void {}
+                public function run(): void { $f = function () {}; }
+            }
+            PHP;
+
+        self::assertSame([['relativeLink', 4], ['helperThing', 5]], AppCheck::camel_case_methods($code));
     }
 
     private function messages(Check $check): string

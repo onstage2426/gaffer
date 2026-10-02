@@ -13,6 +13,7 @@ use Twig\Node\Expression\Binary\NullCoalesceBinary;
 use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Expression\Filter\DefaultFilter;
 use Twig\Node\Expression\FunctionExpression;
+use Twig\Node\Expression\GetAttrExpression;
 use Twig\Node\Expression\TestExpression;
 use Twig\Node\Expression\Variable\AssignContextVariable;
 use Twig\Node\Expression\Variable\ContextVariable;
@@ -98,6 +99,28 @@ final class Templates
 
         foreach ($node as $child) {
             array_push($found, ...self::references($child));
+        }
+
+        return $found;
+    }
+
+    /**
+     * Calls of get_* methods (WordPress/WooCommerce/plugin objects; Gaffer's types
+     * have none): [method, line].
+     *
+     * @return list<array{string, int}>
+     */
+    public static function getter_calls(Node $node): array
+    {
+        $found = [];
+        if ($node instanceof GetAttrExpression) {
+            $attribute = $node->getNode('attribute');
+            if ($attribute instanceof ConstantExpression && is_string($attribute->getAttribute('value')) && str_starts_with($attribute->getAttribute('value'), 'get_')) {
+                $found[] = [$attribute->getAttribute('value'), $node->getTemplateLine()];
+            }
+        }
+        foreach ($node as $child) {
+            array_push($found, ...self::getter_calls($child));
         }
 
         return $found;

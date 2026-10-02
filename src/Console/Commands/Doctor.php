@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Commands;
 
 use Gaffer\Console\Checks\AcfJsonCheck;
+use Gaffer\Console\Checks\AppCheck;
 use Gaffer\Console\Checks\AssetsCheck;
 use Gaffer\Console\Checks\AjaxCheck;
 use Gaffer\Console\Checks\BlocksCheck;
@@ -40,7 +41,7 @@ final class Doctor extends Command
         $json = (bool) $input->getOption('json');
         $report = new Report();
 
-        foreach ([new BlocksCheck(), new AcfJsonCheck(), new AjaxCheck(), new ConfigCheck(), new SourceCheck(), new TemplatesCheck(), new MarkupCheck(), new IncCheck(), new AssetsCheck()] as $check) {
+        foreach ([new BlocksCheck(), new AcfJsonCheck(), new AjaxCheck(), new ConfigCheck(), new SourceCheck(), new TemplatesCheck(), new MarkupCheck(), new IncCheck(), new AssetsCheck(), new AppCheck()] as $check) {
             $check->run($report);
         }
 

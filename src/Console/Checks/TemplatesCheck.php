@@ -12,7 +12,8 @@ use Gaffer\View;
 
 /**
  * Templates that are rendered or included but don't exist, templates nothing
- * uses, and includes that hand the partial all of the caller's variables.
+ * uses, includes that hand the partial all of the caller's variables, and
+ * get_*() calls that reach past the types into WordPress/WooCommerce.
  */
 final class TemplatesCheck implements Check
 {
@@ -43,6 +44,10 @@ final class TemplatesCheck implements Check
             $module = Templates::parse($name);
             if ($module === null) {
                 continue; // twig:lint reports it
+            }
+            foreach (Templates::getter_calls($module) as [$method, $line]) {
+                $report->warning('views', "Calls {$method}(): a WordPress/WooCommerce/plugin method from the template", $file, $line,
+                    'Add a method to the type (or pass the value from PHP) and use that.');
             }
             foreach (Templates::references($module) as $ref) {
                 if ($ref['template'] !== null) {

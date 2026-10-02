@@ -82,6 +82,15 @@ final class BlockFieldsTest extends TestCase
         }
     }
 
+    public function test_flexible_content_is_refused(): void
+    {
+        $this->fields("['name' => 'secties', 'type' => 'flexible_content', 'layouts' => []],");
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('no flexible content');
+        BlockFields::group('contentFaq');
+    }
+
     public function test_fields_need_a_type(): void
     {
         $this->fields("['name' => 'titel'],");

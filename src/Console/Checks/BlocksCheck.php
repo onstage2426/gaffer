@@ -10,8 +10,8 @@ use Gaffer\Paths;
 
 /**
  * Each block: block.json + functions.php + {dir}.twig, name = acf/ + kebab-case of the
- * directory, a real description, the is_admin() guard, and a valid fields.php whose
- * fields functions.php all reads.
+ * directory, a real description, the is_admin() guard, a valid fields.php whose
+ * fields functions.php all reads, and no InnerBlocks.
  */
 final class BlocksCheck implements Check
 {
@@ -64,6 +64,12 @@ final class BlocksCheck implements Check
             if ($php !== '' && !preg_match('/if\s*\(\s*is_admin\(\)\s*\)\s*\{?\s*return/', $php)) {
                 $report->warning('blocks', 'No early `if (is_admin()) return;` guard', "{$dir}/functions.php", null,
                     'Blocks render nothing in the editor on purpose.');
+            }
+
+            $twig = is_file("{$dir}/{$block}.twig") ? (string) file_get_contents("{$dir}/{$block}.twig") : '';
+            if (str_contains($twig, '<InnerBlocks')) {
+                $report->error('blocks', 'Uses <InnerBlocks>: blocks don\'t contain other blocks (decided)', "{$dir}/{$block}.twig", null,
+                    'Make separate blocks; rich text goes in a wysiwyg field.');
             }
 
             if (is_file("{$dir}/fields.php")) {

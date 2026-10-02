@@ -12,6 +12,8 @@ use Gaffer\Console\Commands\Doctor;
 use Gaffer\Console\Commands\DoctorRender;
 use Gaffer\Console\Commands\MigrateBlock;
 use Gaffer\Console\Commands\MigrateField;
+use Gaffer\Console\Commands\MigrateRemoveBlock;
+use Gaffer\Console\Commands\MigrateRemoveField;
 use Gaffer\Console\Commands\MigrateRollback;
 use Gaffer\Console\Commands\TwigClear;
 use Gaffer\Console\Commands\TwigLint;
@@ -49,6 +51,8 @@ final class Console
             new DoctorRender(),
             new MigrateBlock(),
             new MigrateField(),
+            new MigrateRemoveBlock(),
+            new MigrateRemoveField(),
             new MigrateRollback(),
             new TwigClear(),
             new TwigLint(),

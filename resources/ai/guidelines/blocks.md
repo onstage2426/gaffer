@@ -69,21 +69,42 @@ return [
   group that targets a block with a `fields.php`. The reference below lists
   each block's fields.
 
-### Renaming a block or field
+- **No InnerBlocks and no flexible content (decided).** Blocks don't contain
+  other blocks; rich text goes in a wysiwyg field. A layout with variants is
+  separate blocks. `doctor` reports `<InnerBlocks>` and `fields.php` refuses
+  `flexible_content`.
 
-Rename in the code first, then migrate the stored content:
+### Changing a field's type
+
+ACF stores values without their type, and nothing converts them:
+
+- **In place** only when the stored value still means the same: text →
+  textarea or wysiwyg, select → radio or button group, image → file (both an
+  ID). Check how the block's PHP reads it.
+- **Otherwise add a field with a new name** and stop reading the old one.
+  `doctor --wp` then lists the pages that still store the old field: editors
+  fill in the new one, then `migrate:remove-field` deletes the old values.
+  Never write a converter.
+
+### Renaming or removing a block or field
+
+Change the code first, then migrate the stored content:
 
 ```
-php gaffer migrate:field acf/content-faq titel kop            # field
-php gaffer migrate:field acf/content-faq vragen.vraag vraag_tekst  # sub field (repeater/group)
-php gaffer migrate:block acf/content-faq acf/faq              # block (after renaming its directory and block.json)
-php gaffer migrate:rollback [backup]                           # undo (no argument: list backups)
+php gaffer migrate:field acf/content-faq titel kop                 # rename a field
+php gaffer migrate:field acf/content-faq vragen.vraag vraag_tekst  # rename a sub field (repeater/group)
+php gaffer migrate:block acf/content-faq acf/faq                   # rename a block (after its directory and block.json)
+php gaffer migrate:remove-field acf/content-faq vragen.bron        # delete a removed field's values
+php gaffer migrate:remove-block acf/content-team                   # delete a removed block from all content
+php gaffer migrate:rollback [backup]                               # undo (no argument: list backups)
 ```
 
 - Dry run by default; `--run` writes. It refuses (and writes nothing) when
-  anything looks off: the code isn't renamed yet, content WordPress doesn't
+  anything looks off: the code isn't changed yet, content WordPress doesn't
   reproduce exactly, data in an unexpected shape, a name that already exists,
-  a page open in the editor.
+  a page open in the editor, a block to remove that contains other blocks.
+- `migrate:remove-block` reports pages and widgets left empty; deleting those
+  is a person's decision.
 - `--run` saves the old content to `storage/backups/migrate/` (never
   committed), writes everything in one transaction and reads it back.
   Rollback only restores content nobody has edited since.
@@ -93,5 +114,5 @@ php gaffer migrate:rollback [backup]                           # undo (no argume
   assuming what state the content is in; `migrate:rollback` without an
   argument lists the backups with their outcome.
 - Make a database backup first on a live site, run it right after deploying
-  the code (until then the renamed field shows empty), and clear page caches.
+  the code (until then a renamed field shows empty), and clear page caches.
 - Covers posts of every type and status and block widgets, not revisions.

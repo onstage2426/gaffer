@@ -69,6 +69,9 @@ final class BlockFields
             if (!is_array($field) || !is_string($field['type'] ?? null)) {
                 throw new LogicException("{$file}: every field needs a 'type'.");
             }
+            if ($field['type'] === 'flexible_content') {
+                throw new LogicException("{$file}: no flexible content in blocks (decided): make separate blocks instead.");
+            }
             if (isset($field['key'])) {
                 throw new LogicException("{$file}: don't set 'key' (field '" . ($field['name'] ?? $field['label'] ?? '?') . "'); Gaffer derives it from the names.");
             }

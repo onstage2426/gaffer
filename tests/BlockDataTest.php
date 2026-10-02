@@ -187,4 +187,82 @@ final class BlockDataTest extends TestCase
 
         self::assertSame(['acf/a', 'core/group'], $seen);
     }
+
+    public function test_remove_field_drops_values_and_references(): void
+    {
+        $result = BlockData::remove_field(self::faq(), self::P, ['titel']);
+
+        self::assertSame(1, $result['changes']);
+        self::assertArrayNotHasKey('titel', $result['data']);
+        self::assertArrayNotHasKey('_titel', $result['data']);
+        self::assertSame('x', $result['data']['titel_extra']); // a different field
+    }
+
+    public function test_remove_field_on_a_repeater_or_sub_field(): void
+    {
+        $repeater = BlockData::remove_field(self::faq(), self::P, ['vragen']);
+        self::assertSame(5, $repeater['changes']);
+        self::assertSame(['titel', '_titel', 'titel_extra', '_titel_extra'], array_keys($repeater['data']));
+
+        $sub = BlockData::remove_field(self::faq(), self::P, ['vragen', 'antwoord']);
+        self::assertSame(2, $sub['changes']);
+        self::assertArrayHasKey('vragen_1_vraag', $sub['data']);
+        self::assertArrayNotHasKey('vragen_1_antwoord', $sub['data']);
+        self::assertSame(2, $sub['data']['vragen']); // the rows stay
+    }
+
+    /**
+     * @param list<array<string, mixed>> $inner
+     * @param list<string|null>|null $content
+     * @return array<string, mixed>
+     */
+    private static function block(?string $name, string $html = '', array $inner = [], ?array $content = null): array
+    {
+        return ['blockName' => $name, 'attrs' => [], 'innerBlocks' => $inner, 'innerHTML' => $html, 'innerContent' => $content ?? [$html]];
+    }
+
+    public function test_remove_blocks_takes_the_blank_line_with_it(): void
+    {
+        $gap = self::block(null, "\n\n");
+        $blocks = [self::block('acf/a'), $gap, self::block('acf/x'), $gap, self::block('acf/b')];
+
+        $result = BlockData::remove_blocks($blocks, 'acf/x');
+
+        self::assertSame(1, $result['removed']);
+        self::assertSame(['acf/a', null, 'acf/b'], array_column($result['blocks'], 'blockName'));
+    }
+
+    public function test_remove_blocks_at_the_end_takes_the_blank_line_before(): void
+    {
+        $gap = self::block(null, "\n\n");
+
+        $result = BlockData::remove_blocks([self::block('acf/a'), $gap, self::block('acf/x')], 'acf/x');
+
+        self::assertSame(['acf/a'], array_column($result['blocks'], 'blockName'));
+    }
+
+    public function test_remove_blocks_inside_a_parent(): void
+    {
+        $group = self::block('core/group', '<div></div>', [self::block('acf/x'), self::block('acf/b')], ['<div>', null, "\n\n", null, '</div>']);
+
+        $first = BlockData::remove_blocks([$group], 'acf/x')['blocks'][0];
+        self::assertSame(['acf/b'], array_column($first['innerBlocks'], 'blockName'));
+        self::assertSame(['<div>', null, '</div>'], $first['innerContent']);
+        self::assertSame('<div></div>', $first['innerHTML']);
+
+        $second = BlockData::remove_blocks([$group], 'acf/b')['blocks'][0];
+        self::assertSame(['acf/x'], array_column($second['innerBlocks'], 'blockName'));
+        self::assertSame(['<div>', null, '</div>'], $second['innerContent']);
+    }
+
+    public function test_a_block_containing_blocks_is_not_removed(): void
+    {
+        $parent = self::block('acf/x', '', [self::block('core/paragraph', '<p>Keep</p>')], [null]);
+
+        $result = BlockData::remove_blocks([$parent], 'acf/x');
+
+        self::assertSame(0, $result['removed']);
+        self::assertSame([$parent], $result['blocks']);
+        self::assertStringContainsString('contains other blocks', $result['problems'][0]);
+    }
 }

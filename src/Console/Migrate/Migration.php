@@ -69,6 +69,31 @@ final class Migration
      */
     public function rewrite(Location $location, Closure $fn): void
     {
+        $this->rewrite_blocks($location, static function (array $blocks) use ($fn): array {
+            $changes = 0;
+            $problems = [];
+            $after = BlockData::walk($blocks, static function (array $block) use ($fn, &$changes, &$problems): array {
+                [$block, $count, $found] = $fn($block);
+                array_push($problems, ...$found);
+                if ($count > 0) {
+                    $changes += $count;
+                    array_push($problems, ...self::unresolved($block));
+                }
+                return $block;
+            });
+
+            return [$after, $changes, $problems];
+        });
+    }
+
+    /**
+     * Rewrites a location's whole block list. $fn gets parse_blocks() output and returns
+     * [blocks, changes, problems].
+     *
+     * @param Closure(array<mixed>): array{array<mixed>, int, list<string>} $fn
+     */
+    public function rewrite_blocks(Location $location, Closure $fn): void
+    {
         $before = ContentStore::read($location);
         $blocks = parse_blocks($before);
         if (serialize_blocks($blocks) !== $before) {
@@ -76,23 +101,19 @@ final class Migration
             return;
         }
 
-        $changes = 0;
-        $problems = [];
-        $after = BlockData::walk($blocks, static function (array $block) use ($fn, &$changes, &$problems): array {
-            [$block, $count, $found] = $fn($block);
-            array_push($problems, ...$found);
-            if ($count > 0) {
-                $changes += $count;
-                array_push($problems, ...self::unresolved($block));
-            }
-            return $block;
-        });
+        [$after, $changes, $problems] = $fn($blocks);
 
         foreach (array_unique($problems) as $problem) {
             $this->problem("{$location->label}: {$problem}");
         }
-        if ($problems === [] && $changes > 0) {
-            $this->change($location, $before, serialize_blocks($after), $changes === 1 ? '1 change' : "{$changes} changes");
+        if ($problems !== [] || $changes === 0) {
+            return;
+        }
+
+        $content = serialize_blocks($after);
+        $this->change($location, $before, $content, $changes === 1 ? '1 change' : "{$changes} changes");
+        if (trim($content) === '') {
+            $this->note("{$location->label} is empty afterwards (delete it yourself if it should go)");
         }
     }
 
@@ -165,11 +186,16 @@ final class Migration
             return 1;
         }
 
+        // Committed: from here on nothing may throw past this point unlogged.
         $failed = [];
         foreach ($this->plan as $change) {
-            ContentStore::flush($change['location']);
-            if (ContentStore::read($change['location']) !== $change['after']) {
-                $failed[] = $change['location']->label;
+            try {
+                ContentStore::flush($change['location']);
+                if (ContentStore::read($change['location']) !== $change['after']) {
+                    $failed[] = $change['location']->label;
+                }
+            } catch (Throwable $e) {
+                $failed[] = "{$change['location']->label} ({$e->getMessage()})";
             }
         }
         if ($failed !== []) {

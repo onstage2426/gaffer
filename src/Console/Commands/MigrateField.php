@@ -87,6 +87,16 @@ final class MigrateField extends MigrateCommand
     }
 
     /**
+     * Whether a key is in these fields or their sub fields (shared with migrate:remove-field).
+     *
+     * @param list<array<string, mixed>> $fields
+     */
+    public static function has_key(array $fields, string $key): bool
+    {
+        return isset(self::keys($fields)[$key]);
+    }
+
+    /**
      * @param list<array<string, mixed>> $fields
      * @return array<string, true>
      */

@@ -64,6 +64,15 @@ final class ChecksTest extends TestCase
         self::assertStringNotContainsString('"vragen"', $messages);
     }
 
+    public function test_inner_blocks_are_reported(): void
+    {
+        file_put_contents("{$this->theme}/blocks/contentFaq/block.json", '{"name": "acf/content-faq", "description": "FAQ.", "acf": {"renderTemplate": "functions.php"}}');
+        file_put_contents("{$this->theme}/blocks/contentFaq/functions.php", "<?php\nif (is_admin()) { return; }\n");
+        file_put_contents("{$this->theme}/blocks/contentFaq/contentFaq.twig", '<div><InnerBlocks /></div>');
+
+        self::assertStringContainsString('Uses <InnerBlocks>', $this->messages(new BlocksCheck()));
+    }
+
     private function messages(Check $check): string
     {
         $report = new Report();

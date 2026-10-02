@@ -50,11 +50,12 @@ final class ContentStore
         global $wpdb;
 
         if ($location->kind === 'post') {
-            $content = $wpdb->get_var($wpdb->prepare(
+            // get_row(), not get_var(): get_var() turns an empty post_content into null.
+            $row = $wpdb->get_row($wpdb->prepare(
                 "SELECT post_content FROM {$wpdb->posts} WHERE ID = %d" . ($lock ? ' FOR UPDATE' : ''),
                 $location->id,
-            ));
-            return is_string($content) ? $content : throw new RuntimeException("{$location->label} no longer exists");
+            ), ARRAY_A);
+            return is_string($row['post_content'] ?? null) ? $row['post_content'] : throw new RuntimeException("{$location->label} no longer exists");
         }
 
         $content = self::widgets($lock)[$location->id]['content'] ?? null;
@@ -93,18 +94,18 @@ final class ContentStore
     }
 
     /**
-     * Who has this post open in the editor right now, if anyone: the "time:user" in
-     * _edit_lock, as wp_check_post_lock() reads it (that one is admin-only).
+     * Who has this post open in the editor right now, if anyone (WordPress's own
+     * wp_check_post_lock(), which lives in the admin includes).
      */
     public static function locked_by(Location $location): ?int
     {
         if ($location->kind !== 'post') {
             return null;
         }
-        [$time, $user] = array_map('intval', array_pad(explode(':', (string) get_post_meta($location->id, '_edit_lock', true)), 2, '0'));
-        $window = (int) apply_filters('wp_check_post_lock_window', 150);
+        require_once ABSPATH . 'wp-admin/includes/post.php';
+        $user = wp_check_post_lock($location->id);
 
-        return $time > time() - $window && $user > 0 ? $user : null;
+        return $user ? (int) $user : null;
     }
 
     /**
@@ -123,17 +124,35 @@ final class ContentStore
         return count($engines) === 2 && array_unique(array_map('strtolower', $engines)) === ['innodb'];
     }
 
-    /** @return array<mixed> */
+    /**
+     * The widget_block option: [id => ['content' => ...], '_multiwidget' => 1]. Throws on
+     * anything else, so a changed format is refused instead of rewritten.
+     *
+     * @return array<mixed>
+     */
     private static function widgets(bool $lock = false): array
     {
         global $wpdb;
 
-        $value = $wpdb->get_var($wpdb->prepare(
+        $row = $wpdb->get_row($wpdb->prepare(
             "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s" . ($lock ? ' FOR UPDATE' : ''),
             'widget_block',
-        ));
-        $widgets = is_string($value) ? maybe_unserialize($value) : [];
+        ), ARRAY_A);
+        $value = $row['option_value'] ?? null;
+        if (!is_string($value)) {
+            return [];
+        }
 
-        return is_array($widgets) ? $widgets : [];
+        $widgets = maybe_unserialize($value);
+        if (!is_array($widgets)) {
+            throw new RuntimeException('The widget_block option has a shape Gaffer doesn\'t know (not an array): not touching widgets');
+        }
+        foreach ($widgets as $id => $widget) {
+            if ($id !== '_multiwidget' && (!is_int($id) || !is_array($widget) || !is_string($widget['content'] ?? null))) {
+                throw new RuntimeException("The widget_block option has a shape Gaffer doesn't know (entry {$id}): not touching widgets");
+            }
+        }
+
+        return $widgets;
     }
 }

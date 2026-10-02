@@ -46,6 +46,8 @@ site-specific code.
 - No test or static-analysis tooling (PHPUnit, phpstan) in the theme. Use the
   `php gaffer` checks below.
 - Themes are standalone, never child themes.
+- Blocks don't contain other blocks (no InnerBlocks) and have no flexible
+  content fields; rich text is a wysiwyg field.
 
 ### WordPress gotchas
 

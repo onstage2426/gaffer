@@ -168,4 +168,145 @@ final class BlockData
             ];
         };
     }
+
+    /**
+     * Removes a field's values and references (with everything below it: a repeater's rows).
+     *
+     * @param array<mixed> $data
+     * @param list<string> $path
+     * @return array{data: array<mixed>, changes: int}
+     */
+    public static function remove_field(array $data, string $prefix, array $path): array
+    {
+        $old = $prefix . '__' . implode('__', $path);
+        $drop = [];
+        foreach ($data as $name => $key) {
+            if (str_starts_with((string) $name, '_') && is_string($key) && ($key === $old || str_starts_with($key, "{$old}__"))) {
+                $drop[substr((string) $name, 1)] = true;
+            }
+        }
+
+        $kept = [];
+        foreach ($data as $name => $value) {
+            $name = (string) $name;
+            if (!isset($drop[str_starts_with($name, '_') ? substr($name, 1) : $name])) {
+                $kept[$name] = $value;
+            }
+        }
+
+        return ['data' => $kept, 'changes' => count($drop)];
+    }
+
+    /**
+     * Removes every block named $name (also nested ones) from parse_blocks() output, with
+     * the blank line it leaves. A block that contains other blocks is kept and reported.
+     *
+     * @param array<mixed> $blocks
+     * @return array{blocks: list<array<string, mixed>>, removed: int, problems: list<string>}
+     */
+    public static function remove_blocks(array $blocks, string $name): array
+    {
+        $result = [];
+        $removed = 0;
+        $problems = [];
+        $blocks = array_values(array_filter($blocks, 'is_array'));
+
+        for ($i = 0, $count = count($blocks); $i < $count; $i++) {
+            $block = $blocks[$i];
+
+            if ($block['blockName'] === $name) {
+                if (!empty($block['innerBlocks'])) {
+                    $problems[] = "{$name} contains other blocks: move or delete those first";
+                    $result[] = $block;
+                    continue;
+                }
+                $removed++;
+                if (isset($blocks[$i + 1]) && self::blank($blocks[$i + 1])) {
+                    $i++; // the blank line after it
+                } elseif ($result !== [] && self::blank($result[array_key_last($result)])) {
+                    array_pop($result); // or the one before it, when it was last
+                }
+                continue;
+            }
+
+            if (!empty($block['innerBlocks']) && is_array($block['innerBlocks'])) {
+                $inner = self::remove_inner($block, $name);
+                $block = $inner['block'];
+                $removed += $inner['removed'];
+                array_push($problems, ...$inner['problems']);
+            }
+            $result[] = $block;
+        }
+
+        return ['blocks' => $result, 'removed' => $removed, 'problems' => array_values(array_unique($problems))];
+    }
+
+    /**
+     * remove_blocks() inside a parent: its innerContent has a null where each inner block
+     * goes, between the parent's own HTML.
+     *
+     * @param array<string, mixed> $block
+     * @return array{block: array<string, mixed>, removed: int, problems: list<string>}
+     */
+    private static function remove_inner(array $block, string $name): array
+    {
+        $inner = is_array($block['innerBlocks']) ? array_values($block['innerBlocks']) : [];
+        $kept = [];
+        $drop = [];
+        $removed = 0;
+        $problems = [];
+
+        foreach ($inner as $j => $child) {
+            if (is_array($child) && $child['blockName'] === $name && empty($child['innerBlocks'])) {
+                $drop[$j] = true;
+                $removed++;
+                continue;
+            }
+            if (is_array($child) && $child['blockName'] === $name) {
+                $problems[] = "{$name} contains other blocks: move or delete those first";
+            }
+            if (is_array($child) && !empty($child['innerBlocks'])) {
+                $nested = self::remove_inner($child, $name);
+                $child = $nested['block'];
+                $removed += $nested['removed'];
+                array_push($problems, ...$nested['problems']);
+            }
+            $kept[] = $child;
+        }
+
+        if ($drop !== []) {
+            $content = is_array($block['innerContent'] ?? null) ? array_values($block['innerContent']) : [];
+            $result = [];
+            $slot = 0;
+            $skip_next_blank = false;
+            foreach ($content as $piece) {
+                if ($piece === null) {
+                    if (isset($drop[$slot++])) {
+                        if (is_string(end($result)) && trim(end($result)) === '' && $result !== []) {
+                            array_pop($result);
+                        } else {
+                            $skip_next_blank = true;
+                        }
+                        continue;
+                    }
+                } elseif ($skip_next_blank && trim($piece) === '') {
+                    $skip_next_blank = false;
+                    continue;
+                }
+                $skip_next_blank = false;
+                $result[] = $piece;
+            }
+            $block['innerContent'] = $result;
+            $block['innerHTML'] = implode('', array_filter($result, 'is_string'));
+        }
+        $block['innerBlocks'] = $kept;
+
+        return ['block' => $block, 'removed' => $removed, 'problems' => $problems];
+    }
+
+    /** A top-level piece of nothing but whitespace between blocks. */
+    private static function blank(mixed $block): bool
+    {
+        return is_array($block) && $block['blockName'] === null && trim((string) ($block['innerHTML'] ?? '')) === '';
+    }
 }

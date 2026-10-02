@@ -6,6 +6,7 @@ namespace Gaffer\Console\Commands;
 
 use Gaffer\Console\Command;
 use Gaffer\Console\Migrate\Migration;
+use RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -33,7 +34,11 @@ abstract class MigrateCommand extends Command
 
         $arguments = array_filter($input->getArguments(), static fn(mixed $value, string $name): bool => $name !== 'command' && is_string($value), ARRAY_FILTER_USE_BOTH);
         $migration = new Migration(trim($this->getName() . ' ' . implode(' ', $arguments)));
-        $this->plan($migration, $input);
+        try {
+            $this->plan($migration, $input);
+        } catch (RuntimeException $e) {
+            $migration->problem($e->getMessage());
+        }
 
         return $migration->finish($output, (bool) $input->getOption('run'));
     }

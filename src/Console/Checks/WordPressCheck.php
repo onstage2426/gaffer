@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Checks;
 
 use Closure;
+use Gaffer\BlockFields;
 use Gaffer\Console\Report;
 use Gaffer\Config;
 use Gaffer\Paths;
@@ -23,6 +24,7 @@ final class WordPressCheck implements Check
     {
         $this->blocks($report);
         $this->acf_sync($report);
+        $this->field_types($report);
         $this->menus($report);
     }
 
@@ -89,7 +91,7 @@ final class WordPressCheck implements Check
         foreach ($stale as $block => $fields) {
             foreach ($fields as $field => $posts) {
                 $report->warning('wp', "{$block}: content stores \"{$field}\" for a field that no longer exists: " . implode(', ', array_keys($posts)), null, null,
-                    'Renamed field? php gaffer migrate:field <block> <old> <new>. Removed on purpose? The stored value is unused and harmless.');
+                    'Renamed field? php gaffer migrate:field <block> <old> <new>. Removed on purpose? php gaffer migrate:remove-field <block> <field>.');
             }
         }
     }
@@ -116,6 +118,35 @@ final class WordPressCheck implements Check
 
             if ($state !== null) {
                 $report->warning('wp', "ACF field group \"{$json['title']}\": {$state}", $file);
+            }
+        }
+    }
+
+    /**
+     * Every type in blocks/*\/fields.php is a field type ACF has registered (asked at
+     * runtime, so new ACF versions and plugin field types need no Gaffer update).
+     */
+    private function field_types(Report $report): void
+    {
+        if (!function_exists('acf_get_field_type')) {
+            return;
+        }
+
+        $check = function (array $fields, string $file) use (&$check, $report): void {
+            foreach ($fields as $field) {
+                if (!acf_get_field_type((string) $field['type'])) {
+                    $report->error('wp', "Unknown ACF field type \"{$field['type']}\" (field \"" . ($field['name'] ?? $field['label'] ?? '?') . '")', $file);
+                }
+                if (is_array($field['sub_fields'] ?? null)) {
+                    $check($field['sub_fields'], $file);
+                }
+            }
+        };
+        foreach (glob(Paths::blocks() . '/*/fields.php') ?: [] as $file) {
+            try {
+                $check(BlockFields::group(basename(dirname($file)))['fields'], $file);
+            } catch (\Throwable) {
+                continue; // BlocksCheck reports invalid fields.php
             }
         }
     }

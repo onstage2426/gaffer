@@ -6,6 +6,7 @@ namespace Gaffer\Console\Migrate;
 
 use Gaffer\Gaffer;
 use Gaffer\Paths;
+use Gaffer\Storage;
 use JsonException;
 use RuntimeException;
 
@@ -27,13 +28,7 @@ final class Backup
      */
     public static function save(string $command, array $plan): string
     {
-        if (!is_dir(self::dir()) && !mkdir(self::dir(), 0775, true) && !is_dir(self::dir())) {
-            throw new RuntimeException('Could not create ' . self::dir());
-        }
-        $ignore = dirname(self::dir()) . '/.gitignore';
-        if (!is_file($ignore)) {
-            file_put_contents($ignore, "# Site content: never commit.\n*\n");
-        }
+        Storage::private_dir('backups/migrate');
 
         try {
             $json = json_encode([

@@ -12,8 +12,11 @@ site-specific code.
   (ajax actions), `inc/` (hooks, auto-included), `app/` (the `Theme\`
   namespace: `Theme\Types\`, `Theme\Twig\`, `Theme\Fields` for shared block
   fields; composer.json autoloads `"Theme\\": "app/"`), `config/` (PHP
-  arrays), `public/` (Vite build output), `assets/` (sources), `storage/` (Twig cache, ACF JSON, logs; can be moved by
-  the server with `GAFFER_STORAGE` in `wp-config.php`).
+  arrays), `public/` (Vite build output), `assets/` (sources), `storage/`
+  (Twig cache, ACF JSON, logs, backups; can be moved by the server with
+  `GAFFER_STORAGE` in `wp-config.php`). `logs/` and `backups/` get a deny-all
+  `.htaccess` and a `.gitignore`; on other web servers than Apache, deny
+  `storage/` yourself.
 - **Boot:** `functions.php` requires `vendor/autoload.php` and calls
   `Gaffer\Gaffer::boot(__DIR__)` (config, Twig, `inc/*.php` then
   `inc/*/*.php`, ACF JSON path, every `blocks/*/block.json`, the admin bar).

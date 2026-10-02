@@ -87,6 +87,11 @@ php gaffer migrate:rollback [backup]                           # undo (no argume
 - `--run` saves the old content to `storage/backups/migrate/` (never
   committed), writes everything in one transaction and reads it back.
   Rollback only restores content nobody has edited since.
+- Every `--run` is logged in `storage/logs/migrate.log` (one JSON line:
+  outcome `written`/`aborted`/`verify_failed`, reason, backup, the backup it
+  `undoes`, user, theme commit, locations with checksums). Check it before
+  assuming what state the content is in; `migrate:rollback` without an
+  argument lists the backups with their outcome.
 - Make a database backup first on a live site, run it right after deploying
   the code (until then the renamed field shows empty), and clear page caches.
 - Covers posts of every type and status and block widgets, not revisions.

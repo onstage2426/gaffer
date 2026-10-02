@@ -120,12 +120,12 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Area | Files |
 |---|---|
 | Boot | `Gaffer::configure()` (theme root + config, no WordPress), `Gaffer::boot()` (Twig, `inc/`, ACF JSON path, blocks, admin bar), `Gaffer::twig()` (SHORTINIT), `Gaffer::version()` |
-| Static services | `Config`, `Paths` (fixed layout), `View` (render/fetch/share, owns the Twig env), `Acf`, `BlockFields` (`blocks/*/fields.php` → local ACF groups, derived keys), `Vite`, `Turnstile`, `TwigCache`, `AdminBar` |
+| Static services | `Storage` (`private_dir()`: logs/backups with deny `.htaccess` + `.gitignore`), `Config`, `Paths` (fixed layout), `View` (render/fetch/share, owns the Twig env), `Acf`, `BlockFields` (`blocks/*/fields.php` → local ACF groups, derived keys), `Vite`, `Turnstile`, `TwigCache`, `AdminBar` |
 | Types | `Types\Post` (+ `Attachment`, `Image`), `Term`, `Menu`/`MenuItem`, `Pagination`. Wrap the WP object (`->wp`), protected constructors, factories `from(int)`, `current()`, `query()`. Class maps `theme.types` / `theme.terms` |
 | Ajax | `Ajax` (dispatcher, `url()`, `NAMESPACE`), `AjaxAction` (`METHOD`/`SHORTINIT` constants), `AjaxArguments` (typed `run()` params incl. route model binding), `AjaxNotFound` |
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Commands\*`, `Checks\*` (doctor) |
-| Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed). Commands `migrate:block`, `migrate:field`, `migrate:rollback` (`MigrateCommand` base) |
+| Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed), `Log` (`storage/logs/migrate.log`, JSON line per `--run` with outcome). Commands `migrate:block`, `migrate:field`, `migrate:rollback` (`MigrateCommand` base) |
 | AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear` |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/`), `resources/ai/skills/{name}/SKILL.md`. Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
@@ -161,12 +161,15 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 ## Current state (2026-10-02)
 
 - **Pushed through `eb2d42f`**; blueprint is on it (`921ad47`). Unpushed:
-  `migrate:block` / `migrate:field` / `migrate:rollback`. Tested against
+  `migrate:block` / `migrate:field` / `migrate:rollback` with `migrate.log`,
+  and `Storage::private_dir()` (Turnstile's `spam.log` now also gets a
+  `.gitignore`). Tested against
   blueprint (all reverted afterwards, database identical to before): field,
   sub field, repeater, block and two-page block renames, each with run →
   identical rendering → rollback → identical content; refusals for
   round-trip failure, random keys, collisions, edit lock, an edited page on
-  rollback, a concurrent edit mid-transaction, tampered backup. Blueprint
+  rollback, a concurrent edit mid-transaction (logged as `aborted`), tampered
+  backup. Blueprint
   needs nothing after the push except `composer update`.
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).

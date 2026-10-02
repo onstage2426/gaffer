@@ -59,15 +59,8 @@ final class Turnstile
      */
     public static function log_spam(string $form, string $reason): void
     {
-        $dir = Paths::storage() . '/logs';
-
-        if (!is_dir($dir)) {
-            wp_mkdir_p($dir);
-            file_put_contents("{$dir}/.htaccess", "Require all denied\n");
-        }
-
         file_put_contents(
-            "{$dir}/spam.log",
+            Storage::private_dir('logs') . '/spam.log',
             sprintf("[%s] %s %s\n", wp_date('Y-m-d H:i:s'), $form, $reason),
             FILE_APPEND | LOCK_EX,
         );

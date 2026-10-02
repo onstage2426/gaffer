@@ -14,7 +14,8 @@ use Throwable;
  * location round-trips through WordPress's block parser, isn't open in the editor
  * and has data in the expected shape; the backup is written first; all writes
  * happen in one transaction that checks the content is still what was planned;
- * afterwards the stored content is read back and compared.
+ * afterwards the stored content is read back and compared. Every --run is
+ * logged with its outcome (Log).
  */
 final class Migration
 {
@@ -27,11 +28,19 @@ final class Migration
     /** @var list<string> */
     private array $notes = [];
 
+    /** The backup this run restores (migrate:rollback). */
+    private ?string $undoes = null;
+
     public function __construct(private readonly string $command) {}
 
     public function problem(string $message): void
     {
         $this->problems[] = $message;
+    }
+
+    public function undoes(string $backup): void
+    {
+        $this->undoes = $backup;
     }
 
     public function has_problems(): bool
@@ -130,6 +139,7 @@ final class Migration
         try {
             $backup = Backup::save($this->command, $this->plan);
         } catch (RuntimeException $e) {
+            $this->log($output, 'aborted', $e->getMessage(), null);
             $output->writeln("<error>{$e->getMessage()}</error>");
             return 1;
         }
@@ -150,6 +160,7 @@ final class Migration
             }
         } catch (Throwable $e) {
             $wpdb->query('ROLLBACK');
+            $this->log($output, 'aborted', $e->getMessage(), $backup);
             $output->writeln("<error>{$e->getMessage()}: rolled back, nothing was written.</error>");
             return 1;
         }
@@ -162,13 +173,34 @@ final class Migration
             }
         }
         if ($failed !== []) {
+            $this->log($output, 'verify_failed', 'stored content differs from what was written: ' . implode(', ', $failed), $backup);
             $output->writeln('<error>Stored content differs from what was written for: ' . implode(', ', $failed) . '. Restore with: php gaffer migrate:rollback ' . basename($backup) . ' --run</error>');
             return 1;
         }
 
+        $this->log($output, 'written', null, $backup);
         $output->writeln('Wrote ' . count($this->plan) . ' location(s) and read them back. Clear page caches. Undo with: php gaffer migrate:rollback ' . basename($backup));
 
         return 0;
+    }
+
+    private function log(OutputInterface $output, string $outcome, ?string $reason, ?string $backup): void
+    {
+        $logged = Log::write([
+            'command' => $this->command,
+            'outcome' => $outcome,
+            'reason' => $reason,
+            'backup' => $backup !== null ? basename($backup) : null,
+            'undoes' => $this->undoes,
+            'locations' => array_map(static fn(array $change): array => [
+                ...$change['location']->to_array(),
+                'before_sha1' => sha1($change['before']),
+                'after_sha1' => sha1($change['after']),
+            ], $this->plan),
+        ]);
+        if (!$logged) {
+            $output->writeln('<comment>Could not write ' . Log::file() . '.</comment>');
+        }
     }
 
     /**

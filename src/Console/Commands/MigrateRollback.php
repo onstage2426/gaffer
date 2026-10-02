@@ -7,6 +7,7 @@ namespace Gaffer\Console\Commands;
 use Gaffer\Console\Migrate\Backup;
 use Gaffer\Console\Migrate\ContentStore;
 use Gaffer\Console\Migrate\Location;
+use Gaffer\Console\Migrate\Log;
 use Gaffer\Console\Migrate\Migration;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -35,10 +36,11 @@ final class MigrateRollback extends MigrateCommand
         if ($files === []) {
             $output->writeln('No migration backups in ' . Backup::dir() . '.');
         }
+        $status = self::status();
         foreach ($files as $file) {
             try {
                 $backup = Backup::load($file);
-                $output->writeln(basename($file) . "  {$backup['command']}  (" . count($backup['locations']) . ' locations)');
+                $output->writeln(basename($file) . "  {$backup['command']}  (" . count($backup['locations']) . ' locations)  ' . ($status[basename($file)] ?? 'not in the log'));
             } catch (RuntimeException $e) {
                 $output->writeln(basename($file) . "  <error>{$e->getMessage()}</error>");
             }
@@ -57,7 +59,12 @@ final class MigrateRollback extends MigrateCommand
             return;
         }
 
+        $name = basename((string) $input->getArgument('backup'), '.json') . '.json';
+        $migration->undoes($name);
         $migration->note("Restores the content from before `{$backup['command']}` ({$backup['created']}). Revert the code change too (fields.php, block directory).");
+        if (str_starts_with(self::status()[$name] ?? '', 'aborted')) {
+            $migration->note('The log says this run was aborted: it wrote nothing, so there is nothing to undo.');
+        }
         foreach ($backup['locations'] as $saved) {
             $location = new Location($saved['kind'], $saved['id'], $saved['label']);
             try {
@@ -73,5 +80,27 @@ final class MigrateRollback extends MigrateCommand
                 default => $migration->problem("{$location->label}: changed since the migration (edited?), not restoring over it; its old content is in the backup"),
             };
         }
+    }
+
+    /**
+     * What the log says about each backup: "written", "aborted: …", "written, undone by …".
+     *
+     * @return array<string, string>
+     */
+    private static function status(): array
+    {
+        $status = [];
+        foreach (Log::entries() as $entry) {
+            if (!is_string($entry['backup'] ?? null)) {
+                continue;
+            }
+            $outcome = (string) ($entry['outcome'] ?? '?');
+            $status[$entry['backup']] = $outcome . (is_string($entry['reason'] ?? null) ? ": {$entry['reason']}" : '');
+            if ($outcome === 'written' && is_string($entry['undoes'] ?? null) && isset($status[$entry['undoes']])) {
+                $status[$entry['undoes']] .= ", undone by {$entry['backup']}";
+            }
+        }
+
+        return $status;
     }
 }

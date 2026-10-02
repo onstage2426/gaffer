@@ -9,9 +9,10 @@ site-specific code.
   changes belong in Gaffer itself; theme behavior goes in the theme (config,
   `inc/`, subclasses in `app/`).
 - **The layout is fixed:** `views/` (Twig), `blocks/` (ACF blocks), `ajax/`
-  (ajax actions), `inc/` (hooks, auto-included), `app/` (`Theme\Types\`,
-  `Theme\Twig\`, `Theme\Fields` for shared block fields), `config/` (PHP arrays), `public/` (Vite build output),
-  `assets/` (sources), `storage/` (Twig cache, ACF JSON, logs; can be moved by
+  (ajax actions), `inc/` (hooks, auto-included), `app/` (the `Theme\`
+  namespace: `Theme\Types\`, `Theme\Twig\`, `Theme\Fields` for shared block
+  fields; composer.json autoloads `"Theme\\": "app/"`), `config/` (PHP
+  arrays), `public/` (Vite build output), `assets/` (sources), `storage/` (Twig cache, ACF JSON, logs; can be moved by
   the server with `GAFFER_STORAGE` in `wp-config.php`).
 - **Boot:** `functions.php` requires `vendor/autoload.php` and calls
   `Gaffer\Gaffer::boot(__DIR__)` (config, Twig, `inc/*.php` then

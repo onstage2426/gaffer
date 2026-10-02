@@ -12,8 +12,9 @@ use Gaffer\Types\Image;
 use WP_Block_Type_Registry;
 
 /**
- * What WordPress actually has: registered blocks, block names used in content,
- * ACF JSON vs database, menu locations, the image fallback. Needs WordPress loaded.
+ * What WordPress actually has: registered blocks, block names and ACF field keys
+ * used in content, ACF JSON vs database, menu locations, the image fallback.
+ * Needs WordPress loaded.
  */
 final class WordPressCheck implements Check
 {
@@ -54,6 +55,42 @@ final class WordPressCheck implements Check
         foreach ($orphans as $name => $posts) {
             $report->error('wp', "Content uses unregistered block {$name}: " . implode(', ', $posts), null, null,
                 'Renamed block? Migrate the name in post content (block comment and "name" attribute).');
+        }
+
+        $this->stale_fields($report, $rows);
+    }
+
+    /**
+     * Block data whose field keys no ACF field has (a field renamed or removed, or a tab label changed).
+     *
+     * @param array<object> $rows
+     */
+    private function stale_fields(Report $report, array $rows): void
+    {
+        if (!function_exists('acf_get_field')) {
+            return;
+        }
+
+        $stale = [];
+        $walk = function (array $blocks, string $post) use (&$walk, &$stale): void {
+            foreach ($blocks as $block) {
+                foreach ($block['attrs']['data'] ?? [] as $name => $key) {
+                    if (is_string($name) && str_starts_with($name, '_') && is_string($key) && str_starts_with($key, 'field_') && !acf_get_field($key)) {
+                        $stale[$block['blockName']][substr($name, 1)][$post] = true;
+                    }
+                }
+                $walk($block['innerBlocks'] ?? [], $post);
+            }
+        };
+        foreach ($rows as $row) {
+            $walk(parse_blocks($row->post_content), "{$row->post_type} {$row->ID}");
+        }
+
+        foreach ($stale as $block => $fields) {
+            foreach ($fields as $field => $posts) {
+                $report->warning('wp', "{$block}: content stores \"{$field}\" for a field that no longer exists: " . implode(', ', array_keys($posts)), null, null,
+                    'Renamed field (or tab label)? Migrate the stored names and keys. Removed on purpose? The stored value is unused and harmless.');
+            }
         }
     }
 

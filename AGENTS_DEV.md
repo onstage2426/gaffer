@@ -153,6 +153,9 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 - **Everything pushed through `9fc9fcc`** (block fields in code); blueprint
   is on it and committed (`76b034a`): `fields.php` per block, `Theme\Fields`,
   content keys migrated, block JSON groups deleted.
+  Unpushed: doctor checks for the composer.json `Theme\` autoload, fields
+  `functions.php` never reads, and content storing fields that no longer
+  exist (blueprint passes all three; nothing to change there).
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
 - **Migration book:** 33 entries, for the user's two other sites (still on an
@@ -169,8 +172,14 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   reCAPTCHA provider for clients who want it), Gravity Forms form/field IDs to
   config, moving `inc/rest/` contact/newsletter into `ajax/` with a JSON
   response helper on `AjaxAction`.
+- **Block fields, next:** `php gaffer blocks:migrate` (dry run by default)
+  to rename a block or a field in stored content: names, derived keys,
+  repeater rows; replaces `.migrate-block-fields.php`. Then maybe a
+  `doctor --wp` check that every `type` in `fields.php` is a registered ACF
+  field type.
 - **AI boost, next:** an MCP server (blocks + ACF fields, hooks, render a
-  template, last error), more agent adapters when someone uses them (Cursor,
+  template, last error; build it on WordPress's Abilities API so it sits
+  next to ACF's own abilities), more agent adapters when someone uses them (Cursor,
   Copilot, Gemini), maybe versioned plugin guidelines.
 - **Homelab:** `~/docker/to-do.md` has the Apache `SetHandler` change (PHP
   files currently bypass `.htaccess`).

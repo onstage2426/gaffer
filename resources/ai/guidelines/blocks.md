@@ -59,7 +59,8 @@ return [
 
 - **Field names are stored in post content**, and the keys are derived from
   them: renaming a field (or a tab's label) loses existing values unless the
-  content is migrated.
+  content is migrated. `doctor --wp` warns about content that stores fields
+  which no longer exist, and `doctor` about fields `functions.php` never reads.
 - Fields several blocks share are static methods on `Theme\Fields`
   (`app/Fields.php`), spread into each block's list. It must not need
   WordPress (the CLI reads `fields.php` without it).

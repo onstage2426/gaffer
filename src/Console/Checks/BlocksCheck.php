@@ -10,7 +10,8 @@ use Gaffer\Paths;
 
 /**
  * Each block: block.json + functions.php + {dir}.twig, name = acf/ + kebab-case of the
- * directory, a real description, the is_admin() guard, and a valid fields.php if it has one.
+ * directory, a real description, the is_admin() guard, and a valid fields.php whose
+ * fields functions.php all reads.
  */
 final class BlocksCheck implements Check
 {
@@ -67,9 +68,16 @@ final class BlocksCheck implements Check
 
             if (is_file("{$dir}/fields.php")) {
                 try {
-                    BlockFields::group($block);
+                    $fields = BlockFields::group($block)['fields'];
                 } catch (\Throwable $e) {
                     $report->error('blocks', $e->getMessage(), "{$dir}/fields.php");
+                    $fields = [];
+                }
+                foreach (self::names_in($fields) as $field) {
+                    if (!preg_match('/([\'"])' . preg_quote($field, '/') . '\1/', $php)) {
+                        $report->warning('blocks', "Field \"{$field}\" is never read in functions.php", "{$dir}/fields.php", null,
+                            'Pass it to the template, or remove it from fields.php.');
+                    }
                 }
             }
         }
@@ -98,5 +106,26 @@ final class BlocksCheck implements Check
     public static function expected_name(string $directory): string
     {
         return 'acf/' . strtolower((string) preg_replace('/(?<!^)[A-Z]/', '-$0', $directory));
+    }
+
+    /**
+     * Data field names, sub fields included (tabs and messages have none).
+     *
+     * @param list<array<string, mixed>> $fields
+     * @return list<string>
+     */
+    private static function names_in(array $fields): array
+    {
+        $names = [];
+        foreach ($fields as $field) {
+            if (is_string($field['name'] ?? null) && $field['name'] !== '') {
+                $names[] = $field['name'];
+            }
+            if (is_array($field['sub_fields'] ?? null)) {
+                array_push($names, ...self::names_in($field['sub_fields']));
+            }
+        }
+
+        return $names;
     }
 }

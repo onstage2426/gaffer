@@ -12,13 +12,15 @@ use Gaffer\Types\Post;
 use Gaffer\Types\Term;
 
 /**
- * Unknown config keys, and classes in types/terms/twig_extensions that don't exist.
+ * Unknown config keys, classes in types/terms/twig_extensions that don't exist,
+ * and composer.json autoloading app/ as the Theme\ namespace.
  */
 final class ConfigCheck implements Check
 {
     #[\Override]
     public function run(Report $report): void
     {
+        $this->autoload($report);
         $stubs = ConfigStubs::keys();
 
         if (Config::get('path') !== null) {
@@ -54,6 +56,23 @@ final class ConfigCheck implements Check
             if (!class_exists($class)) {
                 $report->error('config', "theme.twig_extensions: class {$class} doesn't exist", Paths::base('config/theme.php'));
             }
+        }
+    }
+
+    /**
+     * app/ is one namespace (Theme\Types, Theme\Twig, Theme\Fields, ...), so composer.json maps it as a whole.
+     */
+    private function autoload(Report $report): void
+    {
+        $file = Paths::base('composer.json');
+        $composer = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        if (!is_array($composer)) {
+            return;
+        }
+
+        if (rtrim((string) ($composer['autoload']['psr-4']['Theme\\'] ?? ''), '/') !== 'app') {
+            $report->error('config', 'composer.json doesn\'t autoload "Theme\\\\": "app/"', $file, null,
+                'Replace the Theme\\Twig\\ / Theme\\Types\\ entries with "Theme\\\\": "app/" and run `composer dump-autoload`.');
         }
     }
 }

@@ -33,6 +33,33 @@ final class ConfigStubs
         return self::$keys;
     }
 
+    /**
+     * The title and first sentence of each stub key's comment block.
+     *
+     * @return array<string, array<string, string>> file => key => "Title: first sentence."
+     */
+    public static function descriptions(): array
+    {
+        $descriptions = [];
+
+        foreach (glob(dirname(__DIR__, 2) . '/config/*.php') ?: [] as $file) {
+            preg_match_all(
+                "/\\|-+\\n\\s*\\|\\s*([^\\n]+?)\\s*\\n\\s*\\|-+(.*?)\\*\\/\\s*(?:\\/\\/ )?'(\\w+)'\\s*=>/s",
+                (string) file_get_contents($file),
+                $blocks,
+                PREG_SET_ORDER,
+            );
+
+            foreach ($blocks as [, $title, $body, $key]) {
+                $text = trim((string) preg_replace('/\\s+/', ' ', (string) preg_replace('/^\\s*\\|\\s?/m', '', $body)));
+                $sentence = preg_match('/^.+?\\.(?=\\s|$)/', $text, $m) ? $m[0] : $text;
+                $descriptions[basename($file, '.php')][$key] = $sentence !== '' ? "{$title}: {$sentence}" : $title;
+            }
+        }
+
+        return $descriptions;
+    }
+
     /** @param list<string> $known */
     public static function did_you_mean(string $name, array $known): ?string
     {

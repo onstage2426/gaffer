@@ -36,8 +36,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Extra classes registered as attribute-based Twig extensions (via
-    | #[AsTwigFunction]/#[AsTwigFilter] etc.), on top of the built-in
-    | ThemeExtension, DebugExtension, and StringExtension.
+    | #[AsTwigFunction]/#[AsTwigFilter] etc.), on top of Gaffer's own
+    | Twig\Extension (config(), ajax_url()), DebugExtension and StringExtension.
     |
     */
 

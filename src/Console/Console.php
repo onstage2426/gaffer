@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Gaffer\Console;
 
+use Gaffer\Console\Commands\AiInstall;
+use Gaffer\Console\Commands\AiUpdate;
 use Gaffer\Console\Commands\ConfigShow;
 use Gaffer\Console\Commands\Doctor;
 use Gaffer\Console\Commands\DoctorRender;
@@ -35,6 +37,8 @@ final class Console
             'Site URL for commands that load WordPress (default: console.url)',
         ));
         $app->addCommands([
+            new AiInstall(),
+            new AiUpdate(),
             new ConfigShow(),
             new Doctor(),
             new DoctorRender(),

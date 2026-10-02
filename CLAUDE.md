@@ -90,6 +90,9 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   dev dependency.
 - Themes are standalone, never child themes.
 - No WP-CLI in the dev image.
+- Files `php gaffer ai:update` generates in a theme (`AGENTS.md`, `CLAUDE.md`,
+  agent skill folders) are gitignored, never committed. Their sources
+  (`resources/ai/` here, `.ai/` and `config/ai.php` in the theme) are.
 - `Site` type, `Theme` facade, `Facades\`, `PostType`/`Taxonomy`/`Video`,
   path config: removed on purpose.
 
@@ -103,6 +106,8 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Ajax | `Ajax` (dispatcher, `url()`, `NAMESPACE`), `AjaxAction` (`METHOD`/`SHORTINIT` constants), `AjaxArguments` (typed `run()` params incl. route model binding), `AjaxNotFound` |
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Commands\*`, `Checks\*` (doctor) |
+| AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block). Commands `ai:install`, `ai:update` |
+| AI sources | `resources/ai/guidelines/*.md` (+ `plugins/`), `resources/ai/skills/{name}/SKILL.md`. Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
 | Tests | `tests/` (+ `tests/stubs/wordpress.php` for the few WP functions unit tests touch) |
 
@@ -126,7 +131,8 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Open
 
-- **AI integration ("boost")**: guidelines/skills shipped by Gaffer and
-  installed into themes. Design in progress.
+- **AI boost, next:** an MCP server (WordPress-specific tools: blocks + fields,
+  hooks, render a template, last error), more agent adapters when someone uses
+  them (Cursor, Copilot, Gemini), maybe versioned guidelines per plugin version.
 - **Forms round**: captcha providers (Turnstile/reCAPTCHA), Gravity Forms
   IDs to config, moving the REST forms into `ajax/` with a JSON helper.

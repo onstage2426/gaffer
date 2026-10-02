@@ -11,14 +11,14 @@ description: Ship a Gaffer change end to end - implement, test, migration book e
    templates, show the user one converted example first.
 
 2. **Implement in this repo** (branch `0.x`). Follow the design principles in
-   `CLAUDE.md`. New config keys go into the stubs in `config/`.
+   `AGENTS_DEV.md`. New config keys go into the stubs in `config/`.
 
 3. **Test.**
    - `composer test`, adding tests for anything that doesn't need WordPress
      (stub the few WP functions you need in `tests/stubs/wordpress.php`).
    - `vendor/bin/phpstan analyse --memory-limit=1G`: must be clean, no baseline.
    - WordPress-dependent code: try it against blueprint with this clone's
-     autoloader loaded first (snippet in `CLAUDE.md`).
+     autoloader loaded first (snippet in `AGENTS_DEV.md`).
 
 4. **Migration book.** If a site has to change anything (renamed/removed
    API, new required config, behavior change), append an entry to
@@ -35,6 +35,6 @@ description: Ship a Gaffer change end to end - implement, test, migration book e
    - `php gaffer twig:lint`
    - `php gaffer doctor --wp`
    - anything specific to the change through Apache (ajax, pages, admin bar)
-   - update blueprint's `CLAUDE.md` where the change is documented
+   - update blueprint's `AGENTS_DEV.md` where the change is documented
    - commit blueprint with `general`, leaving its local `config/theme.php`
      debug setting uncommitted.

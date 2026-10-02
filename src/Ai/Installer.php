@@ -37,9 +37,12 @@ final class Installer
 
         $written[] = 'AGENTS.md' . (self::write_marked('AGENTS.md', Guidelines::build($plugins)) ? $kept : '');
 
+        // AGENTS_DEV.md: hand-written notes for developing this theme itself (committed).
+        $import = "@AGENTS.md\n" . (is_file(Paths::base('AGENTS_DEV.md')) ? "@AGENTS_DEV.md\n" : '');
+
         foreach ($agents as $agent) {
             if ($agent->file !== null) {
-                $written[] = $agent->file . (self::write_marked($agent->file, "@AGENTS.md\n") ? $kept : '');
+                $written[] = $agent->file . (self::write_marked($agent->file, $import) ? $kept : '');
             }
         }
 

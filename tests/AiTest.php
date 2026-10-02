@@ -95,6 +95,16 @@ final class AiTest extends TestCase
         self::assertFileDoesNotExist("{$this->theme}/.agents");
     }
 
+    public function test_dev_notes_are_imported_when_present(): void
+    {
+        file_put_contents("{$this->theme}/AGENTS_DEV.md", "# Dev notes\n");
+
+        Installer::update(['claude'], []);
+
+        self::assertStringContainsString("@AGENTS.md\n@AGENTS_DEV.md\n", (string) file_get_contents("{$this->theme}/CLAUDE.md"));
+        self::assertStringContainsString('Also read `AGENTS_DEV.md`', (string) file_get_contents("{$this->theme}/AGENTS.md"));
+    }
+
     public function test_skills_are_copied_per_agent_and_stale_ones_removed(): void
     {
         mkdir("{$this->theme}/.claude/skills/my-own", 0755, true);

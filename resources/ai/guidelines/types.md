@@ -5,6 +5,10 @@ Types wrap a WordPress object. Raw fields are on `wp` (`$post->wp->post_name`,
 something (filters, URLs, related objects). Every type has `id()`, `title()`
 and `link()`.
 
+Text methods (`title()`, `excerpt()`) return plain text with WordPress's
+entities decoded: print them escaped (`{{ post.title() }}`), never `|raw`. HTML
+methods (`content()`, `Term::description()`) are printed with `|raw`.
+
 **Factories are the only way to get one** (no `new`). They take an `int` ID;
 missing, `0` or the wrong type → `null`. Cast ACF values: `(int) get_field('x')`.
 

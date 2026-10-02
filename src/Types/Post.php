@@ -72,9 +72,13 @@ class Post
         return $this->wp->ID;
     }
 
+    /**
+     * Plain text: the_title's entities (&#8217; from texturize, &#038;) are decoded, so
+     * Twig's escaping shows them correctly instead of escaping them a second time.
+     */
     public function title(): string
     {
-        return \apply_filters('the_title', $this->wp->post_title, $this->wp->ID);
+        return html_entity_decode(\apply_filters('the_title', $this->wp->post_title, $this->wp->ID), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     public function link(): string
@@ -87,9 +91,12 @@ class Post
         return \apply_filters('the_content', $this->wp->post_content);
     }
 
+    /**
+     * Plain text, entities decoded (like title()).
+     */
     public function excerpt(): string
     {
-        return \get_the_excerpt($this->wp);
+        return html_entity_decode(\get_the_excerpt($this->wp), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     public function date(?string $format = null): string

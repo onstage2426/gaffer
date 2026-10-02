@@ -25,9 +25,13 @@ final class MenuItem
         return $this->wp->ID;
     }
 
+    /**
+     * Plain text, entities decoded (menu items take their title from the post's
+     * get_the_title() or the term's stored name, both with entities).
+     */
     public function title(): string
     {
-        return (string) $this->field('title');
+        return html_entity_decode((string) $this->field('title'), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     public function link(): string

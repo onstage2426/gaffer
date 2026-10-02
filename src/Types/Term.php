@@ -65,9 +65,13 @@ class Term
         return $this->wp->term_id;
     }
 
+    /**
+     * Plain text: WordPress stores term names HTML-escaped ("A &amp; B"); decoded here
+     * so Twig's escaping isn't applied twice.
+     */
     public function title(): string
     {
-        return $this->wp->name;
+        return html_entity_decode($this->wp->name, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     public function link(): string

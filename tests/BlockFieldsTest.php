@@ -69,6 +69,19 @@ final class BlockFieldsTest extends TestCase
         BlockFields::group('contentFaq');
     }
 
+    public function test_names_that_would_make_keys_ambiguous_are_rejected(): void
+    {
+        foreach (['_titel', 'titel__kort'] as $name) {
+            $this->fields("['name' => '{$name}', 'type' => 'text'],");
+            try {
+                BlockFields::group('contentFaq');
+                self::fail("{$name} was accepted");
+            } catch (LogicException $e) {
+                self::assertStringContainsString("can't start with '_' or contain '__'", $e->getMessage());
+            }
+        }
+    }
+
     public function test_fields_need_a_type(): void
     {
         $this->fields("['name' => 'titel'],");

@@ -10,6 +10,9 @@ use Gaffer\Console\Commands\AiUpdate;
 use Gaffer\Console\Commands\ConfigShow;
 use Gaffer\Console\Commands\Doctor;
 use Gaffer\Console\Commands\DoctorRender;
+use Gaffer\Console\Commands\MigrateBlock;
+use Gaffer\Console\Commands\MigrateField;
+use Gaffer\Console\Commands\MigrateRollback;
 use Gaffer\Console\Commands\TwigClear;
 use Gaffer\Console\Commands\TwigLint;
 use Gaffer\Gaffer;
@@ -44,6 +47,9 @@ final class Console
             new ConfigShow(),
             new Doctor(),
             new DoctorRender(),
+            new MigrateBlock(),
+            new MigrateField(),
+            new MigrateRollback(),
             new TwigClear(),
             new TwigLint(),
         ]);

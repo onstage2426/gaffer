@@ -19,7 +19,8 @@ description: Create or change an ACF block in a Gaffer theme (blocks/{name}/ wit
 5. Fields: write `fields.php` (a list of ACF field arrays, no `key`, only
    non-default settings; shared fields via `...Fields::name()`). Don't create
    block fields in the ACF UI or in `storage/acf-json/`.
-6. **Renaming an existing block, field or tab label** changes what's stored in
-   post content (block name, field names, derived keys): migrate the content,
-   or pages lose the block or its values. Ask before renaming.
+6. **Renaming an existing block or field** changes what's stored in post
+   content: rename it in the code, then `php gaffer migrate:block` /
+   `migrate:field` (dry run first, then `--run` once the user agrees; it writes
+   site content). Ask before renaming. Tab labels can change freely.
 7. Run `php gaffer twig:lint` and `php gaffer doctor --wp`.

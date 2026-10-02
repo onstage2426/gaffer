@@ -44,7 +44,7 @@ final class BlocksCheck implements Check
 
             if ($name !== $expected) {
                 $report->error('blocks', "Name is \"{$name}\", expected \"{$expected}\"", "{$dir}/block.json", null,
-                    'The name is stored in post content and ACF location rules, so renaming means migrating both.');
+                    'The name is stored in post content: after renaming, php gaffer migrate:block <old> <new>.');
             }
             if (is_string($name) && isset($seen[$name])) {
                 $report->error('blocks', "Name \"{$name}\" is also used by {$seen[$name]}", "{$dir}/block.json");

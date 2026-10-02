@@ -39,14 +39,20 @@ final class BlockFields
         if (!is_array($fields) || !array_is_list($fields)) {
             throw new LogicException("{$file} must return a list of ACF fields.");
         }
-        $slug = substr($name, strlen('acf/'));
-
         return [
-            'key' => "group_{$slug}",
+            'key' => 'group_' . substr($name, strlen('acf/')),
             'title' => 'Block: ' . ($block['title'] ?? $dir),
-            'fields' => self::keyed($fields, "field_{$slug}", $file),
+            'fields' => self::keyed($fields, self::prefix($name), $file),
             'location' => [[['param' => 'block', 'operator' => '==', 'value' => $name]]],
         ];
+    }
+
+    /**
+     * Start of every field key of a block: acf/content-faq → field_content-faq.
+     */
+    public static function prefix(string $block_name): string
+    {
+        return 'field_' . substr($block_name, strlen('acf/'));
     }
 
     /**
@@ -65,6 +71,10 @@ final class BlockFields
             }
             if (isset($field['key'])) {
                 throw new LogicException("{$file}: don't set 'key' (field '" . ($field['name'] ?? $field['label'] ?? '?') . "'); Gaffer derives it from the names.");
+            }
+
+            if (is_string($field['name'] ?? null) && (str_starts_with($field['name'], '_') || str_contains($field['name'], '__'))) {
+                throw new LogicException("{$file}: field name '{$field['name']}' can't start with '_' or contain '__' (ACF and the derived keys use those).");
             }
 
             $id = is_string($field['name'] ?? null) && $field['name'] !== ''

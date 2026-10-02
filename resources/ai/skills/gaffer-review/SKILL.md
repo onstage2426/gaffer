@@ -18,7 +18,7 @@ description: Review changes in a Gaffer theme before calling them done - run the
      `|raw` without a reason.
    - Ajax: typed `run()` parameters, correct `METHOD`, no manual casting.
    - Blocks: `is_admin()` guard, name matches the directory, fields in
-     `fields.php` (no renamed field names or tab labels without a content
-     migration).
+     `fields.php` (a renamed block or field name needs `migrate:block` /
+     `migrate:field`).
    - snake_case methods, explicit return types, no alias methods.
 3. Report what you checked and anything left over, plainly.

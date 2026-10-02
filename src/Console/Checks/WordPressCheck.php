@@ -54,14 +54,14 @@ final class WordPressCheck implements Check
         }
         foreach ($orphans as $name => $posts) {
             $report->error('wp', "Content uses unregistered block {$name}: " . implode(', ', $posts), null, null,
-                'Renamed block? Migrate the name in post content (block comment and "name" attribute).');
+                'Renamed block? php gaffer migrate:block <old> <new>.');
         }
 
         $this->stale_fields($report, $rows);
     }
 
     /**
-     * Block data whose field keys no ACF field has (a field renamed or removed, or a tab label changed).
+     * Block data whose field keys no ACF field has (a field renamed or removed).
      *
      * @param array<object> $rows
      */
@@ -89,7 +89,7 @@ final class WordPressCheck implements Check
         foreach ($stale as $block => $fields) {
             foreach ($fields as $field => $posts) {
                 $report->warning('wp', "{$block}: content stores \"{$field}\" for a field that no longer exists: " . implode(', ', array_keys($posts)), null, null,
-                    'Renamed field (or tab label)? Migrate the stored names and keys. Removed on purpose? The stored value is unused and harmless.');
+                    'Renamed field? php gaffer migrate:field <block> <old> <new>. Removed on purpose? The stored value is unused and harmless.');
             }
         }
     }

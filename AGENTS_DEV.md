@@ -125,6 +125,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Ajax | `Ajax` (dispatcher, `url()`, `NAMESPACE`), `AjaxAction` (`METHOD`/`SHORTINIT` constants), `AjaxArguments` (typed `run()` params incl. route model binding), `AjaxNotFound` |
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Commands\*`, `Checks\*` (doctor) |
+| Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed). Commands `migrate:block`, `migrate:field`, `migrate:rollback` (`MigrateCommand` base) |
 | AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear` |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/`), `resources/ai/skills/{name}/SKILL.md`. Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
@@ -145,20 +146,31 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   bugs; `doctor --wp` forces it on when rendering.
 - WordPress's `wp_get_environment_type()` is `production` unless
   `WP_ENVIRONMENT_TYPE` is defined.
+- `wp_check_post_lock()` is admin-only (`wp-admin/includes/post.php`): the
+  CLI reads `_edit_lock` itself. A script that loads `wp-load.php` must not
+  use a global `$theme`: WordPress overwrites it while loading.
+- Testing a content migration: compare rendered pages before/after (blueprint
+  has a time-based marquee delay and best-seller ties in random order:
+  normalize/sort lines), compare `sha1(post_content)` per post with the
+  original after rollback, and dump the database first (`mariadb-dump`
+  inside the `mariadb` container, password from its secret file, never
+  through your hands).
 - Apache sends `.php` to php-fpm with `ProxyPassMatch`, so `.htaccess` rules
   don't apply to PHP files (homelab to-do: switch to `SetHandler`).
 
 ## Current state (2026-10-02)
 
-- **Everything pushed through `9fc9fcc`** (block fields in code); blueprint
-  is on it and committed (`76b034a`): `fields.php` per block, `Theme\Fields`,
-  content keys migrated, block JSON groups deleted.
-  Unpushed: doctor checks for the composer.json `Theme\` autoload, fields
-  `functions.php` never reads, and content storing fields that no longer
-  exist (blueprint passes all three; nothing to change there).
+- **Pushed through `eb2d42f`**; blueprint is on it (`921ad47`). Unpushed:
+  `migrate:block` / `migrate:field` / `migrate:rollback`. Tested against
+  blueprint (all reverted afterwards, database identical to before): field,
+  sub field, repeater, block and two-page block renames, each with run →
+  identical rendering → rollback → identical content; refusals for
+  round-trip failure, random keys, collisions, edit lock, an edited page on
+  rollback, a concurrent edit mid-transaction, tampered backup. Blueprint
+  needs nothing after the push except `composer update`.
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
-- **Migration book:** 33 entries, for the user's two other sites (still on an
+- **Migration book:** 34 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
   (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).
@@ -172,11 +184,11 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   reCAPTCHA provider for clients who want it), Gravity Forms form/field IDs to
   config, moving `inc/rest/` contact/newsletter into `ajax/` with a JSON
   response helper on `AjaxAction`.
-- **Block fields, next:** `php gaffer blocks:migrate` (dry run by default)
-  to rename a block or a field in stored content: names, derived keys,
-  repeater rows; replaces `.migrate-block-fields.php`. Then maybe a
-  `doctor --wp` check that every `type` in `fields.php` is a registered ACF
-  field type.
+- **Block fields, maybe:** a `doctor --wp` check that every `type` in
+  `fields.php` is a registered ACF field type. `migrate:rollback
+  --skip-changed` if refusing the whole rollback over one edited page turns
+  out to get in the way. Flexible content layouts aren't keyed by
+  `BlockFields` (no theme uses them yet).
 - **AI boost, next:** an MCP server (blocks + ACF fields, hooks, render a
   template, last error; build it on WordPress's Abilities API so it sits
   next to ACF's own abilities), more agent adapters when someone uses them (Cursor,

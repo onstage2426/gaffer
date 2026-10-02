@@ -1,8 +1,39 @@
 ## Views (Twig)
 
-- Templates live in `views/`, one subdirectory per concept (`components/`,
-  `page/`, `post/`, `product/`, ...). Block templates are `@block/{name}/{name}.twig`
-  (`blocks/`), ajax templates `@ajax/{Action}/x.twig` (`ajax/`).
+### How a page is built
+
+- A WordPress template file (`page.php`, `archive.php`, `404.php`,
+  `woocommerce/*.php`) gathers the data, then: `get_header()`,
+  `View::render('{concept}/page.twig', [...])`, `get_footer()`.
+- The document shell is `header.php` / `footer.php`, in PHP on purpose
+  (`<html>`, `wp_head()`, `<body>`, `wp_footer()`: WordPress and plugins hook
+  into it). Apart from the shell they only gather data and render components:
+  no other markup in PHP.
+- Twig templates are fragments between those: never `{% extends %}`,
+  `<html>` or `<body>` in Twig.
+
+### Where templates go
+
+- `views/{concept}/page.twig`: one item (`page/`, `post/`, `product/`);
+  `{concept}/archive.twig`: a listing; `{concept}/card.twig`: one item in a
+  list. `views/components/`: parts used across the site (header, footer,
+  buttons, `modals/`, `icons/`).
+- Block templates are `@block/{name}/{name}.twig` (`blocks/`) and belong to
+  their block; ajax templates `@ajax/{Action}/x.twig` (`ajax/`). When a page
+  needs the same markup as a block, move it to `components/` and include it
+  from both, so changing the block can't break the page.
+- **Partials get exactly what they need**, never the caller's variables:
+  ```twig
+  {{ include('components/button/primary.twig', { link: primary }, with_context = false) }}
+  ```
+  Always the `include()` function, never the `{% include %}` tag. The
+  reference below lists each template's variables (`(optional)`: read behind
+  `??`, `|default` or `is defined`).
+- `doctor` reports templates that are rendered or included but don't exist,
+  templates nothing uses, and includes without `with_context = false`.
+
+### Rendering
+
 - Render from PHP with `Gaffer\View`:
   ```php
   View::render('product/page.twig', ['post' => Post::current()]); // echoes

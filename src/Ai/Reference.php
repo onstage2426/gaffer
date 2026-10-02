@@ -11,6 +11,7 @@ use Gaffer\BlockFields;
 use Gaffer\Config;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\ConfigStubs;
+use Gaffer\Console\Templates;
 use Gaffer\Paths;
 use Gaffer\Twig\Extension;
 use Gaffer\View;
@@ -37,6 +38,7 @@ final class Reference
             self::types(),
             self::ajax(),
             self::blocks(),
+            self::views(),
         ])) . "\n";
     }
 
@@ -140,6 +142,36 @@ final class Reference
             if (isset($fields[$name])) {
                 $lines[] = '  - fields: ' . implode(', ', $fields[$name]);
             }
+        }
+
+        return count($lines) > 1 ? implode("\n", $lines) : '';
+    }
+
+    /**
+     * Each template in views/ with the variables it reads from its caller, so a
+     * partial can be called without opening it.
+     */
+    private static function views(): string
+    {
+        $shared = View::shared_keys();
+        $ignore = [...$shared, ...array_keys(View::env()->getGlobals())];
+        $lines = ["### Views\n"];
+        if ($shared !== []) {
+            $lines[] = 'Shared with every template (`View::share()`): `' . implode('`, `', $shared) . '`.';
+            $lines[] = '';
+        }
+
+        foreach (Templates::all() as $name => $file) {
+            $module = str_starts_with($name, '@') ? null : Templates::parse($name);
+            if ($module === null) {
+                continue; // block and ajax templates are covered by their own sections
+            }
+            $variables = array_map(
+                static fn(string $variable, bool $optional): string => "`{$variable}`" . ($optional ? ' (optional)' : ''),
+                array_keys(Templates::variables($module, $ignore)),
+                Templates::variables($module, $ignore),
+            );
+            $lines[] = "- `{$name}`" . ($variables !== [] ? ': ' . implode(', ', $variables) : ': no variables');
         }
 
         return count($lines) > 1 ? implode("\n", $lines) : '';

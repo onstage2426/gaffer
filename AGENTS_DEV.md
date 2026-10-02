@@ -131,7 +131,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Types | `Types\Post` (+ `Attachment`, `Image`), `Term`, `Menu`/`MenuItem`, `Pagination`. Wrap the WP object (`->wp`), protected constructors, factories `from(int)`, `current()`, `query()`. Class maps `theme.types` / `theme.terms` |
 | Ajax | `Ajax` (dispatcher, `url()`, `NAMESPACE`), `AjaxAction` (`METHOD`/`SHORTINIT` constants), `AjaxArguments` (typed `run()` params incl. route model binding), `AjaxNotFound` |
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
-| CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Commands\*`, `Checks\*` (doctor) |
+| CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Templates` (template names, includes and variables from Twig's parse tree; used by `twig:lint`, `TemplatesCheck`, the reference), `Commands\*`, `Checks\*` (doctor) |
 | Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed), `Log` (`storage/logs/migrate.log`, JSON line per `--run` with outcome). Commands `migrate:block`, `migrate:field`, `migrate:remove-block`, `migrate:remove-field`, `migrate:rollback` (`MigrateCommand` base) |
 | AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear` |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/`), `resources/ai/skills/{name}/SKILL.md`. Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
@@ -169,17 +169,16 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Current state (2026-10-02)
 
-- **Pushed through `ca27e49`**; blueprint is on it (`79cb526`). Unpushed: the
-  last block-workflow gaps: `migrate:remove-block` / `migrate:remove-field`,
-  the ACF field type check (`doctor --wp`), no InnerBlocks / flexible content,
-  the type-change rule, WordPress's own edit lock, the `widget_block` shape
-  check, and the empty-content read fix (found by testing removal: a post
-  emptied by `remove-block` crashed the read-back after commit). Tested
-  against blueprint like the earlier migrations, each run compared with an
-  independently computed expectation; database and site identical afterwards.
+- **Pushed through `cb6219e`**; blueprint is on it (`1226bf9`). Unpushed:
+  views: the guideline (PHP shell + fragments, folders, block templates vs
+  components, partials with `with_context = false`), `TemplatesCheck`
+  (missing/unused templates, includes), the Views reference (variables per
+  template, `View::shared_keys()`). Blueprint has two converted examples
+  waiting for the user's OK (hero as `components/hero.twig`, Content block
+  buttons), uncommitted; the rest of its includes follow after that.
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
-- **Migration book:** 35 entries, for the user's two other sites (still on an
+- **Migration book:** 36 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
   (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).

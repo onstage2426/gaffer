@@ -43,6 +43,16 @@ final class View
         unset(self::$resolved[$key]);
     }
 
+    /**
+     * The keys passed to share(), without resolving them.
+     *
+     * @return list<string>
+     */
+    public static function shared_keys(): array
+    {
+        return array_keys(self::$shared);
+    }
+
     public static function env(): Environment
     {
         return self::$env ?? throw new LogicException('Gaffer::boot() has not run yet, so there is no Twig environment.');

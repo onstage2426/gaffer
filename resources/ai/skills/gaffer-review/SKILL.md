@@ -16,6 +16,9 @@ description: Review changes in a Gaffer theme before calling them done - run the
      graphics in `views/components/icons/`.
    - Images use `{{ image.attrs(size) }}` inside a written `<img>` tag; no new
      `|raw` without a reason.
+   - Views: no markup in PHP outside the `header.php`/`footer.php` shell, no
+     `{% extends %}`; partials via `include(..., with_context = false)`; a
+     block template isn't rendered by a page (shared markup is a component).
    - Ajax: typed `run()` parameters, correct `METHOD`, no manual casting.
    - Blocks: `is_admin()` guard, name matches the directory, fields in
      `fields.php` (a renamed or removed block or field needs a `migrate:*`;

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Gaffer\Tests;
 
 use Gaffer\Config;
+use Gaffer\Gaffer;
+use Gaffer\View;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Checks\Check;
 use Gaffer\Console\Checks\ConfigCheck;
+use Gaffer\Console\Checks\TemplatesCheck;
 use Gaffer\Console\Report;
 use Gaffer\Paths;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -71,6 +74,24 @@ final class ChecksTest extends TestCase
         file_put_contents("{$this->theme}/blocks/contentFaq/contentFaq.twig", '<div><InnerBlocks /></div>');
 
         self::assertStringContainsString('Uses <InnerBlocks>', $this->messages(new BlocksCheck()));
+    }
+
+    public function test_templates_missing_unused_and_not_isolated(): void
+    {
+        mkdir("{$this->theme}/views/components", 0755, true);
+        file_put_contents("{$this->theme}/views/components/card.twig", '{{ post }}');
+        file_put_contents("{$this->theme}/views/components/old.twig", 'unused');
+        file_put_contents("{$this->theme}/views/page.twig", "{{ include('components/card.twig', { post: post }, with_context = false) }}\n{{ include('components/card.twig') }}\n{{ include('components/gone.twig', {}, with_context = false) }}");
+        file_put_contents("{$this->theme}/page.php", "<?php View::render('page.twig', []);\nView::render(\"missing.twig\");\n");
+        self::reset(View::class, 'env', null);
+        self::reset(Gaffer::class, 'twig', false);
+
+        $messages = $this->messages(new TemplatesCheck());
+
+        self::assertStringContainsString("Renders missing.twig, which doesn't exist", $messages);
+        self::assertStringContainsString("include() loads components/gone.twig, which doesn't exist", $messages);
+        self::assertSame(1, substr_count($messages, 'passes all of this template'));
+        self::assertSame(1, substr_count($messages, 'Nothing renders or includes this template')); // old.twig
     }
 
     private function messages(Check $check): string

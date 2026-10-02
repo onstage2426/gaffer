@@ -1,0 +1,132 @@
+# Gaffer — Claude Notes
+
+Gaffer (`onstage2426/gaffer`) is a WordPress theme framework: Twig views,
+typed wrappers around WordPress objects, an ajax dispatcher, Vite assets and a
+CLI (`php gaffer`). Themes install it with Composer and keep only site-specific
+code. This repository is a sandbox for now (a fresh repo comes before launch).
+
+## Working in this repo
+
+- **Work directly on `0.x`.** No feature branches. Commit messages are just
+  `general`. Never add a Co-Authored-By or any other AI attribution line.
+- **The user pushes.** This machine has no GitHub credentials. Commit, then
+  say what's unpushed.
+- **Before every commit:** `composer test` (PHPUnit) and
+  `vendor/bin/phpstan analyse --memory-limit=1G` (level 6, **no baseline**:
+  fix types instead of ignoring them).
+- **Integration test site:** the blueprint theme,
+  `~/docker/appdata/websites/blueprint/wp-content/themes/blueprint`
+  (see its own CLAUDE.md). After the user has pushed:
+  `composer update onstage2426/gaffer` there, adapt blueprint, then
+  `php gaffer twig:lint` and `php gaffer doctor --wp` (renders ~28 URLs with
+  strict variables). Never edit a theme's `vendor/`.
+- **Breaking changes are fine** (the user prefers breaking now over carrying
+  a messy design). When a design needs a workaround, look for the root cause
+  and propose fixing that instead, even if it breaks things.
+- **Every change a site must react to gets a migration book entry** (below).
+  A breaking change in Gaffer usually breaks blueprint until it's updated, so
+  Gaffer and blueprint changes land in one cycle: Gaffer commit → user
+  pushes → update blueprint immediately.
+
+### Migration book (`MIGRATION.md`)
+
+Two other sites run an older Gaffer. Until the user says they're updated,
+`MIGRATION.md` in this repo collects step-by-step instructions an AI agent
+applies when updating those sites: what changed, a `grep` to find affected
+code, before/after examples, what to check afterwards. It is **local only**
+(listed in `.git/info/exclude`): never commit or push it. When the user says
+the sites are updated, delete it (and the exclude line).
+
+### Testing against real WordPress before pushing
+
+Blueprint's `vendor/` has the last pushed Gaffer. To try unpushed classes
+against real data, load this clone's autoloader first and force-load the
+changed classes before WordPress boots the theme:
+
+```php
+require getenv('HOME') . '/workspace/gaffer/vendor/autoload.php';
+class_exists(Gaffer\Types\Post::class); // ...each changed class
+Gaffer\Gaffer::configure($theme_dir);
+Gaffer\Console\WordPress::load('https://blueprint.020004.xyz');
+```
+
+Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
+`phpfpm` container also works (`docker exec -i phpfpm php`). Through Apache:
+`docker exec -i phpfpm php` with `file_get_contents('http://apache/...')` and a
+`Host: blueprint.020004.xyz` header.
+
+## Design principles
+
+- **snake_case** method names (matches Twig and WordPress); otherwise PSR-12.
+- **One way to do each thing.** No facade + type method + Twig function for
+  the same lookup, no alias methods, no overloaded "accepts anything"
+  signatures.
+- **Separate classes per concern.** Extra `use` statements are fine.
+- **Factories take the identifier only** (`int` ID). "Current" is its own
+  named method, never a null/omitted argument.
+- **No magic fallbacks.** Missing data is `null`; the caller decides.
+- **Visible magic is fine, hidden magic isn't.** A type in a signature
+  (route model binding) or a file in a folder (blocks, ajax actions) is fine;
+  behavior that changes where you can't see it is not.
+- **PHP prepares data, Twig presents it.** No Twig functions that fetch
+  content.
+- **Helpers output values or attributes, not whole HTML tags** (e.g.
+  `<img class="x" {{ image.attrs('large') }}>`), so markup stays in templates.
+  Show one converted example before mass-rewriting templates.
+- **Null for "not found", exceptions for programmer errors.**
+- **Convention over configuration.** The theme layout and ajax namespace are
+  fixed; only server concerns are configurable (`GAFFER_STORAGE`).
+
+## Settled decisions (don't re-propose)
+
+- No nonces on ajax actions (page caching makes them stale).
+- SHORTINIT and `ajax.php` stay: they're for other developers and projects,
+  even when blueprint doesn't use SHORTINIT. Improve the dispatcher, don't
+  replace it with the REST API or WordPress routing.
+- ACF block editor previews are intentionally empty (`is_admin()` guard).
+- Twig cache stays off by default.
+- No code generators (`make:*`); `doctor` enforces conventions instead.
+- No test/analysis tooling in sites (phpstan, PHPUnit). Gaffer can have any
+  dev dependency.
+- Themes are standalone, never child themes.
+- No WP-CLI in the dev image.
+- `Site` type, `Theme` facade, `Facades\`, `PostType`/`Taxonomy`/`Video`,
+  path config: removed on purpose.
+
+## Architecture
+
+| Area | Files |
+|---|---|
+| Boot | `Gaffer::configure()` (theme root + config, no WordPress), `Gaffer::boot()` (Twig, `inc/`, ACF JSON path, blocks, admin bar), `Gaffer::twig()` (SHORTINIT), `Gaffer::version()` |
+| Static services | `Config`, `Paths` (fixed layout), `View` (render/fetch/share, owns the Twig env), `Acf`, `Vite`, `Turnstile`, `TwigCache`, `AdminBar` |
+| Types | `Types\Post` (+ `Attachment`, `Image`), `Term`, `Menu`/`MenuItem`, `Pagination`. Wrap the WP object (`->wp`), protected constructors, factories `from(int)`, `current()`, `query()`. Class maps `theme.types` / `theme.terms` |
+| Ajax | `Ajax` (dispatcher, `url()`, `NAMESPACE`), `AjaxAction` (`METHOD`/`SHORTINIT` constants), `AjaxArguments` (typed `run()` params incl. route model binding), `AjaxNotFound` |
+| Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
+| CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Commands\*`, `Checks\*` (doctor) |
+| Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
+| Tests | `tests/` (+ `tests/stubs/wordpress.php` for the few WP functions unit tests touch) |
+
+## Gotchas learned the hard way
+
+- `get_post(0)` returns the *current* post: factories return `null` for ids ≤ 0.
+- Plugins bundle their own `Composer\InstalledVersions`; it may not know the
+  theme's packages. `Gaffer::version()` reads `vendor/composer/installed.php`.
+- Loading WordPress inside a function: `wp-config.php` variables become
+  local; `Console\WordPress` binds `global $table_prefix`. It also needs
+  `HTTP_HOST`/`REQUEST_URI`, `WP_USE_THEMES` for rendering and
+  `WP_DISABLE_FATAL_ERROR_HANDLER` to see errors.
+- WooCommerce's term ordering keeps array keys: use `reset($terms)`, not `$terms[0]`.
+- Nav menu item fields (`title`, `url`, …) are dynamic WP_Post properties.
+- Twig `strict_variables` (on with `theme.debug`) is what catches template
+  bugs; `doctor --wp` forces it on when rendering.
+- WordPress's `wp_get_environment_type()` is `production` unless
+  `WP_ENVIRONMENT_TYPE` is defined.
+- Apache sends `.php` to php-fpm with `ProxyPassMatch`, so `.htaccess` rules
+  don't apply to PHP files (homelab to-do: switch to `SetHandler`).
+
+## Open
+
+- **AI integration ("boost")**: guidelines/skills shipped by Gaffer and
+  installed into themes. Design in progress.
+- **Forms round**: captcha providers (Turnstile/reCAPTCHA), Gravity Forms
+  IDs to config, moving the REST forms into `ajax/` with a JSON helper.

@@ -150,12 +150,10 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Current state (2026-10-02)
 
-- **Pushed through `0d5e6f1`** (`ai:clear`); blueprint's lock has it,
-  uncommitted. Unpushed: block fields in code (`BlockFields`). Blueprint already has
-  its `fields.php` files, `Theme\Fields` and migrated content (done with the
-  clone), uncommitted until the user pushes: then
-  `composer update onstage2426/gaffer`, `php gaffer ai:update`, check through
-  Apache, commit. Suggested: add `"post-update-cmd": ["@php gaffer ai:update --ansi"]`
+- **Everything pushed through `9fc9fcc`** (block fields in code); blueprint
+  is on it and committed (`76b034a`): `fields.php` per block, `Theme\Fields`,
+  content keys migrated, block JSON groups deleted.
+  Suggested: add `"post-update-cmd": ["@php gaffer ai:update --ansi"]`
   to blueprint's `composer.json` (not done yet).
 - **Migration book:** 33 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.

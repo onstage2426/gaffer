@@ -24,5 +24,8 @@ description: Review changes in a Gaffer theme before calling them done - run the
      `fields.php` (a renamed or removed block or field needs a `migrate:*`;
      a changed type only when the stored value means the same), no
      InnerBlocks or flexible content.
+   - `inc/`: only hook registrations, each with a `/* Area - what */`
+     comment and typed closures; no functions or classes declared there
+     (they go in `app/`).
    - snake_case methods, explicit return types, no alias methods.
 3. Report what you checked and anything left over, plainly.

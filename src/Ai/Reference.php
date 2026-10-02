@@ -12,10 +12,12 @@ use Gaffer\Config;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\ConfigStubs;
 use Gaffer\Console\Templates;
+use Gaffer\Console\ThemeFiles;
 use Gaffer\Paths;
 use Gaffer\Twig\Extension;
 use Gaffer\View;
 use Closure;
+use PhpToken;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
@@ -39,6 +41,7 @@ final class Reference
             self::ajax(),
             self::blocks(),
             self::views(),
+            self::hooks(),
         ])) . "\n";
     }
 
@@ -175,6 +178,55 @@ final class Reference
         }
 
         return count($lines) > 1 ? implode("\n", $lines) : '';
+    }
+
+    /**
+     * Each inc/ file's hooks and shortcodes, grouped under the comment above them.
+     */
+    private static function hooks(): string
+    {
+        $lines = ["### Hooks (`inc/`)\n"];
+
+        foreach (is_dir(Paths::includes()) ? ThemeFiles::find(['php'], Paths::includes()) : [] as $file) {
+            $groups = self::file_hooks((string) file_get_contents($file));
+            if ($groups === []) {
+                continue;
+            }
+            $lines[] = '- `' . substr($file, strlen(Paths::base()) + 1) . '`';
+            foreach ($groups as $comment => $hooks) {
+                $lines[] = '  - ' . ($comment !== '' ? "{$comment}: " : '') . implode(', ', $hooks);
+            }
+        }
+
+        return count($lines) > 1 ? implode("\n", $lines) : '';
+    }
+
+    /**
+     * Hook registrations by the comment above them: "comment" => ["`hook`", "removes `hook`"].
+     *
+     * @return array<string, list<string>>
+     */
+    private static function file_hooks(string $code): array
+    {
+        $calls = ['add_action' => '', 'add_filter' => '', 'add_shortcode' => 'shortcode ', 'remove_action' => 'removes ', 'remove_filter' => 'removes '];
+        $tokens = array_values(array_filter(PhpToken::tokenize($code), static fn(PhpToken $t): bool => !$t->is([T_WHITESPACE, T_OPEN_TAG])));
+        $groups = [];
+        $comment = '';
+
+        foreach ($tokens as $i => $token) {
+            if ($token->is([T_COMMENT, T_DOC_COMMENT])) {
+                $comment = trim((string) preg_replace('#^/\*+|\*+/$|^//|^\s*\*\s?#m', '', $token->text));
+                $comment = (string) preg_replace('/\s+/', ' ', $comment);
+                continue;
+            }
+            $name = $tokens[$i + 2] ?? null;
+            if ($token->is(T_STRING) && isset($calls[$token->text]) && ($tokens[$i + 1] ?? null)?->text === '('
+                && $name !== null && $name->is(T_CONSTANT_ENCAPSED_STRING)) {
+                $groups[$comment][] = $calls[$token->text] . '`' . trim($name->text, '\'"') . '`';
+            }
+        }
+
+        return $groups;
     }
 
     /**

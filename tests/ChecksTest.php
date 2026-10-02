@@ -10,6 +10,7 @@ use Gaffer\View;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Checks\Check;
 use Gaffer\Console\Checks\ConfigCheck;
+use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
 use Gaffer\Console\Report;
@@ -103,6 +104,26 @@ final class ChecksTest extends TestCase
         $messages = $this->messages(new MarkupCheck());
 
         self::assertSame('HTML in PHP (line 4, 6)', $messages);
+    }
+
+    public function test_declarations_in_inc(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            use function strlen;
+            function bs_helper(): void {}
+            if (!function_exists('bs_guarded')) { function bs_guarded(): void {} }
+            final class Thing {}
+            enum Mode {}
+            add_action('init', function (): void {});
+            add_filter('x', fn(): string => Foo::class);
+            $anon = new class {};
+            PHP;
+
+        self::assertSame(
+            [['function', 'bs_helper()', 3], ['function', 'bs_guarded()', 4], ['class', 'Thing', 5], ['enum', 'Mode', 6]],
+            IncCheck::declarations($code),
+        );
     }
 
     private function messages(Check $check): string

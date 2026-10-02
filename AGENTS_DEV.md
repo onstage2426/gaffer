@@ -169,13 +169,12 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Current state (2026-10-02)
 
-- **Pushed through `cb6219e`**; blueprint is on it (`1226bf9`). Unpushed:
-  views: the guideline (PHP shell + fragments, folders, block templates vs
-  components, partials with `with_context = false`), `TemplatesCheck`
-  (missing/unused templates, includes), the Views reference (variables per
-  template, `View::shared_keys()`). Blueprint has two converted examples
-  waiting for the user's OK (hero as `components/hero.twig`, Content block
-  buttons), uncommitted; the rest of its includes follow after that.
+- **Pushed through `c818e52`** (views); blueprint is on it (`0677e1a`).
+  Unpushed: `MarkupCheck` (HTML in PHP outside the shell). Blueprint (after
+  push: `composer update`): notices are Twig, checkout/account overrides
+  deleted (to be redesigned); 7 files with HTML in PHP still to convert
+  (config usps, shipping table, sitemap + Turnstile shortcodes, order button,
+  admin footer/login style, Yoast separator), waiting for the user.
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
 - **Migration book:** 36 entries, for the user's two other sites (still on an

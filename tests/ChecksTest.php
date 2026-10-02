@@ -10,6 +10,7 @@ use Gaffer\View;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Checks\Check;
 use Gaffer\Console\Checks\ConfigCheck;
+use Gaffer\Console\Checks\MarkupCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
 use Gaffer\Console\Report;
 use Gaffer\Paths;
@@ -92,6 +93,16 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString("include() loads components/gone.twig, which doesn't exist", $messages);
         self::assertSame(1, substr_count($messages, 'passes all of this template'));
         self::assertSame(1, substr_count($messages, 'Nothing renders or includes this template')); // old.twig
+    }
+
+    public function test_html_in_php_outside_the_shell(): void
+    {
+        file_put_contents("{$this->theme}/header.php", "<?php ?>\n<html><body>");
+        file_put_contents("{$this->theme}/page.php", "<?php\n// a <div> in a comment is fine\n\$x = 1;\necho '<div class=\"a\">';\n\$y = <<<HTML\n    <p>x</p>\nHTML;\n\$z = 'a < b';\n");
+
+        $messages = $this->messages(new MarkupCheck());
+
+        self::assertSame('HTML in PHP (line 4, 6)', $messages);
     }
 
     private function messages(Check $check): string

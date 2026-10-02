@@ -30,7 +30,9 @@
   reference below lists each template's variables (`(optional)`: read behind
   `??`, `|default` or `is defined`).
 - `doctor` reports templates that are rendered or included but don't exist,
-  templates nothing uses, and includes without `with_context = false`.
+  templates nothing uses, includes without `with_context = false`, and HTML
+  in PHP outside `header.php`/`footer.php` (filters and shortcodes that
+  return HTML use `View::fetch()`).
 
 ### Rendering
 

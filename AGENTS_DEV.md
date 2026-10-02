@@ -173,6 +173,14 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   reCAPTCHA provider for clients who want it), Gravity Forms form/field IDs to
   config, moving `inc/rest/` contact/newsletter into `ajax/` with a JSON
   response helper on `AjaxAction`.
+- **AI boost, small gap (do first):** when an agent is deselected,
+  `ai:install`/`ai:update` must remove that agent's generated output (the
+  marked block in its file, deleting the file if nothing else is left, and
+  skill dirs with the `.gaffer-generated` marker); today they stay on disk
+  while dropping out of the `.gitignore` block, so they'd become committable.
+  Same code gives a `php gaffer ai:clear` (all generated output; keeps `.ai/`,
+  `config/ai.php`, the `.gitignore` block and hand-written content). Agreed
+  with the user, not built yet.
 - **AI boost, next:** an MCP server (blocks + ACF fields, hooks, render a
   template, last error), more agent adapters when someone uses them (Cursor,
   Copilot, Gemini), maybe versioned plugin guidelines.

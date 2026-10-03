@@ -94,6 +94,16 @@ class Term
         return self::from($this->wp->parent);
     }
 
+    /**
+     * Parent, grandparent, ... up to the top-level term: nearest first.
+     *
+     * @return list<Term>
+     */
+    public function ancestors(): array
+    {
+        return array_values(array_filter(array_map(self::from(...), \get_ancestors($this->wp->term_id, $this->wp->taxonomy, 'taxonomy'))));
+    }
+
     /** @return list<Term> */
     public function children(): array
     {

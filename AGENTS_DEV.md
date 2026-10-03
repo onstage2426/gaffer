@@ -178,10 +178,10 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Current state (2026-10-03)
 
-- **Pushed through `0273c4c`** (`GuidelinesCheck`); blueprint is on it.
-  Unpushed: AI boost locked in (forms guideline + new `gaffer-form` skill
-  gated on Gravity Forms, `--no-wp` removed, `doctor` lists theme overrides
-  of Gaffer's guidelines/skills).
+- **Pushed through `f69e2ca`** (AI boost locked in: forms guideline +
+  `gaffer-form` skill gated on Gravity Forms, `--no-wp` removed, `doctor`
+  lists theme overrides of Gaffer's guidelines/skills); blueprint is on it.
+  Unpushed: `Post::ancestors()` / `Term::ancestors()`.
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
 - **AI boost files:** `AGENTS.md` (Gaffer guidelines → active plugins'
@@ -190,7 +190,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   agent. Codex (`.agents/skills`) and Grok (`.grok/skills`) paths checked
   against their docs (2026-10); Grok also reads `CLAUDE.md` and
   `.claude/skills`.
-- **Migration book:** 47 entries, for the user's two other sites (still on an
+- **Migration book:** 48 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` (no warnings). Twig debug follows
   `WP_DEBUG` (on in blueprint's wp-config). `WP_ENVIRONMENT_TYPE` may not be

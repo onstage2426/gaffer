@@ -114,6 +114,16 @@ class Post
         return self::from($this->wp->post_parent);
     }
 
+    /**
+     * Parent, grandparent, ... up to the top-level post: nearest first.
+     *
+     * @return list<Post>
+     */
+    public function ancestors(): array
+    {
+        return array_values(array_filter(array_map(self::from(...), \get_post_ancestors($this->wp))));
+    }
+
     /** @return list<Post> */
     public function children(): array
     {

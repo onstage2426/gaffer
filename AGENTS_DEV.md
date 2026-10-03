@@ -172,13 +172,17 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 ## Current state (2026-10-02)
 
 - **Pushed through `2c5153c`** (config); blueprint is on it (`5cbf99f`).
-  Unpushed: ajax rules (typed input instead of JSON strings, answer with the
-  changed HTML) and `AjaxCheck`'s JSON warning. Blueprint already follows
-  them (`CartAdd(Product $product, int $quantity, array $attributes)`,
-  Update/Remove answer with the drawer).
+  Unpushed: ajax rules + JSON warning, and WooCommerce: overrides only under
+  WooCommerce's own names (its templates dir + the loader's
+  `taxonomy-{product taxonomy}[-slug].php` / `single-product-{slug}.php`),
+  no `woocommerce.php` router (`WordPressCheck::woocommerce_templates`).
+  Blueprint follows both. Decided against `@version` headers on overrides:
+  thin overrides ignore WooCommerce's markup, so its version bumps would
+  mostly be false alarms (and missing versions don't count as outdated in
+  WooCommerce's status).
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
-- **Migration book:** 42 entries, for the user's two other sites (still on an
+- **Migration book:** 43 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
   (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).

@@ -14,6 +14,7 @@ use Gaffer\Console\Checks\ConfigCheck;
 use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
+use Gaffer\Console\Checks\WordPressCheck;
 use Gaffer\Console\Env;
 use Gaffer\Console\Report;
 use Gaffer\Gaffer;
@@ -208,6 +209,19 @@ final class ChecksTest extends TestCase
         $code = '$selected = json_validate($variation) ? json_decode($variation, true) : []; echo esc_html($note);';
 
         self::assertSame(['variation'], AjaxCheck::json_strings(new \ReflectionMethod($action, 'run'), $code));
+    }
+
+    public function test_unknown_woocommerce_templates(): void
+    {
+        $known = ['single-product.php', 'archive-product.php', 'notices/success.php'];
+
+        self::assertSame(
+            ['archive-product-shop.php', 'notices/succes.php'],
+            WordPressCheck::unknown_templates(
+                ['single-product.php', 'archive-product-shop.php', 'notices/succes.php', 'archive-product.php'],
+                static fn(string $file): bool => in_array($file, $known, true),
+            ),
+        );
     }
 
     private function messages(Check $check): string

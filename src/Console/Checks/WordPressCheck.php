@@ -7,6 +7,7 @@ namespace Gaffer\Console\Checks;
 use Closure;
 use Gaffer\BlockFields;
 use Gaffer\Console\Report;
+use Gaffer\Console\ThemeFiles;
 use Gaffer\Config;
 use Gaffer\Paths;
 use Gaffer\Types\Image;
@@ -25,6 +26,7 @@ final class WordPressCheck implements Check
         $this->blocks($report);
         $this->acf_sync($report);
         $this->field_types($report);
+        $this->woocommerce_templates($report);
         $this->menus($report);
     }
 
@@ -149,6 +151,43 @@ final class WordPressCheck implements Check
                 continue; // BlocksCheck reports invalid fields.php
             }
         }
+    }
+
+    /**
+     * Every file in woocommerce/ overrides a template WooCommerce has (else
+     * WooCommerce never loads it by itself, and a renamed or removed template
+     * silently stops being overridden), and no custom woocommerce.php router.
+     */
+    private function woocommerce_templates(Report $report): void
+    {
+        if (!function_exists('WC')) {
+            return;
+        }
+
+        $dir = Paths::base('woocommerce');
+        $files = is_dir($dir) ? array_map(static fn(string $f): string => substr($f, strlen($dir) + 1), ThemeFiles::find(['php'], $dir)) : [];
+        $core = WC()->plugin_path() . '/templates/';
+        // Besides its template files, WooCommerce's loader looks for per-taxonomy and per-product page templates
+        $loader = '/^(?:taxonomy-(?:' . implode('|', array_map(static fn(string $t): string => preg_quote($t, '/'), get_object_taxonomies('product'))) . ')(?:-[^\/]+)?|single-product-[^\/]+)\.php$/';
+        foreach (self::unknown_templates($files, static fn(string $relative): bool => is_file($core . $relative) || preg_match($loader, $relative) === 1) as $relative) {
+            $report->warning('wp', "woocommerce/{$relative} is not a WooCommerce template: WooCommerce never loads it by itself", "{$dir}/{$relative}", null,
+                'Use the name of the WooCommerce template it should replace, or render the view from that template.');
+        }
+
+        if (is_file(Paths::base('woocommerce.php'))) {
+            $report->warning('wp', 'woocommerce.php replaces WooCommerce\'s own template choice for every shop page', Paths::base('woocommerce.php'), null,
+                'Delete it and use WooCommerce\'s hierarchy: single-product.php, archive-product.php, taxonomy-product_cat.php in woocommerce/.');
+        }
+    }
+
+    /**
+     * @param list<string> $files paths relative to woocommerce/
+     * @param Closure(string): bool $exists whether WooCommerce has a template at that path
+     * @return list<string>
+     */
+    public static function unknown_templates(array $files, Closure $exists): array
+    {
+        return array_values(array_filter($files, static fn(string $file): bool => !$exists($file)));
     }
 
     private function menus(Report $report): void

@@ -135,7 +135,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Templates` (template names, includes and variables from Twig's parse tree; used by `twig:lint`, `TemplatesCheck`, the reference), `Commands\*`, `Checks\*` (doctor) |
 | Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed), `Log` (`storage/logs/migrate.log`, JSON line per `--run` with outcome). Commands `migrate:block`, `migrate:field`, `migrate:remove-block`, `migrate:remove-field`, `migrate:rollback` (`MigrateCommand` base) |
-| (doctor) | `Checks\AppCheck` (snake_case methods in `app/`, `#[\Override]` exempt), `TemplatesCheck` also flags `.get_*()` calls, `Checks\AssetsCheck` (Vite build present, not older than `assets/`, `Vite::` entries in the manifest; skipped in dev mode), `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
+| (doctor) | `Checks\GuidelinesCheck` (theme `.ai/` mentions of missing paths, `Theme\` classes, `acf/` blocks), `Checks\AppCheck` (snake_case methods in `app/`, `#[\Override]` exempt), `TemplatesCheck` also flags `.get_*()` calls, `Checks\AssetsCheck` (Vite build present, not older than `assets/`, `Vite::` entries in the manifest; skipped in dev mode), `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
 | AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code: config, Twig, types, ajax, blocks, views, `inc/` hooks by comment), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear` |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/`), `resources/ai/skills/{name}/SKILL.md`. Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
@@ -178,14 +178,15 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Current state (2026-10-02)
 
-- **Pushed through `2c5153c`** (config); blueprint is on it (`5cbf99f`).
-  Unpushed: ajax rules, WooCommerce templates, and forms (headless Gravity
-  Forms: `Gaffer\Forms\*`, `forms:show`, the doctor check). Blueprint's
-  footer and contact page already use `FormState`, so the live site errors
-  until the push + `composer update`.
+- **Pushed through `ea60146`** (forms); blueprint is on it. Unpushed:
+  `GuidelinesCheck`. Blueprint: guidelines split into starter conventions
+  (`blueprint.md`, `cart.md`, `frontend.md`) and `site.md` (rewritten per
+  site), a `new-site` theme skill, Page Sitemap/Page Brands blocks built
+  (shortcode gone), withdrawal plugin/page/form deleted (WooCommerce 11.1
+  has its own).
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
-- **Migration book:** 44 entries, for the user's two other sites (still on an
+- **Migration book:** 45 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
   (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).

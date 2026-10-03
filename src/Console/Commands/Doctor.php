@@ -10,6 +10,7 @@ use Gaffer\Console\Checks\AssetsCheck;
 use Gaffer\Console\Checks\AjaxCheck;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Checks\ConfigCheck;
+use Gaffer\Console\Checks\GuidelinesCheck;
 use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
 use Gaffer\Console\Checks\RenderCheck;
@@ -41,7 +42,7 @@ final class Doctor extends Command
         $json = (bool) $input->getOption('json');
         $report = new Report();
 
-        foreach ([new BlocksCheck(), new AcfJsonCheck(), new AjaxCheck(), new ConfigCheck(), new SourceCheck(), new TemplatesCheck(), new MarkupCheck(), new IncCheck(), new AssetsCheck(), new AppCheck()] as $check) {
+        foreach ([new BlocksCheck(), new AcfJsonCheck(), new AjaxCheck(), new ConfigCheck(), new SourceCheck(), new TemplatesCheck(), new MarkupCheck(), new IncCheck(), new AssetsCheck(), new AppCheck(), new GuidelinesCheck()] as $check) {
             $check->run($report);
         }
 

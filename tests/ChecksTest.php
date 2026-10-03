@@ -11,6 +11,7 @@ use Gaffer\Console\Checks\AssetsCheck;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Checks\Check;
 use Gaffer\Console\Checks\ConfigCheck;
+use Gaffer\Console\Checks\GuidelinesCheck;
 use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
@@ -221,6 +222,19 @@ final class ChecksTest extends TestCase
                 ['single-product.php', 'archive-product-shop.php', 'notices/succes.php', 'archive-product.php'],
                 static fn(string $file): bool => in_array($file, $known, true),
             ),
+        );
+    }
+
+    public function test_stale_mentions_in_guidelines(): void
+    {
+        mkdir("{$this->theme}/views/components", 0755, true);
+        file_put_contents("{$this->theme}/views/components/hero.twig", '');
+        $markdown = 'Uses `components/hero.twig`, `components/gone.twig`, `blocks/x/{name}.twig`, '
+            . '`acf/content-faq`, `acf/faq-old`, `Theme\\Gone::make()`, `assets.php`, `views/*.twig`.';
+
+        self::assertSame(
+            ['components/gone.twig', 'acf/faq-old', 'Theme\\Gone::make()'],
+            GuidelinesCheck::missing($markdown, ['acf/content-faq' => 'contentFaq']),
         );
     }
 

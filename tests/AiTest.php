@@ -87,6 +87,20 @@ final class AiTest extends TestCase
         self::assertStringContainsString('## WooCommerce', (string) file_get_contents("{$this->theme}/AGENTS.md"));
     }
 
+    public function test_plugin_skills_only_when_active(): void
+    {
+        Installer::update(['claude'], []);
+        self::assertFileDoesNotExist("{$this->theme}/.claude/skills/gaffer-form");
+        self::assertStringNotContainsString('## Forms', (string) file_get_contents("{$this->theme}/AGENTS.md"));
+
+        Installer::update(['claude'], ['gravityforms']);
+        self::assertFileExists("{$this->theme}/.claude/skills/gaffer-form/SKILL.md");
+        self::assertStringContainsString('## Forms', (string) file_get_contents("{$this->theme}/AGENTS.md"));
+
+        Installer::update(['claude'], []);
+        self::assertFileDoesNotExist("{$this->theme}/.claude/skills/gaffer-form"); // plugin deactivated
+    }
+
     public function test_claude_imports_agents_md(): void
     {
         Installer::update(['claude'], []);

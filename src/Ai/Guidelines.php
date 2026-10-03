@@ -15,7 +15,7 @@ use Gaffer\Paths;
 final class Guidelines
 {
     /** Gaffer's guidelines, in reading order. */
-    private const array GAFFER = ['core', 'views', 'assets', 'types', 'app', 'ajax', 'forms', 'blocks', 'inc', 'config', 'cli'];
+    private const array GAFFER = ['core', 'views', 'assets', 'types', 'app', 'ajax', 'blocks', 'inc', 'config', 'cli'];
 
     /** @param list<string> $plugins Active plugins with a guideline (e.g. "woocommerce") */
     public static function build(array $plugins): string
@@ -46,6 +46,24 @@ final class Guidelines
             . "change the theme's `.ai/guidelines/*.md` (or Gaffer) and regenerate.\n\n"
             . (is_file(Paths::base('AGENTS_DEV.md')) ? "Working on this theme's own development? Also read `AGENTS_DEV.md`.\n\n" : '')
             . implode("\n\n", array_map(trim(...), $parts)) . "\n";
+    }
+
+    /**
+     * Every guideline Gaffer ships ("core", "plugins/woocommerce"): a theme file
+     * with the same name replaces it.
+     *
+     * @return list<string>
+     */
+    public static function gaffer_names(): array
+    {
+        $root = dirname(__DIR__, 2) . '/resources/ai/guidelines/';
+        $names = array_map(
+            static fn(string $file): string => substr($file, strlen($root), -3),
+            [...glob("{$root}*.md") ?: [], ...glob("{$root}plugins/*.md") ?: []],
+        );
+        sort($names);
+
+        return $names;
     }
 
     private static function gaffer(string $name): string

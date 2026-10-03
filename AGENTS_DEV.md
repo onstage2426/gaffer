@@ -136,8 +136,8 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Templates` (template names, includes and variables from Twig's parse tree; used by `twig:lint`, `TemplatesCheck`, the reference), `Commands\*`, `Checks\*` (doctor) |
 | Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed), `Log` (`storage/logs/migrate.log`, JSON line per `--run` with outcome). Commands `migrate:block`, `migrate:field`, `migrate:remove-block`, `migrate:remove-field`, `migrate:rollback` (`MigrateCommand` base) |
 | (doctor) | `Checks\GuidelinesCheck` (theme `.ai/` mentions of missing paths, `Theme\` classes, `acf/` blocks), `Checks\AppCheck` (snake_case methods in `app/`, `#[\Override]` exempt), `TemplatesCheck` also flags `.get_*()` calls, `Checks\AssetsCheck` (Vite build present, not older than `assets/`, `Vite::` entries in the manifest; skipped in dev mode), `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
-| AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines + the theme's `.ai/guidelines/`, same file name overrides), `Ai\Reference` (generated from the theme's code: config, Twig, types, ajax, blocks, views, `inc/` hooks by comment), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills, the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear` |
-| AI sources | `resources/ai/guidelines/*.md` (+ `plugins/`), `resources/ai/skills/{name}/SKILL.md`. Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
+| AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines for active plugins (WooCommerce, ACF, Gravity Forms) + the theme's `.ai/guidelines/`, same file name overrides; `doctor` lists overrides as info), `Ai\Reference` (generated from the theme's code: config, Twig, types, ajax, blocks, views, `inc/` hooks by comment), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills (Gaffer's + active plugins' + the theme's `.ai/skills/`), the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear`; both writers always load WordPress (the reference needs the booted theme's `View::share()` data) |
+| AI sources | `resources/ai/guidelines/*.md` (+ `plugins/{plugin}.md`), `resources/ai/skills/{name}/SKILL.md` (+ `plugins/{plugin}/{name}/`). Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
 | Tests | `tests/` (+ `tests/stubs/wordpress.php` for the few WP functions unit tests touch) |
 
@@ -176,23 +176,26 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 - Apache sends `.php` to php-fpm with `ProxyPassMatch`, so `.htaccess` rules
   don't apply to PHP files (homelab to-do: switch to `SetHandler`).
 
-## Current state (2026-10-02)
+## Current state (2026-10-03)
 
-- **Pushed through `ea60146`** (forms); blueprint is on it. Unpushed:
-  `GuidelinesCheck`. Blueprint: guidelines split into starter conventions
-  (`blueprint.md`, `cart.md`, `frontend.md`) and `site.md` (rewritten per
-  site), a `new-site` theme skill, Page Sitemap/Page Brands blocks built
-  (shortcode gone), withdrawal plugin/page/form deleted (WooCommerce 11.1
-  has its own).
+- **Pushed through `0273c4c`** (`GuidelinesCheck`); blueprint is on it.
+  Unpushed: AI boost locked in (forms guideline + new `gaffer-form` skill
+  gated on Gravity Forms, `--no-wp` removed, `doctor` lists theme overrides
+  of Gaffer's guidelines/skills).
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
-- **Migration book:** 46 entries, for the user's two other sites (still on an
+- **AI boost files:** `AGENTS.md` (Gaffer guidelines → active plugins'
+  guidelines → theme `.ai/guidelines/` → generated reference; ~900 lines in
+  blueprint, the reference stays inline on purpose), `CLAUDE.md`, skills per
+  agent. Codex (`.agents/skills`) and Grok (`.grok/skills`) paths checked
+  against their docs (2026-10); Grok also reads `CLAUDE.md` and
+  `.claude/skills`.
+- **Migration book:** 47 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
-- **Blueprint state:** clean `doctor --wp` except two known warnings
-  (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).
-  Twig debug follows `WP_DEBUG` (on in blueprint's wp-config).
-  `WP_ENVIRONMENT_TYPE` may not be set in its `wp-config.php` yet (admin bar
-  dot shows red then); that file is the user's to edit.
+- **Blueprint state:** clean `doctor --wp` (no warnings). Twig debug follows
+  `WP_DEBUG` (on in blueprint's wp-config). `WP_ENVIRONMENT_TYPE` may not be
+  set in its `wp-config.php` yet (admin bar dot shows red then); that file is
+  the user's to edit.
 
 ## Open
 

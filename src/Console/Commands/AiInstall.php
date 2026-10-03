@@ -23,7 +23,6 @@ final class AiInstall extends Command
     protected function configure(): void
     {
         $this->addOption('agents', null, InputOption::VALUE_REQUIRED, 'Comma-separated, e.g. claude,codex (skips the question)');
-        $this->addOption('no-wp', null, InputOption::VALUE_NONE, "Don't load WordPress (skips plugin guidelines such as WooCommerce)");
     }
 
     #[\Override]

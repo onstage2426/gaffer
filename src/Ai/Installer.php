@@ -48,7 +48,7 @@ final class Installer
             }
         }
 
-        $skills = self::skills();
+        $skills = self::skills($plugins);
         foreach ($agents as $agent) {
             if ($agent->skills !== null) {
                 self::write_skills($agent->skills, $skills);
@@ -122,14 +122,19 @@ final class Installer
     }
 
     /**
-     * Skill directories by name: Gaffer's, overridden or extended by the theme's .ai/skills/.
+     * Skill directories by name: Gaffer's (plus those of active plugins), overridden
+     * or extended by the theme's .ai/skills/.
      *
+     * @param list<string> $plugins
      * @return array<string, string>
      */
-    private static function skills(): array
+    public static function skills(array $plugins): array
     {
+        $gaffer = self::gaffer_skills();
+        $roots = [$gaffer, ...array_map(static fn(string $p): string => "{$gaffer}/plugins/{$p}", $plugins), Paths::base('.ai/skills')];
+
         $skills = [];
-        foreach ([dirname(__DIR__, 2) . '/resources/ai/skills', Paths::base('.ai/skills')] as $root) {
+        foreach ($roots as $root) {
             foreach (glob("{$root}/*/SKILL.md") ?: [] as $file) {
                 $skills[basename(dirname($file))] = dirname($file);
             }
@@ -137,6 +142,12 @@ final class Installer
         ksort($skills);
 
         return $skills;
+    }
+
+    /** Gaffer's own skills; plugin skills are in plugins/{plugin}/. */
+    public static function gaffer_skills(): string
+    {
+        return dirname(__DIR__, 2) . '/resources/ai/skills';
     }
 
     /** @param array<string, string> $skills */

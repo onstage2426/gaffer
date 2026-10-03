@@ -238,6 +238,23 @@ final class ChecksTest extends TestCase
         );
     }
 
+    public function test_replaced_gaffer_guidelines_and_skills_are_listed(): void
+    {
+        mkdir("{$this->theme}/.ai/guidelines/plugins", 0755, true);
+        mkdir("{$this->theme}/.ai/skills/gaffer-form", 0755, true);
+        file_put_contents("{$this->theme}/.ai/guidelines/views.md", "## Views\n");
+        file_put_contents("{$this->theme}/.ai/guidelines/plugins/woocommerce.md", "## WooCommerce\n");
+        file_put_contents("{$this->theme}/.ai/guidelines/shop.md", "## Shop\n");
+        file_put_contents("{$this->theme}/.ai/skills/gaffer-form/SKILL.md", "---\nname: gaffer-form\n---\n");
+
+        $messages = $this->messages(new GuidelinesCheck());
+
+        self::assertStringContainsString("Replaces Gaffer's views guideline", $messages);
+        self::assertStringContainsString("Replaces Gaffer's plugins/woocommerce guideline", $messages);
+        self::assertStringContainsString("Replaces Gaffer's gaffer-form skill", $messages);
+        self::assertStringNotContainsString('shop', $messages);
+    }
+
     private function messages(Check $check): string
     {
         $report = new Report();

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Checks;
 
+use Gaffer\Ai\Guidelines;
+use Gaffer\Ai\Installer;
 use Gaffer\Console\Report;
 use Gaffer\Paths;
 
@@ -11,7 +13,8 @@ use Gaffer\Paths;
  * The theme's own guidelines and skills (.ai/) only mention files, `Theme\`
  * classes and blocks that exist: hand-written notes go stale when a site
  * deletes or renames what they describe (e.g. a new site started from a starter
- * theme).
+ * theme). Also lists theme files that replace one of Gaffer's guidelines or
+ * skills: that's allowed, but invisible in the generated output.
  */
 final class GuidelinesCheck implements Check
 {
@@ -25,6 +28,23 @@ final class GuidelinesCheck implements Check
             foreach (self::missing((string) file_get_contents($file), $blocks) as $mention) {
                 $report->warning('ai', "Mentions {$mention}, which doesn't exist", $file, null,
                     'Update or remove it (renamed or deleted?), then php gaffer ai:update.');
+            }
+        }
+
+        foreach (Guidelines::gaffer_names() as $name) {
+            $file = Paths::base(".ai/guidelines/{$name}.md");
+            if (is_file($file)) {
+                $report->info('ai', "Replaces Gaffer's {$name} guideline", $file, null,
+                    "Gaffer's version is not in AGENTS.md; check it after updating Gaffer.");
+            }
+        }
+
+        $gaffer = Installer::gaffer_skills();
+        foreach ([...glob("{$gaffer}/*/SKILL.md") ?: [], ...glob("{$gaffer}/plugins/*/*/SKILL.md") ?: []] as $skill) {
+            $file = Paths::base('.ai/skills/' . basename(dirname($skill)) . '/SKILL.md');
+            if (is_file($file)) {
+                $report->info('ai', "Replaces Gaffer's " . basename(dirname($skill)) . ' skill', $file, null,
+                    "Gaffer's version is not installed; check it after updating Gaffer.");
             }
         }
     }

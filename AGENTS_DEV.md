@@ -179,8 +179,6 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   and translations before `init` log `_load_textdomain_just_in_time`. Find
   the caller of a `_doing_it_wrong` notice with a `doing_it_wrong_run` hook
   that prints `debug_backtrace()` (`wp --require=<file>`).
-- Apache sends `.php` to php-fpm with `ProxyPassMatch`, so `.htaccess` rules
-  don't apply to PHP files (homelab to-do: switch to `SetHandler`).
 
 ## Current state (2026-10-03)
 
@@ -225,5 +223,3 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   config for Codex/Grok (only Claude's `.mcp.json` is written; Grok reads it
   too); more agent adapters (Cursor, Copilot, Gemini); a Yoast guideline
   (Yoast owns SEO output, the theme only styles breadcrumbs; skipped for now).
-- **Homelab:** `~/docker/to-do.md` has the Apache `SetHandler` change (PHP
-  files currently bypass `.htaccess`).

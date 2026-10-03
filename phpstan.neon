@@ -2,6 +2,8 @@ includes:
     - vendor/szepeviktor/phpstan-wordpress/extension.neon
 
 parameters:
+    scanFiles:
+        - phpstan/gravityforms.stub
     level: 6
     paths:
         - src

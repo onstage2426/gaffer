@@ -127,6 +127,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Area | Files |
 |---|---|
 | Boot | `Gaffer::configure()` (theme root + config, no WordPress), `Gaffer::boot()` (Twig, `inc/`, ACF JSON path, blocks, admin bar), `Gaffer::twig()` (SHORTINIT), `Gaffer::version()` |
+| Forms | `Forms\GravityForm` (form by title slug, fields by Admin Field Label, `submit()` via `GFAPI::submit_form`, input keys for consent/checkbox), `Forms\FormState` (what a form template shows), `Forms\FormAction` (the one ajax action: honeypot, Turnstile, submit, re-render or `HX-Redirect`), `Forms\FormTemplates`; `forms:show`; `WordPressCheck::forms`. phpstan knows Gravity Forms through `phpstan/gravityforms.stub` (`scanFiles`) |
 | Config | `Config` (theme config), `ConfigStubs` (Gaffer's keys + descriptions from `config/*.php`, the theme's key comments), `Console\Env` (the theme's `.env`: `SITE_URL`), `Gaffer::debug()` (= `WP_DEBUG`) |
 | Static services | `Storage` (`private_dir()`: logs/backups with deny `.htaccess` + `.gitignore`), `Config`, `Paths` (fixed layout), `View` (render/fetch/share, owns the Twig env), `Acf`, `BlockFields` (`blocks/*/fields.php` → local ACF groups, derived keys), `Vite`, `Turnstile`, `TwigCache`, `AdminBar` |
 | Types | `Types\Post` (+ `Attachment`, `Image`), `Term`, `Menu`/`MenuItem`, `Pagination`. Wrap the WP object (`->wp`), protected constructors, factories `from(int)`, `current()`, `query()`. Class maps `theme.types` / `theme.terms` |
@@ -166,23 +167,25 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   original after rollback, and dump the database first (`mariadb-dump`
   inside the `mariadb` container, password from its secret file, never
   through your hands).
+- Gravity Forms keeps submission state per PHP process
+  (`GFFormDisplay::$submission`): a second `GFAPI::submit_form()` in the same
+  process gets the first one's result. Real requests submit once; test each
+  submission in its own process. Its e-mail validation checks the domain
+  (`example.com` fails: use a real domain in tests). Clean up test entries by
+  ID (entries with an ID above the highest before the test), never by count.
 - Apache sends `.php` to php-fpm with `ProxyPassMatch`, so `.htaccess` rules
   don't apply to PHP files (homelab to-do: switch to `SetHandler`).
 
 ## Current state (2026-10-02)
 
 - **Pushed through `2c5153c`** (config); blueprint is on it (`5cbf99f`).
-  Unpushed: ajax rules + JSON warning, and WooCommerce: overrides only under
-  WooCommerce's own names (its templates dir + the loader's
-  `taxonomy-{product taxonomy}[-slug].php` / `single-product-{slug}.php`),
-  no `woocommerce.php` router (`WordPressCheck::woocommerce_templates`).
-  Blueprint follows both. Decided against `@version` headers on overrides:
-  thin overrides ignore WooCommerce's markup, so its version bumps would
-  mostly be false alarms (and missing versions don't count as outdated in
-  WooCommerce's status).
+  Unpushed: ajax rules, WooCommerce templates, and forms (headless Gravity
+  Forms: `Gaffer\Forms\*`, `forms:show`, the doctor check). Blueprint's
+  footer and contact page already use `FormState`, so the live site errors
+  until the push + `composer update`.
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
-- **Migration book:** 43 entries, for the user's two other sites (still on an
+- **Migration book:** 44 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
   (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).
@@ -192,10 +195,10 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Open
 
-- **Forms round:** captcha providers (Turnstile works on any domain; a
-  reCAPTCHA provider for clients who want it), Gravity Forms form/field IDs to
-  config, moving `inc/rest/` contact/newsletter into `ajax/` with a JSON
-  response helper on `AjaxAction`.
+- **Forms, maybe later:** file uploads, multi-page forms, Gravity Forms'
+  combined fields (Name, Address), conditional logic. Decided: Turnstile is
+  the only captcha (no reCAPTCHA provider); Gravity Forms is always the
+  engine.
 - **Block fields, maybe:** `migrate:rollback --skip-changed` if refusing the
   whole rollback over one edited page turns out to get in the way.
 - **AI boost, next:** an MCP server (blocks + ACF fields, hooks, render a

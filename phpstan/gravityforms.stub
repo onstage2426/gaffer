@@ -1,0 +1,34 @@
+<?php
+
+// The parts of Gravity Forms that Gaffer calls (for phpstan only).
+
+class GF_Field
+{
+    /** @var int */
+    public $id;
+    /** @var string */
+    public $type;
+    /** @var string */
+    public $label;
+    /** @var string */
+    public $adminLabel;
+    /** @var bool */
+    public $isRequired;
+    /** @var list<array{id: string, label?: string}>|null */
+    public $inputs;
+    /** @var list<array{text: string, value: string}>|null */
+    public $choices;
+}
+
+class GFAPI
+{
+    /** @return list<array<string, mixed>> */
+    public static function get_forms(bool $active = true, bool $trash = false): array {}
+
+    /**
+     * @param array<string, mixed> $input_values
+     * @param array<string, mixed> $field_values
+     * @return array<string, mixed>|\WP_Error
+     */
+    public static function submit_form(int $form_id, array $input_values, array $field_values = [], int $target_page = 0, int $source_page = 1): array|\WP_Error {}
+}

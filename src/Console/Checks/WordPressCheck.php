@@ -9,6 +9,8 @@ use Gaffer\BlockFields;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
 use Gaffer\Config;
+use Gaffer\Forms\FormTemplates;
+use Gaffer\Forms\GravityForm;
 use Gaffer\Paths;
 use Gaffer\Types\Image;
 use WP_Block_Type_Registry;
@@ -27,6 +29,7 @@ final class WordPressCheck implements Check
         $this->acf_sync($report);
         $this->field_types($report);
         $this->woocommerce_templates($report);
+        $this->forms($report);
         $this->menus($report);
     }
 
@@ -188,6 +191,49 @@ final class WordPressCheck implements Check
     public static function unknown_templates(array $files, Closure $exists): array
     {
         return array_values(array_filter($files, static fn(string $file): bool => !$exists($file)));
+    }
+
+    /**
+     * Each views/forms/{name}.twig has an active Gravity Forms form titled like it,
+     * sends only fields the form has, and sends every required one.
+     */
+    private function forms(Report $report): void
+    {
+        $templates = FormTemplates::all();
+        if ($templates === []) {
+            return;
+        }
+        if (!class_exists('GFAPI')) {
+            $report->error('forms', 'views/forms/ has form templates, but Gravity Forms is not active');
+            return;
+        }
+        if (!is_file(Paths::ajax() . '/Form/Form.php')) {
+            $report->error('forms', 'No ajax/Form/Form.php: forms post to it', null, null,
+                'class Form extends \\Gaffer\\Forms\\FormAction {} in namespace Theme\\Ajax\\Form.');
+        }
+
+        foreach ($templates as $name => $file) {
+            $gravity = GravityForm::find($name);
+            if ($gravity === null) {
+                $report->error('forms', "No active Gravity Forms form titled like \"{$name}\"", $file, null,
+                    'The form\'s title must slug to the template name (php gaffer forms:show).');
+                continue;
+            }
+            $fields = $gravity->fields();
+            $sent = FormTemplates::field_names($file);
+            foreach (array_diff($sent, array_keys($fields)) as $unknown) {
+                $report->error('forms', "Sends \"{$unknown}\", which {$gravity->title()} has no field for", $file, null,
+                    'Set it as the Admin Field Label of the field in Gravity Forms, or fix the name.');
+            }
+            foreach ($fields as $field_name => $field) {
+                if ($field->isRequired && !in_array($field_name, $sent, true)) {
+                    $report->error('forms', "Doesn't send \"{$field_name}\", which {$gravity->title()} requires", $file);
+                }
+            }
+            foreach ($gravity->unnamed() as $field) {
+                $report->warning('forms', "{$gravity->title()}: field \"{$field->label}\" has no Admin Field Label, so the theme can't send it", $file);
+            }
+        }
     }
 
     private function menus(Report $report): void

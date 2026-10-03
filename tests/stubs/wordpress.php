@@ -24,3 +24,17 @@ if (!function_exists('get_term')) {
         return null;
     }
 }
+
+// Gravity Forms' field class, for GravityForm's input mapping tests.
+if (!class_exists('GF_Field')) {
+    class GF_Field
+    {
+        public $id;
+        public $type;
+        public $label = '';
+        public $adminLabel = '';
+        public $isRequired = false;
+        public $inputs = null;
+        public $choices = null;
+    }
+}

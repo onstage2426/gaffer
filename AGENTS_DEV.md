@@ -186,7 +186,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   has its own).
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
-- **Migration book:** 45 entries, for the user's two other sites (still on an
+- **Migration book:** 46 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` except two known warnings
   (hardcoded Gravity Forms IDs in `inc/rest/`, waiting for the forms round).

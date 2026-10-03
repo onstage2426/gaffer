@@ -69,10 +69,36 @@ final class AjaxCheck implements Check
                     'run() parameters are the request keys: typed string, int, float, bool, array or a Gaffer type (from an ID); no default = required.');
             }
 
+            if (method_exists($instance, 'run')) {
+                foreach (self::json_strings(AjaxArguments::run_method($instance), (string) file_get_contents($file)) as $name) {
+                    $report->warning('ajax', "run() decodes JSON from the string parameter \${$name}", $file, null,
+                        "Send it as form fields ({$name}[key]=value) and declare `array \${$name}`, or use a type parameter for an ID.");
+                }
+            }
+
             if ($class::SHORTINIT) {
                 self::shortinit($report, $file);
             }
         }
+    }
+
+    /**
+     * String parameters of run() that the action json_decode()s.
+     *
+     * @return list<string>
+     */
+    public static function json_strings(\ReflectionMethod $run, string $code): array
+    {
+        $names = [];
+        foreach ($run->getParameters() as $parameter) {
+            $type = $parameter->getType();
+            if ($type instanceof \ReflectionNamedType && $type->getName() === 'string'
+                && preg_match('/\bjson_(?:decode|validate)\(\s*\$' . preg_quote($parameter->getName(), '/') . '\b/', $code)) {
+                $names[] = $parameter->getName();
+            }
+        }
+
+        return $names;
     }
 
     /**

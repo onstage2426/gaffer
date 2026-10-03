@@ -29,6 +29,13 @@ class CartAdd extends AjaxAction
   types (`absint()`, `(int)`); still escape strings for their use.
 - Bool accepts `1/0/true/false/on/off/yes/no` and empty (`false`). For nullable
   non-string types, an empty value is `null`.
+- **Structured input is typed, never a JSON string:** an ID becomes a type
+  parameter (`Product $product`), a set of values an `array` sent as form
+  fields (`attributes[attribute_kleur]=rood` → `array $attributes`). `doctor`
+  warns when `run()` decodes JSON from a string parameter.
+- **An action that changes something answers with the HTML that changed**,
+  and the request targets it directly (`hx-target`): one request, not an
+  empty response followed by a second request to fetch the result.
 - URLs: `{{ ajax_url('CartAdd') }}` in Twig, `Gaffer\Ajax::url('CartAdd')` in PHP.
 - Wrong HTTP method → 405, unknown action → 404.
 - No nonces (cached pages); see the core rules.

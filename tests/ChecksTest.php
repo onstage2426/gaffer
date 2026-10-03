@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Tests;
 
 use Gaffer\Config;
+use Gaffer\Console\Checks\AjaxCheck;
 use Gaffer\Console\Checks\AppCheck;
 use Gaffer\Console\Checks\AssetsCheck;
 use Gaffer\Console\Checks\BlocksCheck;
@@ -196,6 +197,17 @@ final class ChecksTest extends TestCase
         self::assertNull(Env::get('EMPTY'));
         self::assertNull(Env::get('MISSING'));
         self::reset(Env::class, 'values', null);
+    }
+
+    public function test_json_decoded_string_parameters(): void
+    {
+        $action = new class {
+            /** @param array<string, string> $attributes */
+            public function run(string $variation, string $note = '', array $attributes = []): void {}
+        };
+        $code = '$selected = json_validate($variation) ? json_decode($variation, true) : []; echo esc_html($note);';
+
+        self::assertSame(['variation'], AjaxCheck::json_strings(new \ReflectionMethod($action, 'run'), $code));
     }
 
     private function messages(Check $check): string

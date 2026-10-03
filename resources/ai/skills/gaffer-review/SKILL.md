@@ -19,7 +19,9 @@ description: Review changes in a Gaffer theme before calling them done - run the
    - Views: no markup in PHP outside the `header.php`/`footer.php` shell, no
      `{% extends %}`; partials via `include(..., with_context = false)`; a
      block template isn't rendered by a page (shared markup is a component).
-   - Ajax: typed `run()` parameters, correct `METHOD`, no manual casting.
+   - Ajax: typed `run()` parameters (types for IDs, arrays for sets of
+     values, never JSON strings), correct `METHOD`, no manual casting; actions
+     that change something answer with the changed HTML (no refetch).
    - Blocks: `is_admin()` guard, name matches the directory, fields in
      `fields.php` (a renamed or removed block or field needs a `migrate:*`;
      a changed type only when the stored value means the same), no

@@ -23,14 +23,18 @@ final class Installer
     /** Marks a skill directory as generated (so stale ones can be removed). */
     private const string SKILL_MARKER = '.gaffer-generated';
 
+    /** Gaffer's entry in an agent's MCP config. */
+    private const string MCP_SERVER = 'gaffer';
+
     /**
      * Writes the output for these agents and removes the output of every other agent.
      *
      * @param list<string> $agent_names
      * @param list<string> $plugins
+     * @param array{command: string, args: list<string>}|null $mcp how to start Gaffer's MCP server; null = not available
      * @return list<string> what was written or removed ("wrote AGENTS.md"), paths relative to the theme
      */
-    public static function update(array $agent_names, array $plugins): array
+    public static function update(array $agent_names, array $plugins, ?array $mcp = null): array
     {
         $agents = self::agents($agent_names);
         $written = [];
@@ -56,12 +60,18 @@ final class Installer
             }
         }
 
+        foreach ($agents as $agent) {
+            if ($agent->mcp !== null) {
+                array_push($written, ...($mcp !== null ? self::write_mcp($agent->mcp, $mcp) : self::remove_mcp($agent->mcp)));
+            }
+        }
+
         // Deselected agents: their files would drop out of the .gitignore block and become committable.
         foreach (array_diff_key(Agent::all(), array_flip($agent_names)) as $agent) {
             array_push($written, ...self::remove_agent($agent));
         }
 
-        self::gitignore($agents);
+        self::gitignore($agents, $mcp !== null);
 
         return $written;
     }
@@ -85,7 +95,10 @@ final class Installer
     /** @return list<string> */
     private static function remove_agent(Agent $agent): array
     {
-        $removed = $agent->file !== null ? self::remove_marked($agent->file) : [];
+        $removed = [
+            ...($agent->file !== null ? self::remove_marked($agent->file) : []),
+            ...($agent->mcp !== null ? self::remove_mcp($agent->mcp) : []),
+        ];
 
         $target = $agent->skills !== null ? Paths::base($agent->skills) : null;
         $markers = $target !== null ? glob("{$target}/*/" . self::SKILL_MARKER) ?: [] : [];
@@ -235,16 +248,71 @@ final class Installer
     }
 
     /**
+     * Sets Gaffer's server in an agent's MCP config, keeping every other server.
+     *
+     * @param array{command: string, args: list<string>} $launch
+     * @return list<string>
+     */
+    private static function write_mcp(string $relative, array $launch): array
+    {
+        $config = self::read_mcp($relative);
+        if ($config === null) {
+            return ["skipped {$relative} (not valid JSON: fix or delete it)"];
+        }
+        $config['mcpServers'] = [...(is_array($config['mcpServers'] ?? null) ? $config['mcpServers'] : []), self::MCP_SERVER => ['type' => 'stdio', ...$launch]];
+        file_put_contents(Paths::base($relative), json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+
+        return ["wrote {$relative} (MCP server \"" . self::MCP_SERVER . '")'];
+    }
+
+    /**
+     * Removes Gaffer's server from an agent's MCP config; deletes the file when nothing else is left.
+     *
+     * @return list<string>
+     */
+    private static function remove_mcp(string $relative): array
+    {
+        $config = self::read_mcp($relative);
+        if (!isset($config['mcpServers']) || !is_array($config['mcpServers']) || !isset($config['mcpServers'][self::MCP_SERVER])) {
+            return [];
+        }
+        unset($config['mcpServers'][self::MCP_SERVER]);
+        if ($config['mcpServers'] === []) {
+            unset($config['mcpServers']);
+        }
+
+        if ($config === []) {
+            unlink(Paths::base($relative));
+            return ["removed {$relative}"];
+        }
+        file_put_contents(Paths::base($relative), json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+
+        return ["removed the \"" . self::MCP_SERVER . "\" server from {$relative} (kept the rest)"];
+    }
+
+    /** @return array<string, mixed>|null the config ([] when there's no file), null when it isn't valid JSON */
+    private static function read_mcp(string $relative): ?array
+    {
+        $file = Paths::base($relative);
+        if (!is_file($file)) {
+            return [];
+        }
+        $config = json_decode((string) file_get_contents($file), true);
+
+        return is_array($config) ? $config : null;
+    }
+
+    /**
      * The generated paths, between markers in the theme's .gitignore.
      *
      * @param list<Agent> $agents
      */
-    private static function gitignore(array $agents): void
+    private static function gitignore(array $agents, bool $mcp): void
     {
         $file = Paths::base('.gitignore');
         $paths = ['/AGENTS.md'];
         foreach ($agents as $agent) {
-            foreach ($agent->generated() as $path) {
+            foreach ($agent->generated($mcp) as $path) {
                 $paths[] = "/{$path}";
             }
         }

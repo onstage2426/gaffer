@@ -8,6 +8,7 @@ use Gaffer\Ai\Installer;
 use Gaffer\Config;
 use Gaffer\Console\Command;
 use Gaffer\Console\WordPress;
+use Gaffer\Mcp\Mcp;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -40,9 +41,15 @@ final class AiUpdate extends Command
             'woocommerce' => function_exists('WC'),
             'acf' => class_exists('ACF'),
             'gravityforms' => class_exists('GFAPI'),
+            'mcp-adapter' => Mcp::enabled(),
         ]));
 
-        foreach (Installer::update($agents, $plugins) as $line) {
+        $mcp = Mcp::enabled() ? Mcp::launch() : null;
+        if (Mcp::enabled() && $mcp === null) {
+            $output->writeln('<comment>No administrator to run the MCP server as: no MCP config written.</comment>');
+        }
+
+        foreach (Installer::update($agents, $plugins, $mcp) as $line) {
             $output->writeln("  {$line}");
         }
         $output->writeln('Plugin guidelines and skills: ' . ($plugins === [] ? 'none' : implode(', ', $plugins)) . '. These files are gitignored; regenerate after updating Gaffer.');

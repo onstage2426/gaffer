@@ -4,6 +4,7 @@ includes:
 parameters:
     scanFiles:
         - phpstan/gravityforms.stub
+        - phpstan/mcp-adapter.stub
     level: 6
     paths:
         - src

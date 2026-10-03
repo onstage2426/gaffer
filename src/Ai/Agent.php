@@ -15,6 +15,7 @@ final readonly class Agent
      * @param string|null $file   Own guidelines file (written as an `@AGENTS.md` import); null = reads AGENTS.md itself
      * @param string|null $skills Skills directory (Agent Skills format: {name}/SKILL.md)
      * @param list<string> $markers Files/directories in a project that show the agent is used
+     * @param string|null $mcp    Project MCP config (JSON with "mcpServers") that gets Gaffer's server; null = not supported here
      */
     public function __construct(
         public string $name,
@@ -23,13 +24,14 @@ final readonly class Agent
         public ?string $skills,
         public string $command,
         public array $markers,
+        public ?string $mcp = null,
     ) {}
 
     /** @return array<string, Agent> */
     public static function all(): array
     {
         return [
-            'claude' => new self('claude', 'Claude Code', 'CLAUDE.md', '.claude/skills', 'claude', ['.claude', 'CLAUDE.md']),
+            'claude' => new self('claude', 'Claude Code', 'CLAUDE.md', '.claude/skills', 'claude', ['.claude', 'CLAUDE.md'], '.mcp.json'),
             'codex' => new self('codex', 'OpenAI Codex', null, '.agents/skills', 'codex', ['.codex']),
             'grok' => new self('grok', 'Grok', null, '.grok/skills', 'grok', ['.grok']),
         ];
@@ -54,8 +56,8 @@ final readonly class Agent
      *
      * @return list<string>
      */
-    public function generated(): array
+    public function generated(bool $mcp): array
     {
-        return array_values(array_filter([$this->file, $this->skills !== null ? "{$this->skills}/" : null]));
+        return array_values(array_filter([$this->file, $this->skills !== null ? "{$this->skills}/" : null, $mcp ? $this->mcp : null]));
     }
 }

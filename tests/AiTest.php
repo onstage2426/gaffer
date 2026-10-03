@@ -101,6 +101,33 @@ final class AiTest extends TestCase
         self::assertFileDoesNotExist("{$this->theme}/.claude/skills/gaffer-form"); // plugin deactivated
     }
 
+    public function test_mcp_config_keeps_other_servers_and_is_removed_again(): void
+    {
+        file_put_contents("{$this->theme}/.mcp.json", json_encode(['mcpServers' => ['other' => ['command' => 'x']]]));
+        $launch = ['command' => 'wp', 'args' => ['--path=/srv/wp', 'mcp-adapter', 'serve', '--server=gaffer', '--user=1']];
+
+        Installer::update(['claude'], ['mcp-adapter'], $launch);
+        $config = json_decode((string) file_get_contents("{$this->theme}/.mcp.json"), true);
+
+        self::assertSame(['type' => 'stdio', ...$launch], $config['mcpServers']['gaffer']);
+        self::assertSame(['command' => 'x'], $config['mcpServers']['other']);
+        self::assertStringContainsString("/.mcp.json\n", (string) file_get_contents("{$this->theme}/.gitignore"));
+        self::assertStringContainsString('## MCP server', (string) file_get_contents("{$this->theme}/AGENTS.md"));
+
+        Installer::update(['claude'], []); // plugin deactivated
+        self::assertSame(['mcpServers' => ['other' => ['command' => 'x']]], json_decode((string) file_get_contents("{$this->theme}/.mcp.json"), true));
+        self::assertStringNotContainsString('.mcp.json', (string) file_get_contents("{$this->theme}/.gitignore"));
+    }
+
+    public function test_mcp_config_written_only_by_gaffer_is_deleted(): void
+    {
+        Installer::update(['claude'], [], ['command' => 'wp', 'args' => []]);
+        self::assertFileExists("{$this->theme}/.mcp.json");
+
+        Installer::clear();
+        self::assertFileDoesNotExist("{$this->theme}/.mcp.json");
+    }
+
     public function test_claude_imports_agents_md(): void
     {
         Installer::update(['claude'], []);

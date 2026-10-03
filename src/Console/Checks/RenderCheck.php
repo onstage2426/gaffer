@@ -120,7 +120,7 @@ final class RenderCheck implements Check
 
     /**
      * @param list<string> $paths
-     * @return array<string, array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, notices: list<string>, bytes: int}|null>
+     * @return array<string, array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int}|null>
      */
     private function render_all(array $paths): array
     {
@@ -157,7 +157,7 @@ final class RenderCheck implements Check
                     fclose($pipes[2]);
                     proc_close($process);
                     unset($running[$path]);
-                    $results[$path] = self::parse($stdout);
+                    $results[$path] = DoctorRender::parse($stdout);
                 }
             }
 
@@ -165,20 +165,5 @@ final class RenderCheck implements Check
         }
 
         return array_replace(array_fill_keys($paths, null), $results);
-    }
-
-    /**
-     * @return array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, notices: list<string>, bytes: int}|null
-     */
-    private static function parse(string $stdout): ?array
-    {
-        $at = strrpos($stdout, DoctorRender::MARKER);
-        if ($at === false) {
-            return null;
-        }
-
-        $result = json_decode(trim(substr($stdout, $at + strlen(DoctorRender::MARKER))), true);
-
-        return is_array($result) ? $result : null;
     }
 }

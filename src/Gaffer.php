@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
+use Gaffer\Mcp\Mcp;
 use Gaffer\Twig\Extension;
 use Twig\Environment;
 use Twig\Extension\AttributeExtension;
@@ -47,6 +48,7 @@ class Gaffer
         self::acf();
         self::blocks();
         AdminBar::register();
+        Mcp::register();
     }
 
     /**

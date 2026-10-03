@@ -136,6 +136,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Templates` (template names, includes and variables from Twig's parse tree; used by `twig:lint`, `TemplatesCheck`, the reference), `Commands\*`, `Checks\*` (doctor) |
 | Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed), `Log` (`storage/logs/migrate.log`, JSON line per `--run` with outcome). Commands `migrate:block`, `migrate:field`, `migrate:remove-block`, `migrate:remove-field`, `migrate:rollback` (`MigrateCommand` base) |
 | (doctor) | `Checks\GuidelinesCheck` (theme `.ai/` mentions of missing paths, `Theme\` classes, `acf/` blocks), `Checks\AppCheck` (snake_case methods in `app/`, `#[\Override]` exempt), `TemplatesCheck` also flags `.get_*()` calls, `Checks\AssetsCheck` (Vite build present, not older than `assets/`, `Vite::` entries in the manifest; skipped in dev mode), `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
+| MCP | `Mcp\Mcp` (registers the `gaffer/*` abilities and the STDIO-only server `gaffer` when the MCP Adapter plugin is active and the site isn't production; `launch()` = `wp mcp-adapter serve --user=<first admin>` for `.mcp.json`), `Mcp\Tool` + `Mcp\Tools\*` (block-usage, doctor, render, last-errors, forms; all read-only), `Mcp\GafferCli` (runs the theme's `php gaffer` in a child process: `doctor`, `doctor:render --html`). Protocol is the adapter's job: Gaffer only uses `wp_register_ability()` and `create_server()` (phpstan stub `phpstan/mcp-adapter.stub`) |
 | AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines for active plugins (WooCommerce, ACF, Gravity Forms) + the theme's `.ai/guidelines/`, same file name overrides; `doctor` lists overrides as info), `Ai\Reference` (generated from the theme's code: config, Twig, types, ajax, blocks, views, `inc/` hooks by comment), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills (Gaffer's + active plugins' + the theme's `.ai/skills/`), the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear`; both writers always load WordPress (the reference needs the booted theme's `View::share()` data) |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/{plugin}.md`), `resources/ai/skills/{name}/SKILL.md` (+ `plugins/{plugin}/{name}/`). Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
@@ -181,7 +182,17 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 - **Pushed through `f69e2ca`** (AI boost locked in: forms guideline +
   `gaffer-form` skill gated on Gravity Forms, `--no-wp` removed, `doctor`
   lists theme overrides of Gaffer's guidelines/skills); blueprint is on it.
-  Unpushed: `Post::ancestors()` / `Term::ancestors()`.
+  `Post::ancestors()` / `Term::ancestors()` pushed (`fabfffd`). Unpushed: the
+  MCP server (`Mcp\`), `FormReport` (shared by `forms:show` and the MCP
+  tool), `doctor:render` fixes (the page was never counted: the result was
+  written before WordPress flushed the buffer; now also `http` status and
+  `--html`).
+- **MCP setup on blueprint:** MCP Adapter plugin 0.7.0 installed by the user
+  (dev only, never on production; bundling it as a library is deprecated
+  upstream). Testing unpushed MCP code: `wp --require=<file that preloads the
+  clone's classes, except Gaffer\Mcp\ which needs WP_Error>` plus the theme's
+  `gaffer` entry pointed at the clone temporarily (the tools start `php
+  gaffer` as a child process); restore it with `git checkout gaffer`.
   Blueprint's `composer.json` runs `php gaffer ai:update` after every
   `composer update` (`post-update-cmd`).
 - **AI boost files:** `AGENTS.md` (Gaffer guidelines → active plugins'
@@ -190,7 +201,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   agent. Codex (`.agents/skills`) and Grok (`.grok/skills`) paths checked
   against their docs (2026-10); Grok also reads `CLAUDE.md` and
   `.claude/skills`.
-- **Migration book:** 48 entries, for the user's two other sites (still on an
+- **Migration book:** 49 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` (no warnings). Twig debug follows
   `WP_DEBUG` (on in blueprint's wp-config). `WP_ENVIRONMENT_TYPE` may not be
@@ -205,9 +216,10 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   engine.
 - **Block fields, maybe:** `migrate:rollback --skip-changed` if refusing the
   whole rollback over one edited page turns out to get in the way.
-- **AI boost, next:** an MCP server (blocks + ACF fields, hooks, render a
-  template, last error; build it on WordPress's Abilities API so it sits
-  next to ACF's own abilities), more agent adapters when someone uses them (Cursor,
-  Copilot, Gemini), maybe versioned plugin guidelines.
+- **AI boost, maybe:** more MCP tools when a need shows up (decided against:
+  `eval`, anything that writes, what the AGENTS.md reference already has); MCP
+  config for Codex/Grok (only Claude's `.mcp.json` is written; Grok reads it
+  too); more agent adapters (Cursor, Copilot, Gemini); a Yoast guideline
+  (Yoast owns SEO output, the theme only styles breadcrumbs; skipped for now).
 - **Homelab:** `~/docker/to-do.md` has the Apache `SetHandler` change (PHP
   files currently bypass `.htaccess`).

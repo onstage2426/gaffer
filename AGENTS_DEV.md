@@ -174,6 +174,11 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   submission in its own process. Its e-mail validation checks the domain
   (`example.com` fails: use a real domain in tests). Clean up test entries by
   ID (entries with an ID above the highest before the test), never by count.
+- Register blocks (and anything that runs other plugins' filters) on `init`,
+  not while `functions.php` loads: WooCommerce's block filters call `__()`,
+  and translations before `init` log `_load_textdomain_just_in_time`. Find
+  the caller of a `_doing_it_wrong` notice with a `doing_it_wrong_run` hook
+  that prints `debug_backtrace()` (`wp --require=<file>`).
 - Apache sends `.php` to php-fpm with `ProxyPassMatch`, so `.htaccess` rules
   don't apply to PHP files (homelab to-do: switch to `SetHandler`).
 
@@ -182,11 +187,10 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 - **Pushed through `f69e2ca`** (AI boost locked in: forms guideline +
   `gaffer-form` skill gated on Gravity Forms, `--no-wp` removed, `doctor`
   lists theme overrides of Gaffer's guidelines/skills); blueprint is on it.
-  `Post::ancestors()` / `Term::ancestors()` pushed (`fabfffd`). Unpushed: the
-  MCP server (`Mcp\`), `FormReport` (shared by `forms:show` and the MCP
-  tool), `doctor:render` fixes (the page was never counted: the result was
-  written before WordPress flushed the buffer; now also `http` status and
-  `--html`).
+  MCP server pushed (`9033b85`); blueprint is on it and Claude Code (in Zed)
+  uses it. Unpushed: blocks registered on `init` (was during `functions.php`,
+  which made WooCommerce load its translations too early: the
+  `_load_textdomain_just_in_time` notice on every request).
 - **MCP setup on blueprint:** MCP Adapter plugin 0.7.0 installed by the user
   (dev only, never on production; bundling it as a library is deprecated
   upstream). Testing unpushed MCP code: `wp --require=<file that preloads the

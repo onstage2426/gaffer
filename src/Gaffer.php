@@ -149,9 +149,15 @@ class Gaffer
      */
     private static function blocks(): void
     {
-        foreach (glob(Paths::blocks() . '/*/block.json') ?: [] as $block) {
-            register_block_type($block);
-        }
+        // On init, as WordPress expects: registering runs plugin filters that may load
+        // translations (WooCommerce's), which is "too early" before init.
+        $register = static function (): void {
+            foreach (glob(Paths::blocks() . '/*/block.json') ?: [] as $block) {
+                register_block_type($block);
+            }
+        };
+        // Booted after init only by the CLI when the theme isn't the active one.
+        did_action('init') ? $register() : add_action('init', $register);
         add_action('acf/include_fields', BlockFields::register(...));
     }
 }

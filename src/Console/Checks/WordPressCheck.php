@@ -6,13 +6,16 @@ namespace Gaffer\Console\Checks;
 
 use Closure;
 use Gaffer\BlockFields;
+use Gaffer\Config;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
-use Gaffer\Config;
 use Gaffer\Forms\FormTemplates;
 use Gaffer\Forms\GravityForm;
+use Gaffer\Mcp\Mcp;
+use Gaffer\Mcp\Tool;
 use Gaffer\Paths;
 use Gaffer\Types\Image;
+use RuntimeException;
 use WP_Block_Type_Registry;
 
 /**
@@ -31,6 +34,35 @@ final class WordPressCheck implements Check
         $this->woocommerce_templates($report);
         $this->forms($report);
         $this->menus($report);
+        $this->mcp($report);
+    }
+
+    /**
+     * Gaffer's MCP server answers an agent's start command with every tool (catches
+     * MCP Adapter updates that break it, and WP-CLI missing from the PATH).
+     */
+    private function mcp(Report $report): void
+    {
+        if (!Mcp::enabled()) {
+            return;
+        }
+        $expected = array_map(static fn(Tool $tool): string => "gaffer-{$tool->name()}", Mcp::tools());
+
+        try {
+            $served = Mcp::served_tools();
+        } catch (RuntimeException $e) {
+            $report->error('mcp', $e->getMessage(), null, null,
+                'Agents get no gaffer tools. Check that `wp` runs from the theme directory; after an MCP Adapter update, check its changelog for create_server() changes.');
+            return;
+        }
+
+        $missing = array_diff($expected, $served);
+        if ($missing !== []) {
+            $report->error('mcp', 'The MCP server "gaffer" lacks ' . implode(', ', $missing) . ' (serves: ' . (implode(', ', $served) ?: 'nothing') . ')', null, null,
+                'Run the start command from .mcp.json by hand and look at stderr; abilities may have failed to register.');
+            return;
+        }
+        $report->info('mcp', 'MCP server "gaffer" serves its ' . count($expected) . ' tools');
     }
 
     private function blocks(Report $report): void

@@ -9,6 +9,8 @@ use Gaffer\Mcp\Tools\Doctor;
 use Gaffer\Mcp\Tools\Forms;
 use Gaffer\Mcp\Tools\LastErrors;
 use Gaffer\Mcp\Tools\Render;
+use Gaffer\Paths;
+use RuntimeException;
 
 /**
  * Gaffer's MCP server for theme development: its tools are abilities
@@ -78,6 +80,46 @@ final class Mcp
     public static function launch(): array
     {
         return ['command' => 'wp', 'args' => ['mcp-adapter', 'serve', '--server=' . self::SERVER]];
+    }
+
+    /**
+     * Starts the server the way an agent does (launch(), from the theme directory)
+     * and asks for its tools over the protocol: the names it serves.
+     *
+     * @return list<string>
+     * @throws RuntimeException when it doesn't start or doesn't answer
+     */
+    public static function served_tools(): array
+    {
+        $launch = self::launch();
+        $requests = implode("\n", array_map(json_encode(...), [
+            ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => ['protocolVersion' => '2025-11-25', 'capabilities' => new \stdClass(), 'clientInfo' => ['name' => 'gaffer-doctor', 'version' => '1']]],
+            ['jsonrpc' => '2.0', 'method' => 'notifications/initialized'],
+            ['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list'],
+        ])) . "\n";
+
+        $process = proc_open([$launch['command'], ...$launch['args']], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, Paths::base());
+        if ($process === false) {
+            throw new RuntimeException("Could not start `{$launch['command']}` (not on the PATH?).");
+        }
+        fwrite($pipes[0], $requests);
+        fclose($pipes[0]);
+        $stdout = (string) stream_get_contents($pipes[1]);
+        $stderr = (string) stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $exit = proc_close($process);
+
+        foreach (explode("\n", $stdout) as $line) {
+            $message = json_decode($line, true);
+            if (is_array($message) && ($message['id'] ?? null) === 2 && is_array($message['result']['tools'] ?? null)) {
+                return array_values(array_map(static fn(array $tool): string => (string) ($tool['name'] ?? ''), $message['result']['tools']));
+            }
+        }
+
+        // The last lines of stderr say why (command not found, unknown server, a PHP fatal); WordPress notices come first.
+        $why = trim(implode("\n", array_slice(array_filter(explode("\n", $stderr), static fn(string $l): bool => trim($l) !== ''), -3)));
+        throw new RuntimeException("`{$launch['command']} " . implode(' ', $launch['args']) . "` (exit {$exit}) didn't list its tools" . ($why !== '' ? ": {$why}" : '.'));
     }
 
     /** @return list<Tool> */

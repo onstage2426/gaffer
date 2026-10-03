@@ -2,9 +2,10 @@
 
 The MCP Adapter plugin is active, so Gaffer serves read-only development tools
 as the MCP server `gaffer` (abilities `gaffer/*`). `php gaffer ai:update` adds it
-to the agent's MCP config (`.mcp.json`, gitignored: it holds this machine's
-WordPress path); it runs `wp mcp-adapter serve` as the site's first
-administrator, over STDIO only. It is never served on production.
+to each selected agent's MCP config (`.mcp.json`, `.codex/config.toml`,
+`.grok/config.toml`; gitignored, other servers in them are kept): `wp
+mcp-adapter serve --server=gaffer`, started from the theme directory, over STDIO
+only. It is never served on production.
 
 Prefer these tools over ad-hoc scripts:
 

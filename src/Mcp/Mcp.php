@@ -9,7 +9,6 @@ use Gaffer\Mcp\Tools\Doctor;
 use Gaffer\Mcp\Tools\Forms;
 use Gaffer\Mcp\Tools\LastErrors;
 use Gaffer\Mcp\Tools\Render;
-use Gaffer\Paths;
 
 /**
  * Gaffer's MCP server for theme development: its tools are abilities
@@ -47,7 +46,8 @@ final class Mcp
                     'category' => 'gaffer',
                     'input_schema' => $tool->input_schema(),
                     'execute_callback' => $tool->run(...),
-                    'permission_callback' => static fn(): bool => \current_user_can('edit_theme_options'),
+                    // WP-CLI: whoever runs it can already do anything on this server (no --user needed).
+                    'permission_callback' => static fn(): bool => (defined('WP_CLI') && WP_CLI) || \current_user_can('edit_theme_options'),
                     'meta' => ['annotations' => ['readonly' => true, 'destructive' => false, 'idempotent' => true]],
                 ]);
             }
@@ -70,21 +70,14 @@ final class Mcp
     }
 
     /**
-     * How an agent starts the server: WP-CLI as the site's first administrator.
-     * Null when there's no administrator.
+     * How an agent starts the server, the same on every machine: WP-CLI finds
+     * WordPress from the theme directory the agent runs it in.
      *
-     * @return array{command: string, args: list<string>}|null
+     * @return array{command: string, args: list<string>}
      */
-    public static function launch(): ?array
+    public static function launch(): array
     {
-        $admins = \get_users(['role' => 'administrator', 'orderby' => 'ID', 'order' => 'ASC', 'number' => 1, 'fields' => 'ID']);
-        if ($admins === []) {
-            return null;
-        }
-
-        return ['command' => 'wp', 'args' => [
-            '--path=' . Paths::wordpress(), 'mcp-adapter', 'serve', '--server=' . self::SERVER, '--user=' . (int) $admins[0],
-        ]];
+        return ['command' => 'wp', 'args' => ['mcp-adapter', 'serve', '--server=' . self::SERVER]];
     }
 
     /** @return list<Tool> */

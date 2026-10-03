@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Tests;
 
+use Gaffer\Ai\McpConfig;
 use Gaffer\Mcp\Tools\BlockUsage;
 use Gaffer\Mcp\Tools\LastErrors;
 
@@ -36,5 +37,13 @@ final class McpTest extends TestCase
             ['message' => "PHP Fatal error:  B\nStack trace:\n#0 {main}", 'count' => 1, 'last' => '03-Oct-2026 10:00:01 UTC'],
             ['message' => 'PHP Warning:  A in /x.php on line 1', 'count' => 2, 'last' => '03-Oct-2026 10:00:02 UTC'],
         ], LastErrors::entries($log, true));
+    }
+
+    public function test_only_gaffers_toml_tables_are_removed(): void
+    {
+        $toml = "[mcp_servers.gaffer]\ncommand = \"wp\"\n\n[mcp_servers.gaffer.env]\nA = \"1\"\n\n"
+            . "[mcp_servers.gaffer-other]\ncommand = \"y\"\n\n[profile]\nmodel = \"x\"\n";
+
+        self::assertSame("[mcp_servers.gaffer-other]\ncommand = \"y\"\n\n[profile]\nmodel = \"x\"\n", McpConfig::without_toml_table($toml, 'mcp_servers'));
     }
 }

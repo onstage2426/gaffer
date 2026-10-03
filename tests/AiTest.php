@@ -119,6 +119,26 @@ final class AiTest extends TestCase
         self::assertStringNotContainsString('.mcp.json', (string) file_get_contents("{$this->theme}/.gitignore"));
     }
 
+    public function test_codex_and_grok_get_a_toml_table_next_to_their_own_settings(): void
+    {
+        mkdir("{$this->theme}/.codex", 0755, true);
+        $own = "model = \"gpt-6\"\n\n[mcp_servers.other]\ncommand = \"x\"\n";
+        file_put_contents("{$this->theme}/.codex/config.toml", $own);
+        $launch = ['command' => 'wp', 'args' => ['mcp-adapter', 'serve', '--server=gaffer']];
+
+        Installer::update(['codex', 'grok'], [], $launch);
+        Installer::update(['codex', 'grok'], [], $launch); // replaced, not added twice
+        $table = "[mcp_servers.gaffer]\ncommand = \"wp\"\nargs = [\"mcp-adapter\", \"serve\", \"--server=gaffer\"]\n";
+
+        self::assertSame($own . "\n" . $table, file_get_contents("{$this->theme}/.codex/config.toml"));
+        self::assertSame($table, file_get_contents("{$this->theme}/.grok/config.toml"));
+        self::assertStringContainsString("/.codex/config.toml\n/.grok/skills/\n/.grok/config.toml\n", (string) file_get_contents("{$this->theme}/.gitignore"));
+
+        Installer::update(['codex', 'grok'], []); // MCP no longer available
+        self::assertSame($own, file_get_contents("{$this->theme}/.codex/config.toml"));
+        self::assertFileDoesNotExist("{$this->theme}/.grok/config.toml");
+    }
+
     public function test_mcp_config_written_only_by_gaffer_is_deleted(): void
     {
         Installer::update(['claude'], [], ['command' => 'wp', 'args' => []]);

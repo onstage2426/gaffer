@@ -44,12 +44,7 @@ final class AiUpdate extends Command
             'mcp-adapter' => Mcp::enabled(),
         ]));
 
-        $mcp = Mcp::enabled() ? Mcp::launch() : null;
-        if (Mcp::enabled() && $mcp === null) {
-            $output->writeln('<comment>No administrator to run the MCP server as: no MCP config written.</comment>');
-        }
-
-        foreach (Installer::update($agents, $plugins, $mcp) as $line) {
+        foreach (Installer::update($agents, $plugins, Mcp::enabled() ? Mcp::launch() : null) as $line) {
             $output->writeln("  {$line}");
         }
         $output->writeln('Plugin guidelines and skills: ' . ($plugins === [] ? 'none' : implode(', ', $plugins)) . '. These files are gitignored; regenerate after updating Gaffer.');

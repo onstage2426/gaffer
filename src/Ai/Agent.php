@@ -7,7 +7,7 @@ namespace Gaffer\Ai;
 /**
  * An AI coding agent and where it reads guidelines and skills. Every agent
  * reads the shared AGENTS.md, directly or through its own file that imports it.
- * Paths follow Laravel Boost's adapters.
+ * Paths (guidelines, skills, MCP config) follow Laravel Boost's adapters.
  */
 final readonly class Agent
 {
@@ -15,7 +15,8 @@ final readonly class Agent
      * @param string|null $file   Own guidelines file (written as an `@AGENTS.md` import); null = reads AGENTS.md itself
      * @param string|null $skills Skills directory (Agent Skills format: {name}/SKILL.md)
      * @param list<string> $markers Files/directories in a project that show the agent is used
-     * @param string|null $mcp    Project MCP config (JSON with "mcpServers") that gets Gaffer's server; null = not supported here
+     * @param string|null $mcp    Project MCP config that gets Gaffer's server (.json or .toml); null = none
+     * @param string $mcp_key     The servers key in that file
      */
     public function __construct(
         public string $name,
@@ -25,6 +26,7 @@ final readonly class Agent
         public string $command,
         public array $markers,
         public ?string $mcp = null,
+        public string $mcp_key = 'mcpServers',
     ) {}
 
     /** @return array<string, Agent> */
@@ -32,8 +34,8 @@ final readonly class Agent
     {
         return [
             'claude' => new self('claude', 'Claude Code', 'CLAUDE.md', '.claude/skills', 'claude', ['.claude', 'CLAUDE.md'], '.mcp.json'),
-            'codex' => new self('codex', 'OpenAI Codex', null, '.agents/skills', 'codex', ['.codex']),
-            'grok' => new self('grok', 'Grok', null, '.grok/skills', 'grok', ['.grok']),
+            'codex' => new self('codex', 'OpenAI Codex', null, '.agents/skills', 'codex', ['.codex'], '.codex/config.toml', 'mcp_servers'),
+            'grok' => new self('grok', 'Grok', null, '.grok/skills', 'grok', ['.grok'], '.grok/config.toml', 'mcp_servers'),
         ];
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Ai;
 
 use FilesystemIterator;
+use Gaffer\Mcp\Mcp;
 use Gaffer\Paths;
 use InvalidArgumentException;
 use RecursiveDirectoryIterator;
@@ -22,9 +23,6 @@ final class Installer
 
     /** Marks a skill directory as generated (so stale ones can be removed). */
     private const string SKILL_MARKER = '.gaffer-generated';
-
-    /** Gaffer's entry in an agent's MCP config. */
-    private const string MCP_SERVER = 'gaffer';
 
     /**
      * Writes the output for these agents and removes the output of every other agent.
@@ -62,7 +60,7 @@ final class Installer
 
         foreach ($agents as $agent) {
             if ($agent->mcp !== null) {
-                array_push($written, ...($mcp !== null ? self::write_mcp($agent->mcp, $mcp) : self::remove_mcp($agent->mcp)));
+                array_push($written, ...($mcp !== null ? self::write_mcp($agent, $mcp) : self::remove_mcp($agent)));
             }
         }
 
@@ -97,7 +95,7 @@ final class Installer
     {
         $removed = [
             ...($agent->file !== null ? self::remove_marked($agent->file) : []),
-            ...($agent->mcp !== null ? self::remove_mcp($agent->mcp) : []),
+            ...self::remove_mcp($agent),
         ];
 
         $target = $agent->skills !== null ? Paths::base($agent->skills) : null;
@@ -248,58 +246,24 @@ final class Installer
     }
 
     /**
-     * Sets Gaffer's server in an agent's MCP config, keeping every other server.
-     *
      * @param array{command: string, args: list<string>} $launch
      * @return list<string>
      */
-    private static function write_mcp(string $relative, array $launch): array
+    private static function write_mcp(Agent $agent, array $launch): array
     {
-        $config = self::read_mcp($relative);
-        if ($config === null) {
-            return ["skipped {$relative} (not valid JSON: fix or delete it)"];
-        }
-        $config['mcpServers'] = [...(is_array($config['mcpServers'] ?? null) ? $config['mcpServers'] : []), self::MCP_SERVER => ['type' => 'stdio', ...$launch]];
-        file_put_contents(Paths::base($relative), json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
-
-        return ["wrote {$relative} (MCP server \"" . self::MCP_SERVER . '")'];
+        return McpConfig::write(Paths::base((string) $agent->mcp), $agent->mcp_key, $launch)
+            ? ["wrote {$agent->mcp} (MCP server \"" . Mcp::SERVER . '")']
+            : ["skipped {$agent->mcp} (not valid JSON: fix or delete it)"];
     }
 
-    /**
-     * Removes Gaffer's server from an agent's MCP config; deletes the file when nothing else is left.
-     *
-     * @return list<string>
-     */
-    private static function remove_mcp(string $relative): array
+    /** @return list<string> */
+    private static function remove_mcp(Agent $agent): array
     {
-        $config = self::read_mcp($relative);
-        if (!isset($config['mcpServers']) || !is_array($config['mcpServers']) || !isset($config['mcpServers'][self::MCP_SERVER])) {
-            return [];
-        }
-        unset($config['mcpServers'][self::MCP_SERVER]);
-        if ($config['mcpServers'] === []) {
-            unset($config['mcpServers']);
-        }
-
-        if ($config === []) {
-            unlink(Paths::base($relative));
-            return ["removed {$relative}"];
-        }
-        file_put_contents(Paths::base($relative), json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
-
-        return ["removed the \"" . self::MCP_SERVER . "\" server from {$relative} (kept the rest)"];
-    }
-
-    /** @return array<string, mixed>|null the config ([] when there's no file), null when it isn't valid JSON */
-    private static function read_mcp(string $relative): ?array
-    {
-        $file = Paths::base($relative);
-        if (!is_file($file)) {
-            return [];
-        }
-        $config = json_decode((string) file_get_contents($file), true);
-
-        return is_array($config) ? $config : null;
+        return match ($agent->mcp !== null ? McpConfig::remove(Paths::base($agent->mcp), $agent->mcp_key) : null) {
+            'removed' => ["removed {$agent->mcp}"],
+            'updated' => ["removed the \"" . Mcp::SERVER . "\" server from {$agent->mcp} (kept the rest)"],
+            null => [],
+        };
     }
 
     /**

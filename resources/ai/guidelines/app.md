@@ -18,6 +18,7 @@ template file, block, ajax action or hook registration.
 - **Templates use the types, not what's behind them:** no `post.product().get_title()`
   or `product.get_meta('label')` in Twig. Add a method to the type
   (`label()`, `rating()`) and call that.
-- `doctor` reports method names that aren't snake_case and `.get_*()` calls
-  in templates (Gaffer's types have no `get_` methods, so those reach into
+- `doctor` reports method names that aren't snake_case, Twig functions and
+  filters that look content up (WordPress/ACF/plugin lookups, type factories),
+  and `.get_*()` calls in templates (Gaffer's types have no `get_` methods, so those reach into
   WordPress, WooCommerce or a plugin).

@@ -255,6 +255,29 @@ final class ChecksTest extends TestCase
         self::assertStringNotContainsString('shop', $messages);
     }
 
+    public function test_twig_functions_that_look_content_up(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            class E {
+                #[AsTwigFunction("product")]
+                public static function product(int $id): ?Product { return Product::from($id); }
+                #[AsTwigFilter("money")]
+                public static function money(float $v): string { return number_format($v, 2, ',', '.'); }
+                #[\Twig\Attribute\AsTwigFunction("faq")]
+                public static function faq(): array { return \get_field('vragen', 'option') ?: []; }
+                public static function helper(): mixed { return get_field('x'); }
+                #[AsTwigFunction("label")]
+                public static function label($product): string { return $product->get_title() . self::from(1); }
+            }
+            PHP;
+
+        self::assertSame(
+            [['product', 'Product::from', 4], ['faq', 'get_field', 8]],
+            AppCheck::twig_lookups($code),
+        );
+    }
+
     private function messages(Check $check): string
     {
         $report = new Report();

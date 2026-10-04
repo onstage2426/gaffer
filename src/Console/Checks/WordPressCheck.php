@@ -146,17 +146,71 @@ final class WordPressCheck implements Check
             }
 
             $post = acf_get_field_group_post($json['key']);
-            $state = match (true) {
-                !$post => 'only in JSON (sync it in ACF → Field Groups)',
-                ($json['modified'] ?? 0) > strtotime("{$post->post_modified_gmt} UTC") => 'JSON is newer than the database (sync it in ACF)',
-                ($json['modified'] ?? 0) < strtotime("{$post->post_modified_gmt} UTC") => 'database is newer than the JSON (re-save the group in ACF)',
-                default => null,
-            };
-
-            if ($state !== null) {
-                $report->warning('wp', "ACF field group \"{$json['title']}\": {$state}", $file);
+            if (!$post) {
+                $report->warning('wp', "ACF field group \"{$json['title']}\": only in JSON (sync it in ACF → Field Groups)", $file);
+                continue;
             }
+            // By content, not by timestamp: ACF's own sync leaves the database newer than an identical JSON file.
+            $database = self::database_group($json['key']);
+            if ($database !== null && self::normalized($database) == self::normalized($json)) {
+                continue;
+            }
+
+            $report->warning('wp', "ACF field group \"{$json['title']}\": the JSON and the database differ, " . (
+                ($json['modified'] ?? 0) >= strtotime("{$post->post_modified_gmt} UTC")
+                    ? 'the JSON is newer (sync it in ACF → Field Groups)'
+                    : 'the database is newer (re-save the group in ACF to write the JSON)'
+            ), $file);
         }
+    }
+
+    /**
+     * The database copy of a field group with its fields, read with local JSON
+     * switched off the way ACF's own sync does.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function database_group(string $key): ?array
+    {
+        acf_disable_filter('local');
+        try {
+            $group = acf_get_field_group($key);
+            if (!is_array($group)) {
+                return null;
+            }
+            $group['fields'] = acf_get_fields($group);
+
+            return $group;
+        } finally {
+            acf_enable_filter('local');
+        }
+    }
+
+    /**
+     * A field group with ACF's defaults filled in and in its export shape, so an
+     * older JSON file (without settings a newer ACF added) still equals its
+     * database copy.
+     *
+     * @param array<string, mixed> $group
+     * @return array<string, mixed>
+     */
+    private static function normalized(array $group): array
+    {
+        $fields = static function (array $list) use (&$fields): array {
+            return array_map(static function (array $field) use ($fields): array {
+                $field = acf_validate_field($field);
+                if (is_array($field['sub_fields'] ?? null)) {
+                    $field['sub_fields'] = $fields($field['sub_fields']);
+                }
+                return $field;
+            }, $list);
+        };
+        $group = acf_validate_field_group($group);
+        $group['fields'] = $fields(is_array($group['fields'] ?? null) ? $group['fields'] : []);
+        $group = acf_prepare_field_group_for_export($group);
+        unset($group['modified']);
+
+        return $group;
     }
 
     /**

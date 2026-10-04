@@ -1,0 +1,44 @@
+<?php
+
+// The ACF (Pro) functions Gaffer calls, as ACF declares them.
+
+/** @return array<string, mixed>|false */
+function acf_get_field_group(int|string|array $id = 0) {}
+
+function acf_get_field_group_post(int|string $id = 0): WP_Post|false {}
+
+/**
+ * @param array<string, mixed>|int|string $parent
+ * @return list<array<string, mixed>>
+ */
+function acf_get_fields(array|int|string $parent) {}
+
+/** @return array<string, mixed>|false */
+function acf_get_field(int|string $id = 0) {}
+
+/**
+ * @param array<string, mixed> $field_group
+ * @return array<string, mixed>
+ */
+function acf_prepare_field_group_for_export(array $field_group = []) {}
+
+/** @param array<string, mixed> $field_group */
+function acf_add_local_field_group(array $field_group): bool {}
+
+function acf_get_field_type(string $name): ?object {}
+
+function acf_disable_filter(string $name = ''): void {}
+
+function acf_enable_filter(string $name = ''): void {}
+
+/**
+ * @param array<string, mixed> $field_group
+ * @return array<string, mixed>
+ */
+function acf_validate_field_group(array $field_group = []) {}
+
+/**
+ * @param array<string, mixed> $field
+ * @return array<string, mixed>
+ */
+function acf_validate_field(array $field = []) {}

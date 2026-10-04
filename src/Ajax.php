@@ -7,7 +7,7 @@ namespace Gaffer;
 use InvalidArgumentException;
 use LogicException;
 
-class Ajax
+final class Ajax
 {
     /**
      * Actions are {NAMESPACE}\{Name}\{Name} in ajax/{Name}/{Name}.php.

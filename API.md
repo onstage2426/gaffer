@@ -5,6 +5,11 @@ or patch release: it's deprecated first (`@deprecated`, a deprecation notice,
 `doctor` warns) and removed in the next major. Everything else in `src/` is
 internal (`@internal`) and may change in any release.
 
+`api.txt` is this list as signatures, generated from the code: `composer test`
+fails when the public API differs from it (`tests/ApiTest.php`). After a
+deliberate change, `UPDATE_API=1 composer test` updates it, and the diff shows
+in review.
+
 Not covered: the generated AI guidelines and skills (`AGENTS.md`, `.claude/`,
 ...; they're regenerated with every update) and the wording of messages.
 

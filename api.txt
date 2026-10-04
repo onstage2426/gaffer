@@ -1,0 +1,116 @@
+final class Gaffer\Acf
+  static field_array(string $selector, ?int $post_id = NULL): array
+  static option_array(string $selector): array
+final class Gaffer\Ajax
+  static boot(string $dir): void
+  static url(string $action): string
+abstract class Gaffer\AjaxAction
+  const METHOD = 'POST'
+  const SHORTINIT = false
+final class Gaffer\Config
+  static get(string $key): mixed
+final class Gaffer\Console\Console
+  static boot(string $dir): int
+abstract class Gaffer\Forms\FormAction extends Gaffer\AjaxAction
+  const METHOD = 'POST'
+  run(string $form, array $fields = [], string $turnstile = '', string $website = ''): void
+final class Gaffer\Forms\FormState
+  readonly string $name
+  readonly array $values
+  readonly array $errors
+  readonly bool $sent
+  readonly ?string $message
+  readonly bool $failed
+  static blank(string $name): Gaffer\Forms\FormState
+  checked(string $field, ?string $choice = NULL): bool
+  error(string $field): ?string
+  value(string $field): string
+final class Gaffer\Gaffer
+  static boot(string $dir): void
+final class Gaffer\Paths
+  static base(string $path = ''): string
+final class Gaffer\Turnstile
+  static enabled(): bool
+  static log_spam(string $form, string $reason): void
+  static site_key(): string
+  static verify(string $token): bool
+class Gaffer\Types\Attachment extends Gaffer\Types\Post
+  mime(): string
+  url(): string
+final class Gaffer\Types\Image extends Gaffer\Types\Attachment
+  alt(): string
+  attrs(string $size = 'full'): Twig\Markup
+  height(): int
+  src(string $size = 'full'): string
+  width(): int
+final class Gaffer\Types\Menu
+  items(): array
+  static location(string $location): ?Gaffer\Types\Menu
+final class Gaffer\Types\MenuItem
+  readonly WP_Post $wp
+  children(): array
+  classes(): array
+  has_children(): bool
+  id(): int
+  is_current(): bool
+  is_current_ancestor(): bool
+  is_external(): bool
+  link(): string
+  target(): string
+  title(): string
+final class Gaffer\Types\Pagination
+  readonly int $page
+  readonly int $total_pages
+  readonly int $items
+  readonly int $total_items
+  readonly int $per_page
+  readonly int $results_start
+  readonly int $results_end
+  static current(): Gaffer\Types\Pagination
+  next(): ?int
+  next_link(): ?string
+  pages(int $padding = 2): array
+  previous(): ?int
+  previous_link(): ?string
+class Gaffer\Types\Post
+  readonly WP_Post $wp
+  ancestors(): array
+  blocks(): array
+  children(): array
+  content(): string
+  static current(): ?static
+  date(?string $format = NULL): string
+  excerpt(): string
+  static from(int $id): ?static
+  id(): int
+  is_current(): bool
+  link(): string
+  static main_query(): array
+  meta(string $key): mixed
+  modified_date(?string $format = NULL): string
+  parent(): ?Gaffer\Types\Post
+  static query(array $args): array
+  terms(string $taxonomy): array
+  thumbnail(): ?Gaffer\Types\Image
+  title(): string
+class Gaffer\Types\Term
+  readonly WP_Term $wp
+  ancestors(): array
+  children(): array
+  static current(): ?static
+  description(): string
+  static from(int $id): ?static
+  id(): int
+  link(): string
+  meta(string $key): mixed
+  parent(): ?Gaffer\Types\Term
+  static query(array $args): array
+  thumbnail(): ?Gaffer\Types\Image
+  title(): string
+final class Gaffer\View
+  static fetch(string $template, array $data = []): string
+  static render(string $template, array $data = []): void
+  static share(string $key, mixed $value): void
+final class Gaffer\Vite
+  static tags(array $assets): void
+  static url(string $asset): string

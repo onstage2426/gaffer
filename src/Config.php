@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
-class Config
+final class Config
 {
     /** @var array<string, array<string, mixed>> */
     protected static array $config = [];

@@ -12,7 +12,7 @@ use Twig\Extension\DebugExtension;
 use Twig\Extra\String\StringExtension;
 use Twig\Loader\FilesystemLoader;
 
-class Gaffer
+final class Gaffer
 {
     private static bool $configured = false;
     private static bool $twig = false;

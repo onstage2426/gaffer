@@ -15,6 +15,10 @@ code. This repository is a sandbox for now (a fresh repo comes before launch).
   `general`. Never add a Co-Authored-By or any other AI attribution line.
 - **The user pushes.** This machine has no GitHub credentials. Commit, then
   say what's unpushed.
+- **Public API:** `API.md` (what themes may rely on) and `api.txt` (its
+  signatures, checked by `tests/ApiTest.php`). Anything else is `@internal`.
+  Changing the public API is a decision: deprecate first, and update the
+  snapshot on purpose (`UPDATE_API=1 composer test`).
 - **Before every commit:** `composer test` (PHPUnit) and
   `vendor/bin/phpstan analyse --memory-limit=1G` (level 6, **no baseline**:
   fix types instead of ignoring them).

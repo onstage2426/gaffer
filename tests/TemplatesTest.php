@@ -53,15 +53,18 @@ final class TemplatesTest extends TestCase
             {{ include('c/' ~ name) }}
             {% include 'd.twig' with { y: 2 } only %}
             {{ source('icons/e.svg') }}
+            {{ include('widgets/' ~ type ~ '-' ~ size ~ '.twig', {}, with_context = false) }}
             TWIG]);
 
         $refs = Templates::references(Templates::parse('t.twig'));
 
         self::assertSame(
-            [['a.twig', 'include()', true], ['b.twig', 'include()', false], [null, 'include()', false], ['d.twig', '{% include %}', true], ['icons/e.svg', 'source()', true]],
+            [['a.twig', 'include()', true], ['b.twig', 'include()', false], [null, 'include()', false], ['d.twig', '{% include %}', true], ['icons/e.svg', 'source()', true], [null, 'include()', true]],
             array_map(static fn(array $r): array => [$r['template'], $r['kind'], $r['isolated']], $refs),
         );
-        self::assertSame([1, 2, 3, 4, 5], array_column($refs, 'line'));
+        self::assertSame([1, 2, 3, 4, 5, 6], array_column($refs, 'line'));
+        // Computed names: a pattern when fixed text starts and ends it ('c/' ~ name has no fixed end).
+        self::assertSame([null, null, null, null, null, 'widgets/*-*.twig'], array_column($refs, 'pattern'));
     }
 
     public function test_getter_calls(): void

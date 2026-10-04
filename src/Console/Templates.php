@@ -10,6 +10,7 @@ use Twig\Error\Error as TwigError;
 use Twig\Loader\FilesystemLoader;
 use Twig\Node\EmbedNode;
 use Twig\Node\Expression\ArrowFunctionExpression;
+use Twig\Node\Expression\Binary\ConcatBinary;
 use Twig\Node\Expression\Binary\NullCoalesceBinary;
 use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Expression\Filter\DefaultFilter;
@@ -69,11 +70,41 @@ final class Templates
     }
 
     /**
+     * A computed template name as a pattern: 'components/filters/widget-' ~ name ~ '.twig'
+     * → components/filters/widget-*.twig. Null without fixed text at both ends.
+     */
+    private static function pattern(ConcatBinary $concat): ?string
+    {
+        $parts = [];
+        $flatten = static function (Node $node) use (&$flatten, &$parts): void {
+            if ($node instanceof ConcatBinary) {
+                $flatten($node->getNode('left'));
+                $flatten($node->getNode('right'));
+            } else {
+                $parts[] = $node instanceof ConstantExpression && is_string($node->getAttribute('value')) ? $node->getAttribute('value') : null;
+            }
+        };
+        $flatten($concat);
+
+        if (!is_string($parts[0] ?? null) || $parts[0] === '' || !is_string($parts[count($parts) - 1])) {
+            return null; // without fixed text at both ends it could be any template
+        }
+
+        $pattern = implode('', array_map(
+            static fn(?string $part): string => $part === null ? '*' : addcslashes($part, '*?[\\'),
+            $parts,
+        ));
+
+        return (string) preg_replace('/\*+/', '*', $pattern);
+    }
+
+    /**
      * Templates and files this one loads: include()/source() calls and include/embed tags.
-     * template is null when the name is computed; isolated means the include passes only
-     * its own variables (with_context = false, or "only" on a tag).
+     * template is null when the name is computed; then pattern is the name with * for the
+     * computed parts, when it starts and ends with fixed text. isolated means the include
+     * passes only its own variables (with_context = false, or "only" on a tag).
      *
-     * @return list<array{template: ?string, line: int, kind: string, isolated: bool}>
+     * @return list<array{template: ?string, pattern: ?string, line: int, kind: string, isolated: bool}>
      */
     public static function references(Node $node): array
     {
@@ -85,6 +116,7 @@ final class Templates
             $context = $arguments->hasNode('with_context') ? $arguments->getNode('with_context') : ($arguments->hasNode('2') ? $arguments->getNode('2') : null);
             $found[] = [
                 'template' => $first instanceof ConstantExpression && is_string($first->getAttribute('value')) ? $first->getAttribute('value') : null,
+                'pattern' => $first instanceof ConcatBinary ? self::pattern($first) : null,
                 'line' => $node->getTemplateLine(),
                 'kind' => $node->getAttribute('name') . '()',
                 'isolated' => $node->getAttribute('name') === 'source' || ($context instanceof ConstantExpression && $context->getAttribute('value') === false),
@@ -93,6 +125,7 @@ final class Templates
             $expr = $node->getNode('expr');
             $found[] = [
                 'template' => $node instanceof EmbedNode ? (string) $node->getAttribute('name') : ($expr instanceof ConstantExpression && is_string($expr->getAttribute('value')) ? $expr->getAttribute('value') : null),
+                'pattern' => !$node instanceof EmbedNode && $expr instanceof ConcatBinary ? self::pattern($expr) : null,
                 'line' => $node->getTemplateLine(),
                 'kind' => $node instanceof EmbedNode ? '{% embed %}' : '{% include %}',
                 'isolated' => (bool) $node->getAttribute('only'),

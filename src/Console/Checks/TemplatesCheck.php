@@ -8,6 +8,7 @@ use Gaffer\Console\Report;
 use Gaffer\Console\Templates;
 use Gaffer\Console\ThemeFiles;
 use Gaffer\Gaffer;
+use Gaffer\Paths;
 use Gaffer\View;
 
 /**
@@ -50,6 +51,16 @@ final class TemplatesCheck implements Check
                     'Add a method to the type (or pass the value from PHP) and use that.');
             }
             foreach (Templates::references($module) as $ref) {
+                if ($ref['pattern'] !== null) {
+                    $matches = array_filter(array_keys($templates), static fn(string $name): bool => fnmatch($ref['pattern'], $name));
+                    foreach ($matches as $match) {
+                        $used[$match] = true;
+                    }
+                    // source() loads any file (icons/*.svg), not only templates; @namespaces aren't checked.
+                    if ($matches === [] && !str_starts_with($ref['pattern'], '@') && (glob(Paths::views() . '/' . $ref['pattern']) ?: []) === []) {
+                        $report->error('views', "{$ref['kind']} loads {$ref['pattern']}, which matches no file in views/", $file, $ref['line']);
+                    }
+                }
                 if ($ref['template'] !== null) {
                     $used[$ref['template']] = true;
                     if (!$loader->exists($ref['template'])) {
@@ -69,7 +80,7 @@ final class TemplatesCheck implements Check
         foreach ($templates as $name => $file) {
             if (!isset($used[$name])) {
                 $report->warning('views', 'Nothing renders or includes this template', $file, null,
-                    'Delete it, unless it is rendered with a computed name.');
+                    'Delete it, unless PHP renders it with a computed name.');
             }
         }
     }

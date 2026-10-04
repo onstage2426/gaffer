@@ -96,6 +96,7 @@ php gaffer migrate:field acf/content-faq vragen.vraag vraag_tekst  # rename a su
 php gaffer migrate:block acf/content-faq acf/faq                   # rename a block (after its directory and block.json)
 php gaffer migrate:remove-field acf/content-faq vragen.bron        # delete a removed field's values
 php gaffer migrate:remove-block acf/content-team                   # delete a removed block from all content
+php gaffer migrate:fields [acf/content-faq]                        # after moving a block's fields from the ACF UI/JSON to fields.php
 php gaffer migrate:rollback [backup]                               # undo (no argument: list backups)
 ```
 

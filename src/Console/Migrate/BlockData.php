@@ -170,6 +170,70 @@ final class BlockData
     }
 
     /**
+     * For rename(): moves references from field group keys (ACF UI/JSON, "field_6a2b…")
+     * to the keys derived from fields.php, finding each value's field by its name:
+     * "vragen_2_vraag" is the sub field "vraag" of row 2 of the repeater "vragen".
+     * Keys already under $prefix are left alone. $type tells the old key's field
+     * type when ACF still knows it (null otherwise): a different type is a problem.
+     *
+     * @param list<array<string, mixed>> $fields fields.php with derived keys (BlockFields::group())
+     * @param Closure(string): ?string $type
+     * @return Closure(string, string): (array{string, string}|string|null)
+     */
+    public static function fields_renamer(string $prefix, array $fields, Closure $type): Closure
+    {
+        return static function (string $name, string $key) use ($prefix, $fields, $type): array|string|null {
+            if (str_starts_with($key, "{$prefix}__")) {
+                return null;
+            }
+            $field = self::field_by_name($fields, $name);
+            if ($field === null) {
+                return "\"{$name}\" ({$key}) isn't a field in fields.php";
+            }
+            $old_type = $type($key);
+            if ($old_type !== null && $old_type !== $field['type']) {
+                return "\"{$name}\" was a {$old_type} field ({$key}), fields.php makes it a {$field['type']}";
+            }
+
+            return [$name, (string) $field['key']];
+        };
+    }
+
+    /**
+     * The field a stored value name belongs to: a field's name, "{repeater}_{row}_{sub}"
+     * or "{group}_{sub}", recursively.
+     *
+     * @param list<array<string, mixed>> $fields
+     * @return array<string, mixed>|null
+     */
+    public static function field_by_name(array $fields, string $name): ?array
+    {
+        foreach ($fields as $field) {
+            if (($field['name'] ?? '') === $name) {
+                return $field;
+            }
+        }
+        foreach ($fields as $field) {
+            $own = (string) ($field['name'] ?? '');
+            $subs = is_array($field['sub_fields'] ?? null) ? $field['sub_fields'] : [];
+            if ($own === '' || $subs === []) {
+                continue;
+            }
+            $rest = match ($field['type'] ?? '') {
+                'repeater' => preg_match('/^' . preg_quote($own, '/') . '_\d+_(.+)$/', $name, $m) ? $m[1] : null,
+                'group' => str_starts_with($name, "{$own}_") ? substr($name, strlen($own) + 1) : null,
+                default => null,
+            };
+            $found = $rest !== null ? self::field_by_name($subs, $rest) : null;
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Removes a field's values and references (with everything below it: a repeater's rows).
      *
      * @param array<mixed> $data

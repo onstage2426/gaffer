@@ -13,6 +13,7 @@ use Gaffer\Console\Commands\DoctorRender;
 use Gaffer\Console\Commands\FormsShow;
 use Gaffer\Console\Commands\MigrateBlock;
 use Gaffer\Console\Commands\MigrateField;
+use Gaffer\Console\Commands\MigrateFields;
 use Gaffer\Console\Commands\MigrateRemoveBlock;
 use Gaffer\Console\Commands\MigrateRemoveField;
 use Gaffer\Console\Commands\MigrateRollback;
@@ -53,6 +54,7 @@ final class Console
             new FormsShow(),
             new MigrateBlock(),
             new MigrateField(),
+            new MigrateFields(),
             new MigrateRemoveBlock(),
             new MigrateRemoveField(),
             new MigrateRollback(),

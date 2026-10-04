@@ -58,6 +58,9 @@ final class MigrateBlock extends MigrateCommand
                 }
                 $data = is_array($block['attrs']['data'] ?? null) ? $block['attrs']['data'] : [];
                 if ($problems = BlockData::problems($data, $from_prefix)) {
+                    if (array_any($problems, static fn(string $p): bool => str_contains($p, 'not to a field of this block'))) {
+                        $problems[] = "its data still uses an ACF field group's keys: give it a fields.php and run php gaffer migrate:fields {$from} first";
+                    }
                     return [$block, 0, array_map(static fn(string $p): string => "{$from}: {$p}", $problems)];
                 }
                 $result = BlockData::rename($data, $rename);

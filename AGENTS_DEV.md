@@ -219,23 +219,9 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 ## Open
 
 - **From migrating thenewbride (2026-10-04), for the stability pass:**
-  - `doctor`'s ACF JSON-vs-database check compares timestamps: after ACF's own
-    "Sync" the database is always newer (ACF doesn't rewrite the file), so it
-    asks for a re-save of identical groups. Compare the contents instead.
-  - `Templates::variables()` treats `{% set x = x|default(...) %}` as assigned,
-    so the reference omits `x` (thenewbride's `product/card.twig` `alpine`).
-  - Dynamic includes (`include('…/widget-' ~ name ~ '.twig')`) make every
-    target "Nothing renders or includes this template". Resolve a constant
-    prefix, or let a template opt out.
   - Standalone documents (a print page with its own `<html>`) have no place:
     "HTML in PHP" outside `header.php`/`footer.php`, but they can't use the
     shell either. Decide the convention (a second shell? a Twig document?).
-  - `doctor` doesn't see Twig functions that fetch content (the biggest part
-    of thenewbride's entry 40); `migrate:block` on a JSON-era block could say
-    "do the fields.php conversion first" instead of only listing problems.
-  - `.migrate-block-fields.php` should become a command (it scanned
-    revisions until fixed; adding an ACF field from code duplicated a group:
-    see MIGRATION.md's "How to run it").
 
 - **Forms, maybe later:** file uploads, multi-page forms, Gravity Forms'
   combined fields (Name, Address), conditional logic. Decided: Turnstile is

@@ -265,4 +265,30 @@ final class BlockDataTest extends TestCase
         self::assertSame([$parent], $result['blocks']);
         self::assertStringContainsString('contains other blocks', $result['problems'][0]);
     }
+
+    public function test_fields_renamer_finds_fields_by_their_stored_name(): void
+    {
+        $fields = [
+            ['key' => 'field_faq__titel', 'name' => 'titel', 'type' => 'text'],
+            ['key' => 'field_faq__knop_primair', 'name' => 'knop_primair', 'type' => 'link'],
+            ['key' => 'field_faq__vragen', 'name' => 'vragen', 'type' => 'repeater', 'sub_fields' => [
+                ['key' => 'field_faq__vragen__vraag', 'name' => 'vraag', 'type' => 'text'],
+                ['key' => 'field_faq__vragen__extra_info', 'name' => 'extra_info', 'type' => 'wysiwyg'],
+            ]],
+            ['key' => 'field_faq__adres', 'name' => 'adres', 'type' => 'group', 'sub_fields' => [
+                ['key' => 'field_faq__adres__stad', 'name' => 'stad', 'type' => 'text'],
+            ]],
+        ];
+        $old_types = ['field_old_titel' => 'text', 'field_old_vraag' => 'textarea'];
+        $rename = BlockData::fields_renamer('field_faq', $fields, static fn(string $key): ?string => $old_types[$key] ?? null);
+
+        self::assertSame(['titel', 'field_faq__titel'], $rename('titel', 'field_old_titel'));
+        self::assertSame(['knop_primair', 'field_faq__knop_primair'], $rename('knop_primair', 'field_1'));
+        self::assertSame(['vragen', 'field_faq__vragen'], $rename('vragen', 'field_2'));
+        self::assertSame(['vragen_3_extra_info', 'field_faq__vragen__extra_info'], $rename('vragen_3_extra_info', 'field_3'));
+        self::assertSame(['adres_stad', 'field_faq__adres__stad'], $rename('adres_stad', 'field_4'));
+        self::assertNull($rename('titel', 'field_faq__titel')); // already derived
+        self::assertSame('"onbekend" (field_5) isn\'t a field in fields.php', $rename('onbekend', 'field_5'));
+        self::assertSame('"vragen_0_vraag" was a textarea field (field_old_vraag), fields.php makes it a text', $rename('vragen_0_vraag', 'field_old_vraag'));
+    }
 }

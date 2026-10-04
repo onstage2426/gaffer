@@ -22,6 +22,8 @@ final class TemplatesTest extends TestCase
     {
         self::env(['t.twig' => <<<'TWIG'
             {% set heading = title|upper %}
+            {% set compact = compact|default(false) %}{% set size = size ?? 'm' %}
+            {{ links|map(link => link.url)|join }}
             {% for item in items %}{{ loop.index }} {{ item.name }} {{ prefix }}{% endfor %}
             {{ heading }} {{ subtitle ?? '' }} {{ note|default('x') }}
             {% if extra is defined %}{{ extra }}{% endif %}
@@ -31,10 +33,13 @@ final class TemplatesTest extends TestCase
         $variables = Templates::variables(Templates::parse('t.twig'), ['nav_primary']);
 
         self::assertSame([
+            'compact' => true,
             'extra' => false,   // read outside the "is defined" test too
             'items' => false,
+            'links' => false,
             'note' => true,
             'prefix' => false,
+            'size' => true,
             'subtitle' => true,
             'title' => false,
         ], $variables);

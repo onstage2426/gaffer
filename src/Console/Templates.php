@@ -9,6 +9,7 @@ use Gaffer\View;
 use Twig\Error\Error as TwigError;
 use Twig\Loader\FilesystemLoader;
 use Twig\Node\EmbedNode;
+use Twig\Node\Expression\ArrowFunctionExpression;
 use Twig\Node\Expression\Binary\NullCoalesceBinary;
 use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Expression\Filter\DefaultFilter;
@@ -20,6 +21,7 @@ use Twig\Node\Expression\Variable\ContextVariable;
 use Twig\Node\IncludeNode;
 use Twig\Node\ModuleNode;
 use Twig\Node\Node;
+use Twig\Node\SetNode;
 
 /**
  * The theme's Twig templates, read through Twig's own parser: which templates
@@ -141,7 +143,7 @@ final class Templates
 
         $variables = [];
         foreach ($read as $name => $optional) {
-            if (!isset($assigned[$name]) && !in_array($name, [...self::BUILT_IN, ...$ignore], true)) {
+            if (!in_array($name, [...self::BUILT_IN, ...$ignore], true)) {
                 $variables[$name] = $optional;
             }
         }
@@ -162,7 +164,23 @@ final class Templates
         }
         if ($node instanceof ContextVariable) {
             $name = (string) $node->getAttribute('name');
-            $read[$name] = ($read[$name] ?? true) && $optional;
+            if (!isset($assigned[$name])) { // after its {% set %} it's the template's own
+                $read[$name] = ($read[$name] ?? true) && $optional;
+            }
+            return;
+        }
+        if ($node instanceof ArrowFunctionExpression) {
+            // Parameters (map(item => item.title)) are local to the body: assigned before it, gone after it.
+            $outside = $assigned;
+            self::collect($node->getNode('names'), $optional, $read, $assigned);
+            self::collect($node->getNode('expr'), $optional, $read, $assigned);
+            $assigned = $outside;
+            return;
+        }
+        if ($node instanceof SetNode) {
+            // The value is read before the names are assigned: {% set x = x|default(...) %} reads the caller's x.
+            self::collect($node->getNode('values'), $optional, $read, $assigned);
+            self::collect($node->getNode('names'), $optional, $read, $assigned);
             return;
         }
 

@@ -184,44 +184,47 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   the caller of a `_doing_it_wrong` notice with a `doing_it_wrong_run` hook
   that prints `debug_backtrace()` (`wp --require=<file>`).
 
-## Current state (2026-10-03)
+## Current state (2026-10-04)
 
-- **Pushed through `f69e2ca`** (AI boost locked in: forms guideline +
-  `gaffer-form` skill gated on Gravity Forms, `--no-wp` removed, `doctor`
-  lists theme overrides of Gaffer's guidelines/skills); blueprint is on it.
-  MCP server pushed (`9033b85`), blocks on `init` (`5e7c393`); blueprint is
-  on it and Claude Code (in Zed) uses the MCP server. MCP config per agent
-  with a portable entry pushed (`677a757`). Unpushed: `doctor --wp` checks
-  the MCP server over the protocol. Next: use the MCP tools in real work and
-  tune descriptions/output from that (not yet used for a real task).
-- **MCP setup on blueprint:** MCP Adapter plugin 0.7.0 installed by the user
-  (dev only, never on production; bundling it as a library is deprecated
-  upstream). Testing unpushed MCP code: `wp --require=<file that preloads the
-  clone's classes, all of them: Composer prepends the theme's autoloader, so any
-  class not preloaded comes from the old vendor/>` plus the theme's
-  `gaffer` entry pointed at the clone temporarily (the tools start `php
-  gaffer` as a child process); restore it with `git checkout gaffer`.
-  Blueprint's `composer.json` runs `php gaffer ai:update` after every
-  `composer update` (`post-update-cmd`).
-- **AI boost files:** `AGENTS.md` (Gaffer guidelines → active plugins'
-  guidelines → theme `.ai/guidelines/` → generated reference; ~900 lines in
-  blueprint, the reference stays inline on purpose), `CLAUDE.md`, skills per
-  agent. Codex (`.agents/skills`) and Grok (`.grok/skills`) paths checked
-  against their docs (2026-10); Grok also reads `CLAUDE.md` and
-  `.claude/skills`.
-- **Migration book:** 50 entries, for the user's two other sites (still on an
-  older Gaffer). Keep adding; delete when the user says they're updated.
-- **Blueprint state:** clean `doctor --wp` (no warnings). Twig debug follows
-  `WP_DEBUG` (on in blueprint's wp-config). `WP_ENVIRONMENT_TYPE` may not be
-  set in its `wp-config.php` yet (admin bar dot shows red then); that file is
-  the user's to edit.
+- **Pushed through `e76f7ca`.** Both sites are on it: blueprint (clean
+  `doctor --wp`) and thenewbride (one accepted warning, see Open).
+- **Stability round done** (no release yet: repository, CI, changelog and the
+  1.0 tag wait until there is one): `API.md` + `api.txt` (snapshot test),
+  `@internal` on everything else; `Vite` trimmed to `tags()`/`url()` with CSS
+  as its own Vite entry; `MenuItem` built only by `Menu`; `doctor` compares ACF
+  groups by content, follows computed includes, warns about Twig functions
+  that look content up; `migrate:fields` replaced the block-fields script.
+- **thenewbride** (`~/docker/appdata/websites/thenewbride`, theme
+  `wp-content/themes/thenewbride`, local git repo, dev site,
+  `WP_ENVIRONMENT_TYPE=development`): migrated from Gaffer `9a9f0e5` in six
+  rounds (2026-10-04). Backups of the starting state in
+  `~/backups/thenewbride-2026-10-03/`. Its own guidelines are in
+  `.ai/guidelines/` (site, search, design, frontend). The user keeps the
+  production deploy list (menu locations, ACF syncs/options, Gravity Forms
+  Admin Field Labels, the content migrations).
+- **The other old site** still runs an older Gaffer: the migration book
+  (`MIGRATION.md`, 50 entries, local only; its "How to run it" section is what
+  thenewbride taught) is for it. Delete the book when it's updated.
+- **MCP:** the MCP Adapter plugin (0.7.x) is on both dev sites, never on
+  production; `doctor --wp` checks the server over the protocol. Claude Code
+  in Zed uses it via the generated `.mcp.json`.
+- **Testing unpushed Gaffer against a theme:** the throwaway entry file
+  described above (`/tmp/gaffer-test`; a copy with the theme path swapped for
+  thenewbride). For WP-CLI (the MCP server): `wp --require=<file that preloads
+  every clone class>` and the theme's `gaffer` entry pointed at the clone
+  temporarily (`git checkout gaffer` afterwards).
+- **Next session:** the Fuzor search plugin (the user's own, on their GitHub):
+  blueprint's searchbar and thenewbride's searchbar + shop archive use it.
+  Question to answer first: what belongs in Fuzor itself, in Gaffer (a
+  plugin guideline/skill, gated like Gravity Forms), or in the themes.
 
 ## Open
 
 - **From migrating thenewbride (2026-10-04), for the stability pass:**
-  - Standalone documents (a print page with its own `<html>`) have no place:
-    "HTML in PHP" outside `header.php`/`footer.php`, but they can't use the
-    shell either. Decide the convention (a second shell? a Twig document?).
+  - Standalone documents (thenewbride's print page, with its own `<html>`):
+    `doctor` warns "HTML in PHP"; accepted there (its `site.md` says why).
+    Decided: no convention for one case. Revisit when a second site needs a
+    standalone document (print view, PDF export, email preview).
 
 - **Forms, maybe later:** file uploads, multi-page forms, Gravity Forms'
   combined fields (Name, Address), conditional logic. Decided: Turnstile is

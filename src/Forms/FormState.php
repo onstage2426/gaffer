@@ -13,6 +13,8 @@ final readonly class FormState
     /**
      * @param array<string, mixed> $values by field name
      * @param array<string, string> $errors by field name ('' = about the whole form)
+     *
+     * @internal
      */
     public function __construct(
         public string $name,

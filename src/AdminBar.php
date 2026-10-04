@@ -10,6 +10,8 @@ use WP_Admin_Bar;
 /**
  * "Gaffer" in the admin bar (for administrators): a status dot, versions,
  * Twig/Vite state, and "Clear Twig cache".
+ *
+ * @internal
  */
 final class AdminBar
 {

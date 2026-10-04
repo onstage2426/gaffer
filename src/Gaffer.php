@@ -20,6 +20,8 @@ class Gaffer
 
     /**
      * Theme root + config only. Safe before WordPress is loaded (ajax.php, CLI).
+     *
+     * @internal
      */
     public static function configure(string $dir): void
     {
@@ -53,6 +55,8 @@ class Gaffer
 
     /**
      * The Twig environment only (also used for SHORTINIT ajax, where functions.php never runs).
+     *
+     * @internal
      */
     public static function twig(): void
     {
@@ -92,6 +96,8 @@ class Gaffer
     /**
      * Twig debug mode (DebugExtension, strict_variables): on when WordPress's
      * WP_DEBUG is, so it's set per server in wp-config.php, never in theme config.
+     *
+     * @internal
      */
     public static function debug(): bool
     {
@@ -105,6 +111,8 @@ class Gaffer
      * Reads the theme's vendor/composer/installed.php directly: plugins bundle
      * their own copy of Composer\InstalledVersions, and whichever loads first
      * may not know the theme's packages.
+     *
+     * @internal
      */
     public static function version(): string
     {

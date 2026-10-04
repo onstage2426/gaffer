@@ -11,6 +11,8 @@ use Twig\Attribute\AsTwigFunction;
 /**
  * Gaffer's Twig functions. Presentation helpers only: templates get their
  * content from PHP, not by looking it up.
+ *
+ * @internal
  */
 final class Extension
 {

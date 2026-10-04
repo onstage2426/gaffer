@@ -29,8 +29,8 @@ Main methods:
   `array_last()`), `children()` (page order, then title), `terms($taxonomy)`,
   `blocks()`, `meta($key)`, `thumbnail()`, `is_current()`.
 - `Term`: `description()`, `parent()`, `ancestors()`, `children()`, `meta($key)`, `thumbnail()`.
-- `Image`: `attrs(size)`, `src(size)`, `alt()`, `width()`, `height()`,
-  `data(key, size)`, `sizes()`, `file()`. `Attachment`: `url()`, `mime()`.
+- `Image`: `attrs(size)`, `src(size)`, `alt()`, `width()`, `height()` (the
+  full image's). `Attachment`: `url()`, `mime()`.
 - `MenuItem`: `title()`, `link()`, `target()`, `classes()`, `is_current()`,
   `is_current_ancestor()`, `children()`, `has_children()`, `is_external()`.
 

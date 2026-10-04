@@ -205,7 +205,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   agent. Codex (`.agents/skills`) and Grok (`.grok/skills`) paths checked
   against their docs (2026-10); Grok also reads `CLAUDE.md` and
   `.claude/skills`.
-- **Migration book:** 49 entries, for the user's two other sites (still on an
+- **Migration book:** 50 entries, for the user's two other sites (still on an
   older Gaffer). Keep adding; delete when the user says they're updated.
 - **Blueprint state:** clean `doctor --wp` (no warnings). Twig debug follows
   `WP_DEBUG` (on in blueprint's wp-config). `WP_ENVIRONMENT_TYPE` may not be

@@ -10,6 +10,8 @@ use RuntimeException;
  * Folders in storage/ for files that are neither public nor committed (logs,
  * backups): each gets a .htaccess that denies web access (Apache; other servers
  * need their own rule) and a .gitignore that ignores everything in it.
+ *
+ * @internal
  */
 final class Storage
 {

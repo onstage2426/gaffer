@@ -9,6 +9,7 @@ class Config
     /** @var array<string, array<string, mixed>> */
     protected static array $config = [];
 
+    /** @internal */
     public static function load(string $dir): void
     {
         $config = [];
@@ -24,7 +25,11 @@ class Config
         self::$config = $config;
     }
 
-    /** @return array<string, array<string, mixed>> */
+    /**
+     * @return array<string, array<string, mixed>>
+     *
+     * @internal
+     */
     public static function all(): array
     {
         return self::$config;

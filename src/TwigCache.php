@@ -11,6 +11,8 @@ use SplFileInfo;
 
 /**
  * The compiled Twig template cache (storage/cache/views).
+ *
+ * @internal
  */
 final class TwigCache
 {

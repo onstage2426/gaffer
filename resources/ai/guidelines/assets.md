@@ -2,8 +2,11 @@
 
 Sources in `assets/`, built by Vite into `public/` (build output: never edit
 it by hand or reference its files directly). Load them with
-`Vite::tags([...])`, `Vite::url()`, `Vite::path()` or `Vite::css_url()`; the
-names are the entries in `vite.config.js` (`assets/js/app.js`). While the dev
+`Vite::tags([...])` (the `<link>`/`<script>` tags) or `Vite::url()` (one
+entry's URL, e.g. the editor style); the names are the entries in
+`vite.config.js`: the stylesheet is its own entry (`assets/css/app.css`), not
+imported by the JS, so both load as `Vite::tags(['assets/css/app.css',
+'assets/js/app.js'])`. While the dev
 server runs (`public/.vite/hotfile`), only administrators get dev-server
 assets; everyone else gets the build.
 

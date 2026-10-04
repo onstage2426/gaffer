@@ -12,13 +12,48 @@ use WP_Post;
  */
 final class MenuItem
 {
-    /** @var list<MenuItem> */
-    private array $children = [];
+    /** @param list<MenuItem> $children */
+    private function __construct(
+        public readonly WP_Post $wp,
+        private readonly array $children,
+        private readonly bool $current_ancestor,
+    ) {}
 
-    private bool $current_ancestor = false;
+    /**
+     * @internal Menu::location() builds the tree.
+     *
+     * The tree of these nav menu items: items whose parent isn't in the list are top level.
+     *
+     * @param array<WP_Post> $wp_items
+     * @return list<MenuItem> the top-level items
+     */
+    public static function tree(array $wp_items): array
+    {
+        $ids = array_flip(array_map(static fn(WP_Post $wp): int => $wp->ID, $wp_items));
+        $by_parent = [];
+        foreach ($wp_items as $wp) {
+            $parent = (int) ($wp->menu_item_parent ?? 0);
+            $by_parent[isset($ids[$parent]) && $parent !== $wp->ID ? $parent : 0][] = $wp;
+        }
 
-    /** @internal Built by Menu. */
-    public function __construct(public readonly WP_Post $wp) {}
+        return self::build($by_parent, 0);
+    }
+
+    /**
+     * @param array<int, list<WP_Post>> $by_parent
+     * @return list<MenuItem>
+     */
+    private static function build(array $by_parent, int $parent): array
+    {
+        return array_map(static function (WP_Post $wp) use ($by_parent): MenuItem {
+            $children = self::build($by_parent, $wp->ID);
+
+            return new self($wp, $children, array_any(
+                $children,
+                static fn(MenuItem $child): bool => $child->is_current() || $child->is_current_ancestor(),
+            ));
+        }, $by_parent[$parent] ?? []);
+    }
 
     public function id(): int
     {
@@ -88,12 +123,6 @@ final class MenuItem
         return $this->children !== [];
     }
 
-    /** @internal */
-    public function parent_id(): int
-    {
-        return (int) $this->field('menu_item_parent');
-    }
-
     /**
      * Menu fields (title, url, target, classes, menu_item_parent) are added to
      * the WP_Post by wp_setup_nav_menu_item(), so they aren't declared on WP_Post.
@@ -101,17 +130,5 @@ final class MenuItem
     private function field(string $name): mixed
     {
         return $this->wp->{$name} ?? null;
-    }
-
-    /** @internal */
-    public function add_child(MenuItem $item): void
-    {
-        $this->children[] = $item;
-    }
-
-    /** @internal */
-    public function mark_current_ancestor(): void
-    {
-        $this->current_ancestor = true;
     }
 }

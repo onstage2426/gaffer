@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
-class Vite
+/**
+ * The theme's Vite assets: the build in public/ (via its manifest), or the dev
+ * server's while it runs (public/.vite/hotfile), for administrators only.
+ * Every asset is a Vite entry ("assets/js/app.js", "assets/css/app.css").
+ */
+final class Vite
 {
     /** @var array<string, array<string, mixed>>|null */
-    protected static ?array $manifest = null;
-    protected static string $dev_url;
-    protected static ?bool $dev_mode = null;
+    private static ?array $manifest = null;
+    private static string $dev_url;
+    private static ?bool $dev_mode = null;
 
+    /**
+     * The URL of an entry: on a <link> or in JS, and for the editor style (`mce_css`).
+     */
     public static function url(string $asset): string
     {
         if (self::is_dev_asset()) {
@@ -20,12 +28,12 @@ class Vite
         return self::build_url($asset);
     }
 
-    protected static function is_dev_asset(): bool
+    private static function is_dev_asset(): bool
     {
         return self::is_dev_mode() && \current_user_can("manage_options");
     }
 
-    protected static function build_url(string $asset): string
+    private static function build_url(string $asset): string
     {
         $manifest = self::manifest();
 
@@ -36,13 +44,13 @@ class Vite
         return "";
     }
 
-    protected static function dev_url(string $asset): string
+    private static function dev_url(string $asset): string
     {
         self::$dev_url ??= rtrim(file_get_contents(self::hotfile()));
         return self::$dev_url . "/" . $asset;
     }
 
-    public static function path(string $asset): ?string
+    private static function path(string $asset): ?string
     {
         $manifest = self::manifest();
 
@@ -53,13 +61,10 @@ class Vite
         return null;
     }
 
-    public static function ver(string $asset): ?int
-    {
-        $asset_path = self::path($asset);
-        return $asset_path ? filemtime($asset_path) : null;
-    }
-
-    /** @return array<string, array<string, mixed>> */
+    /**
+     * @internal For doctor.
+     * @return array<string, array<string, mixed>>
+     */
     public static function manifest(): array
     {
         if (self::$manifest === null) {
@@ -75,12 +80,13 @@ class Vite
         return self::$manifest;
     }
 
+    /** @internal For the admin bar and doctor. */
     public static function is_dev_mode(): bool
     {
         return self::$dev_mode ??= file_exists(self::hotfile());
     }
 
-    public static function hotfile(): string
+    private static function hotfile(): string
     {
         return Paths::public() . "/.vite/hotfile";
     }
@@ -94,7 +100,12 @@ class Vite
         return $theme_uri . substr($public_path, strlen($theme_dir));
     }
 
-    /** @param list<string> $assets */
+    /**
+     * The tags for these entries: <link> for CSS (also the CSS a JS entry
+     * imports, in the build), <script type="module"> for JS, preload for fonts.
+     *
+     * @param list<string> $assets
+     */
     public static function tags(array $assets): void
     {
         $is_dev     = self::is_dev_asset();
@@ -138,21 +149,6 @@ class Vite
                 HTML;
             }
         }
-    }
-
-    public static function css_url(string $js_asset): string
-    {
-        if (self::is_dev_asset()) {
-            $css_asset = preg_replace('#^assets/js/#', 'assets/css/', substr($js_asset, 0, -3) . '.css');
-            return self::dev_url($css_asset);
-        }
-
-        $manifest = self::manifest();
-        if (!empty($manifest[$js_asset]["css"][0])) {
-            return self::public_url() . "/" . $manifest[$js_asset]["css"][0];
-        }
-
-        return "";
     }
 
     private static function versioned(string $url, string $abs_path): string

@@ -7,6 +7,8 @@ namespace Gaffer\Forms;
 /**
  * Gravity Forms' forms and fields as the theme sees them: what `forms:show` prints
  * and the `gaffer/forms` MCP tool returns.
+ *
+ * @internal
  */
 final class FormReport
 {

@@ -13,6 +13,7 @@ final class Paths
 
     private static ?string $wordpress = null;
 
+    /** @internal */
     public static function set_base(string $dir): void
     {
         self::$base = rtrim($dir, '/');
@@ -31,26 +32,31 @@ final class Paths
         return $path === '' ? self::$base : self::$base . '/' . ltrim($path, '/');
     }
 
+    /** @internal */
     public static function views(): string
     {
         return self::base('views');
     }
 
+    /** @internal */
     public static function includes(): string
     {
         return self::base('inc');
     }
 
+    /** @internal */
     public static function blocks(): string
     {
         return self::base('blocks');
     }
 
+    /** @internal */
     public static function ajax(): string
     {
         return self::base('ajax');
     }
 
+    /** @internal */
     public static function public(): string
     {
         return self::base('public');
@@ -60,6 +66,8 @@ final class Paths
      * Twig namespaces next to views/: `@block/x/x.twig` and `@ajax/X/x.twig`.
      *
      * @return array<string, string>
+     *
+     * @internal
      */
     public static function view_namespaces(): array
     {
@@ -70,6 +78,8 @@ final class Paths
      * Writable runtime files: Twig cache, ACF JSON, logs. storage/ in the theme,
      * unless the server defines GAFFER_STORAGE in wp-config.php (e.g. when the
      * theme directory isn't writable).
+     *
+     * @internal
      */
     public static function storage(): string
     {
@@ -78,6 +88,8 @@ final class Paths
 
     /**
      * Compiled Twig templates (when theme.cache is on).
+     *
+     * @internal
      */
     public static function twig_cache(): string
     {
@@ -87,6 +99,8 @@ final class Paths
     /**
      * The WordPress root (the directory with wp-load.php), found by walking up
      * from the theme. Used by ajax.php and the CLI to load WordPress.
+     *
+     * @internal
      */
     public static function wordpress(): string
     {

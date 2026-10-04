@@ -8,6 +8,8 @@ use Gaffer\Paths;
 
 /**
  * The theme's form templates (views/forms/{name}.twig) and the field names they send.
+ *
+ * @internal
  */
 final class FormTemplates
 {

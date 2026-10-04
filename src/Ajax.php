@@ -9,7 +9,11 @@ use LogicException;
 
 class Ajax
 {
-    /** Actions are {NAMESPACE}\{Name}\{Name} in ajax/{Name}/{Name}.php. */
+    /**
+     * Actions are {NAMESPACE}\{Name}\{Name} in ajax/{Name}/{Name}.php.
+     *
+     * @internal
+     */
     public const string NAMESPACE = 'Theme\\Ajax';
 
     public static function boot(string $dir): void
@@ -27,6 +31,7 @@ class Ajax
         return \get_template_directory_uri() . '/ajax.php?action=' . rawurlencode($action);
     }
 
+    /** @internal */
     public static function handle(string $dir, string $namespace): void
     {
         $method = $_SERVER['REQUEST_METHOD'] ?? '';

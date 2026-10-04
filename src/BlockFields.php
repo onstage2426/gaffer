@@ -12,6 +12,8 @@ use LogicException;
  * its location, and derives every key from the block and field names
  * (field_content-faq__vragen__vraag), so the keys stored in post content never
  * change and nothing is synced through the database.
+ *
+ * @internal
  */
 final class BlockFields
 {

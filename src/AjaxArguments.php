@@ -21,6 +21,8 @@ use Gaffer\Types\Term;
  * Bad or missing input throws InvalidArgumentException (a 400), an ID that
  * doesn't resolve throws AjaxNotFound (a 404), and a run() signature Gaffer
  * can't fill throws LogicException (a bug in the action).
+ *
+ * @internal
  */
 final class AjaxArguments
 {

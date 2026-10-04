@@ -19,7 +19,7 @@ use SplFileInfo;
  */
 final class AssetsCheck implements Check
 {
-    private const string CALL = '/Vite::(?:tags|url|path|ver|css_url)\(\s*(\[[^\]]*\]|([\'"])[^\'"]+\2)/';
+    private const string CALL = '/Vite::(?:tags|url)\(\s*(\[[^\]]*\]|([\'"])[^\'"]+\2)/';
 
     #[\Override]
     public function run(Report $report): void

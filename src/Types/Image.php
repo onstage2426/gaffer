@@ -61,20 +61,15 @@ final class Image extends Attachment
         return is_array($img) ? $img[0] : "";
     }
 
-    public function file(): string
-    {
-        return \get_attached_file($this->wp->ID) ?: '';
-    }
-
     public function width(): int
     {
-        $width = $this->data("width");
+        $width = $this->metadata("width");
         return is_int($width) ? $width : 0;
     }
 
     public function height(): int
     {
-        $height = $this->data("height");
+        $height = $this->metadata("height");
         return is_int($height) ? $height : 0;
     }
 
@@ -83,18 +78,11 @@ final class Image extends Attachment
         return $this->meta("_wp_attachment_image_alt");
     }
 
-    /** @return list<string> generated size names */
-    public function sizes(): array
-    {
-        $sizes = $this->data("sizes");
-        return is_array($sizes) ? array_keys($sizes) : [];
-    }
-
-    public function data(string $data, string $size = "full"): mixed
+    /** A value of the full image's attachment metadata ("width", "height"). */
+    private function metadata(string $key): mixed
     {
         $metadata = $this->meta("_wp_attachment_metadata");
-        $source = "full" === $size ? $metadata : ($metadata["sizes"][$size] ?? null);
 
-        return is_array($source) ? ($source[$data] ?? "") : "";
+        return is_array($metadata) ? ($metadata[$key] ?? null) : null;
     }
 }

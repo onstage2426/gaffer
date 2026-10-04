@@ -11,6 +11,8 @@ use GF_Field;
  * Forms validates, stores the entry, sends notifications and runs its add-on
  * feeds. Forms are found by the slug of their title ("Nieuwsbrief" →
  * nieuwsbrief), fields by their Admin Field Label: no IDs in the theme.
+ *
+ * @internal
  */
 final class GravityForm
 {

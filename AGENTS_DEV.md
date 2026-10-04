@@ -213,10 +213,19 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   thenewbride). For WP-CLI (the MCP server): `wp --require=<file that preloads
   every clone class>` and the theme's `gaffer` entry pointed at the clone
   temporarily (`git checkout gaffer` afterwards).
-- **Next session:** the Fuzor search plugin (the user's own, on their GitHub):
-  blueprint's searchbar and thenewbride's searchbar + shop archive use it.
-  Question to answer first: what belongs in Fuzor itself, in Gaffer (a
-  plugin guideline/skill, gated like Gravity Forms), or in the themes.
+- **Next session:** the Fuzor search plugin (the user's own, on their GitHub;
+  source `~/workspace/fuzor-wp`, branch `0.x`, docs in its `docs/`, no agent
+  notes yet). Both sites have a **copy** in `wp-content/plugins/fuzor-wp`
+  (blueprint 0.2.0, thenewbride 0.1.65), updated with Fuzor's `deploy.sh`
+  (build + rsync, `FUZOR_DEPLOY_TARGET`). Users: blueprint's searchbar
+  (`Theme\Search::form()`); thenewbride's searchbar + shop archive
+  (`Theme\Search`, `assets/js/components/{searchbar,archive}.js`,
+  `config/archive-filters.php` + `components/filters/widget-*.twig`, its
+  `.ai/guidelines/search.md`). First: what belongs in Fuzor itself (the glue
+  both themes duplicate: tokens, the server-rendered first page, term
+  archives, filter widgets), in Gaffer (only a guideline/skill gated on the
+  plugin, like Gravity Forms: Gaffer's 1.0 contract shouldn't depend on
+  Fuzor's API), or in the themes.
 
 ## Open
 

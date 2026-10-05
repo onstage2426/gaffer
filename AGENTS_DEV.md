@@ -141,7 +141,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed), `Log` (`storage/logs/migrate.log`, JSON line per `--run` with outcome). Commands `migrate:block`, `migrate:field`, `migrate:remove-block`, `migrate:remove-field`, `migrate:rollback` (`MigrateCommand` base) |
 | (doctor) | `Checks\GuidelinesCheck` (theme `.ai/` mentions of missing paths, `Theme\` classes, `acf/` blocks), `Checks\AppCheck` (snake_case methods in `app/`, `#[\Override]` exempt), `TemplatesCheck` also flags `.get_*()` calls, `Checks\AssetsCheck` (Vite build present, not older than `assets/`, `Vite::` entries in the manifest; skipped in dev mode), `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
 | MCP | `Mcp\Mcp` (registers the `gaffer/*` abilities and the STDIO-only server `gaffer` when the MCP Adapter plugin is active and the site isn't production; `launch()` = `wp mcp-adapter serve --server=gaffer`, the same on every machine: WP-CLI finds WordPress from the theme dir, and the tools allow any WP-CLI call (no `--user`; whoever runs `wp` can do anything anyway)), `Mcp\Tool` + `Mcp\Tools\*` (block-usage, doctor, render, last-errors, forms; all read-only), `Mcp::served_tools()` (starts `launch()` like an agent and asks `tools/list` over the protocol; `WordPressCheck::mcp` compares it with `Mcp::tools()`, so adapter updates that break the server show up in `doctor --wp`), `Mcp\GafferCli` (runs the theme's `php gaffer` in a child process: `doctor`, `doctor:render --html`). Protocol is the adapter's job: Gaffer only uses `wp_register_ability()` and `create_server()` (phpstan stub `phpstan/mcp-adapter.stub`) |
-| AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines for active plugins (WooCommerce, ACF, Gravity Forms) + the theme's `.ai/guidelines/`, same file name overrides; `doctor` lists overrides as info), `Ai\Reference` (generated from the theme's code: config, Twig, types, ajax, blocks, views, `inc/` hooks by comment), `Ai\McpConfig` (Gaffer's entry in an agent's project MCP config: JSON, or TOML edited as text, only Gaffer's own table), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills (Gaffer's + active plugins' + the theme's `.ai/skills/`), the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear`; both writers always load WordPress (the reference needs the booted theme's `View::share()` data) |
+| AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines for active plugins (WooCommerce, ACF, Gravity Forms, Fuzor, MCP Adapter) + the theme's `.ai/guidelines/`, same file name overrides; `doctor` lists overrides as info), `Ai\Reference` (generated from the theme's code: config, Twig, types, ajax, blocks, views, `inc/` hooks by comment), `Ai\McpConfig` (Gaffer's entry in an agent's project MCP config: JSON, or TOML edited as text, only Gaffer's own table), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills (Gaffer's + active plugins' + the theme's `.ai/skills/`), the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear`; both writers always load WordPress (the reference needs the booted theme's `View::share()` data) |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/{plugin}.md`), `resources/ai/skills/{name}/SKILL.md` (+ `plugins/{plugin}/{name}/`). Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
 | Config stubs | `config/*.php`: the reference list of every config key (all commented out). New keys go here; `config:show` and `doctor` read them |
 | Tests | `tests/` (+ `tests/stubs/wordpress.php` for the few WP functions unit tests touch) |
@@ -213,19 +213,16 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   thenewbride). For WP-CLI (the MCP server): `wp --require=<file that preloads
   every clone class>` and the theme's `gaffer` entry pointed at the clone
   temporarily (`git checkout gaffer` afterwards).
-- **Next session:** the Fuzor search plugin (the user's own, on their GitHub;
-  source `~/workspace/fuzor-wp`, branch `0.x`, docs in its `docs/`, no agent
-  notes yet). Both sites have a **copy** in `wp-content/plugins/fuzor-wp`
-  (blueprint 0.2.0, thenewbride 0.1.65), updated with Fuzor's `deploy.sh`
-  (build + rsync, `FUZOR_DEPLOY_TARGET`). Users: blueprint's searchbar
-  (`Theme\Search::form()`); thenewbride's searchbar + shop archive
-  (`Theme\Search`, `assets/js/components/{searchbar,archive}.js`,
-  `config/archive-filters.php` + `components/filters/widget-*.twig`, its
-  `.ai/guidelines/search.md`). First: what belongs in Fuzor itself (the glue
-  both themes duplicate: tokens, the server-rendered first page, term
-  archives, filter widgets), in Gaffer (only a guideline/skill gated on the
-  plugin, like Gravity Forms: Gaffer's 1.0 contract shouldn't depend on
-  Fuzor's API), or in the themes.
+- **Fuzor** (the user's search plugin, `~/workspace/fuzor-wp`, branch `0.x`,
+  docs in its `docs/`; both sites have a copy in `wp-content/plugins/fuzor-wp`,
+  updated with its `deploy.sh` or a release): split settled 2026-10-05. Glue
+  both themes duplicated moved into Fuzor 0.2.1 (`fuzor_archive()`,
+  `fuzor_visibility_filter()`, `initial` + pagination in
+  `createAlpineSearch()`, `createFacetSearch()`); Gaffer only has the
+  guideline `plugins/fuzor.md`, on when `fuzor_archive()` exists. Gaffer's
+  API never mentions Fuzor. Site parts (index fields, filter widgets, markup)
+  stay in the themes: blueprint's searchbar, thenewbride's searchbar + shop
+  archive (its `.ai/guidelines/search.md`).
 
 ## Open
 

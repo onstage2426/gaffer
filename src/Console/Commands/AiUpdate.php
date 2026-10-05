@@ -41,6 +41,7 @@ final class AiUpdate extends Command
             'woocommerce' => function_exists('WC'),
             'acf' => class_exists('ACF'),
             'gravityforms' => class_exists('GFAPI'),
+            'fuzor' => function_exists('fuzor_archive'),
             'mcp-adapter' => Mcp::enabled(),
         ]));
 

@@ -10,9 +10,12 @@ Gaffer theme.
   `if (function_exists('fuzor_register_index'))` (`inc/` loads before `init`,
   which registration needs). The right-hand side of the builder's `taxonomy`
   map (`'pa_kleur' => 'color'`) is the field name everywhere else:
-  `filter[color]`, facets, the JS fields. Filter values are term **names**,
-  never slugs. Only facet fields sort: alphabetical sorting needs
-  `sortable: ['title']` and sorts on `title_sort`.
+  `filter[color]`, facets, the JS fields. Filter values, facet keys, URLs and
+  theme maps (icons per term, the SEO allowlist) use term **slugs**; the names
+  come with every response as `labels`: `opt.label` in option lists,
+  `hit.labels.brand` on a hit, `label` on a facet-typeahead hit. Never show a
+  slug. Only facet fields sort: alphabetical sorting needs `sortable: ['title']`
+  and sorts on `title_sort`.
 - **PHP prepares it, in one class** (`Theme\Search`): a searchbar's endpoint
   and token (`fuzor_generate_token()`), an archive's `fuzor_archive()` (token,
   the results for this URL, facet tokens; on a term archive the token is locked

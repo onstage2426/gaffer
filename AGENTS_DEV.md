@@ -13,8 +13,8 @@ code. This repository is a sandbox for now (a fresh repo comes before launch).
 
 - **Work directly on `0.x`.** No feature branches. Commit messages are just
   `general`. Never add a Co-Authored-By or any other AI attribution line.
-- **The user pushes.** This machine has no GitHub credentials. Commit, then
-  say what's unpushed.
+- **Pushing works from here** (`git push origin 0.x`, cached credentials).
+  Push when a Gaffer change is done and verified, then update the sites.
 - **Public API:** `API.md` (what themes may rely on) and `api.txt` (its
   signatures, checked by `tests/ApiTest.php`). Anything else is `@internal`.
   Changing the public API is a decision: deprecate first (`#[\Deprecated]`,
@@ -26,7 +26,7 @@ code. This repository is a sandbox for now (a fresh repo comes before launch).
   fix types instead of ignoring them).
 - **Integration test site:** the blueprint theme,
   `~/docker/appdata/websites/blueprint/wp-content/themes/blueprint`
-  (see its own CLAUDE.md). After the user has pushed:
+  (see its own CLAUDE.md). After pushing:
   `composer update onstage2426/gaffer` there, adapt blueprint, then
   `php gaffer twig:lint` and `php gaffer doctor --wp` (renders ~28 URLs with
   strict variables). Never edit a theme's `vendor/`.
@@ -36,9 +36,10 @@ code. This repository is a sandbox for now (a fresh repo comes before launch).
 - **Every change a site must react to goes in the changelog** (`CHANGELOG.md`,
   starts with the fresh repository): what changed, a `grep` to find affected
   code, before/after, what to check afterwards. After 1.0 that's a
-  deprecation, not a break (`API.md`). A breaking change in Gaffer usually breaks blueprint until it's updated, so
-  Gaffer and blueprint changes land in one cycle: Gaffer commit → user
-  pushes → update blueprint immediately.
+  deprecation, not a break (`API.md`). A breaking change in Gaffer usually
+  breaks blueprint until it's updated, so Gaffer and blueprint changes land
+  in one cycle: Gaffer commit → push → update blueprint (and thenewbride)
+  immediately.
 
 ### Testing against real WordPress before pushing
 

@@ -21,7 +21,11 @@ Gaffer theme.
   the results for this URL, facet tokens; on a term archive the token is locked
   to that term). Never call `fuzor_*` from Twig, even though Fuzor's own docs
   do: templates don't look anything up. Every token hides products with
-  `fuzor_visibility_filter('search')` or `('catalog')`.
+  `fuzor_visibility_filter('search')` or `('catalog')`. With customer groups
+  (the builder's `audience`), `Theme\Search` also adds
+  `fuzor_audience_filter($groups)` and a `ttl` for a group's token; such pages
+  must not be served from a page cache to other visitors. Show "refresh the
+  page" for both `invalid_token` and `token_expired`.
 - **Server first, the browser enhances:** an archive is a
   `<form method="get">` with the token in a hidden input. Twig renders the
   first page from `results`, and the same `results` go to the Alpine component

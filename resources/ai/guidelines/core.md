@@ -65,7 +65,9 @@ php gaffer twig:lint      # every template compiles; unknown functions/filters f
 php gaffer doctor --wp    # conventions + renders every page with strict variables
 ```
 
-Fix what they report (exit code 1 = errors). The theme's own `.ai/guidelines/`
+Fix what they report (exit code 1 = errors), including Gaffer API that is
+deprecated (`doctor` names the replacement; PHP also raises a deprecation
+notice when it's called). The theme's own `.ai/guidelines/`
 and `.ai/skills/` are hand-written: keep them to conventions and decisions
 (the generated reference already lists what exists), and update them when
 you rename or delete what they mention (`doctor` reports stale mentions). WordPress's `WP_DEBUG` turns on

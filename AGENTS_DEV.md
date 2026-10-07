@@ -17,9 +17,11 @@ code. This repository is a sandbox for now (a fresh repo comes before launch).
   say what's unpushed.
 - **Public API:** `API.md` (what themes may rely on) and `api.txt` (its
   signatures, checked by `tests/ApiTest.php`). Anything else is `@internal`.
-  Changing the public API is a decision: deprecate first, and update the
-  snapshot on purpose (`UPDATE_API=1 composer test`).
-- **Before every commit:** `composer test` (PHPUnit) and
+  Changing the public API is a decision: deprecate first (`#[\Deprecated]`,
+  see "Deprecating" in `API.md`), and update the snapshot on purpose
+  (`UPDATE_API=1 composer test`).
+- **Before every commit:** (CI runs the same: `.github/workflows/ci.yml`)
+  `composer test` (PHPUnit) and
   `vendor/bin/phpstan analyse --memory-limit=1G` (level 6, **no baseline**:
   fix types instead of ignoring them).
 - **Integration test site:** the blueprint theme,
@@ -139,7 +141,7 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 | Twig | `Twig\Extension`: `config()`, `ajax_url()` only |
 | CLI | `Console\Console`, `Command`, `WordPress` (CLI loader), `Report`, `ConfigStubs`, `ThemeFiles`, `Templates` (template names, includes and variables from Twig's parse tree; used by `twig:lint`, `TemplatesCheck`, the reference), `Commands\*`, `Checks\*` (doctor) |
 | Content migrations | `Console\Migrate\`: `BlockData` (pure: rewrites ACF block data, unit-tested), `ContentStore` (find/read/write posts + block widgets straight in the DB), `Migration` (plan → refuse on any problem → backup → one transaction that re-checks every row → read back), `Backup` (`storage/backups/migrate/`, checksummed), `Log` (`storage/logs/migrate.log`, JSON line per `--run` with outcome). Commands `migrate:block`, `migrate:field`, `migrate:remove-block`, `migrate:remove-field`, `migrate:rollback` (`MigrateCommand` base) |
-| (doctor) | `Checks\GuidelinesCheck` (theme `.ai/` mentions of missing paths, `Theme\` classes, `acf/` blocks), `Checks\AppCheck` (snake_case methods in `app/`, `#[\Override]` exempt), `TemplatesCheck` also flags `.get_*()` calls, `Checks\AssetsCheck` (Vite build present, not older than `assets/`, `Vite::` entries in the manifest; skipped in dev mode), `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
+| (doctor) | `Checks\DeprecationsCheck` (theme uses of `#[\Deprecated]` members of the public API, read by `Console\PublicApi` (also what `ApiTest` snapshots); Gaffer's Twig functions' `deprecationInfo`, caught while parsing templates), `Checks\GuidelinesCheck` (theme `.ai/` mentions of missing paths, `Theme\` classes, `acf/` blocks), `Checks\AppCheck` (snake_case methods in `app/`, `#[\Override]` exempt), `TemplatesCheck` also flags `.get_*()` calls, `Checks\AssetsCheck` (Vite build present, not older than `assets/`, `Vite::` entries in the manifest; skipped in dev mode), `Checks\IncCheck` (functions/classes declared in `inc/`), `MarkupCheck` (HTML in PHP), `TemplatesCheck` |
 | MCP | `Mcp\Mcp` (registers the `gaffer/*` abilities and the STDIO-only server `gaffer` when the MCP Adapter plugin is active and the site isn't production; `launch()` = `wp mcp-adapter serve --server=gaffer`, the same on every machine: WP-CLI finds WordPress from the theme dir, and the tools allow any WP-CLI call (no `--user`; whoever runs `wp` can do anything anyway)), `Mcp\Tool` + `Mcp\Tools\*` (block-usage, doctor, render, last-errors, forms; all read-only), `Mcp::served_tools()` (starts `launch()` like an agent and asks `tools/list` over the protocol; `WordPressCheck::mcp` compares it with `Mcp::tools()`, so adapter updates that break the server show up in `doctor --wp`), `Mcp\GafferCli` (runs the theme's `php gaffer` in a child process: `doctor`, `doctor:render --html`). Protocol is the adapter's job: Gaffer only uses `wp_register_ability()` and `create_server()` (phpstan stub `phpstan/mcp-adapter.stub`) |
 | AI ("boost") | `Ai\Agent` (adapters: claude, codex, grok; paths as in Laravel Boost), `Ai\Guidelines` (Gaffer's `resources/ai/guidelines/` + plugin guidelines for active plugins (WooCommerce, ACF, Gravity Forms, Fuzor, MCP Adapter) + the theme's `.ai/guidelines/`, same file name overrides; `doctor` lists overrides as info), `Ai\Reference` (generated from the theme's code: config, Twig, types, ajax, blocks, views, `inc/` hooks by comment), `Ai\McpConfig` (Gaffer's entry in an agent's project MCP config: JSON, or TOML edited as text, only Gaffer's own table), `Ai\Installer` (writes `AGENTS.md`, agent files like `CLAUDE.md` = `@AGENTS.md`, skills (Gaffer's + active plugins' + the theme's `.ai/skills/`), the `.gitignore` block; removes deselected agents' output; `clear()`). Commands `ai:install`, `ai:update`, `ai:clear`; both writers always load WordPress (the reference needs the booted theme's `View::share()` data) |
 | AI sources | `resources/ai/guidelines/*.md` (+ `plugins/{plugin}.md`), `resources/ai/skills/{name}/SKILL.md` (+ `plugins/{plugin}/{name}/`). Edit these when Gaffer's behavior changes, then `ai:update` in blueprint |
@@ -188,8 +190,13 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 - **Pushed through `e76f7ca`.** Both sites are on it: blueprint (clean
   `doctor --wp`) and thenewbride (one accepted warning, see Open).
-- **Stability round done** (no release yet: repository, CI, changelog and the
-  1.0 tag wait until there is one): `API.md` + `api.txt` (snapshot test),
+- **Before 1.0 (2026-10-07):** deprecations (`#[\Deprecated]` + `doctor`),
+  `symfony/console` a runtime requirement (the CLI works with `--no-dev`),
+  CI (`.github/workflows/ci.yml`: validate, PHPUnit, phpstan), `API.md` final
+  (supported versions: always the latest; MCP and Fuzor experimental).
+  Left: the user migrates the third site (another server), the fresh
+  repository, `CHANGELOG.md`, the tag.
+- **Stability round done**: `API.md` + `api.txt` (snapshot test),
   `@internal` on everything else; `Vite` trimmed to `tags()`/`url()` with CSS
   as its own Vite entry; `MenuItem` built only by `Menu`; `doctor` compares ACF
   groups by content, follows computed includes, warns about Twig functions

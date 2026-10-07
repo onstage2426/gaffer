@@ -1,8 +1,8 @@
-# Gaffer's public API (draft)
+# Gaffer's public API
 
 What themes may rely on. From 1.0 on, nothing listed here changes in a minor
-or patch release: it's deprecated first (`@deprecated`, a deprecation notice,
-`doctor` warns) and removed in the next major. Everything else in `src/` is
+or patch release: it's deprecated first (see Deprecating) and removed in the
+next major. Everything else in `src/` is
 internal (`@internal`) and may change in any release.
 
 `api.txt` is this list as signatures, generated from the code: `composer test`
@@ -11,7 +11,17 @@ deliberate change, `UPDATE_API=1 composer test` updates it, and the diff shows
 in review.
 
 Not covered: the generated AI guidelines and skills (`AGENTS.md`, `.claude/`,
-...; they're regenerated with every update) and the wording of messages.
+...; they're regenerated with every update), the wording of messages, and
+what's **experimental** until the plugin it builds on reaches 1.0: the MCP
+server (`gaffer`, its tools and inputs; MCP Adapter) and the Fuzor
+integration (its guideline).
+
+## Supported versions
+
+Gaffer aims for the latest: PHP (`composer.json`), WordPress, ACF Pro,
+WooCommerce, Gravity Forms and Twig 3. Sites keep Gaffer and their plugins
+updated; a minor release may start relying on what the current plugin
+versions offer. No minimum plugin versions are declared or checked.
 
 ## Code
 
@@ -80,7 +90,6 @@ without a code change:
   `doctor` may add **warnings** in any release, **errors** only in a major.
 - **Storage formats:** `storage/backups/migrate/*.json` (rollback reads old
   backups) and `storage/logs/migrate.log`.
-- **MCP:** server name `gaffer`, tool names and inputs (tools may be added).
 
 ## Internal
 
@@ -92,16 +101,22 @@ without a code change:
 `Config::load/all`, `Paths::*` except `base`, `View::env/set_env/shared_keys`,
 `Vite::*` except `tags`/`url`, `MenuItem::tree`, `Pagination::from_counts`, `FormState::__construct`.
 
-## Decided (2026-10-04), applied in step A2
+## Deprecating
 
-1. Remove `Vite::ver()`, `hotfile()`, `path()` and `Image::data()`, `file()`,
-   `sizes()`; keep `Vite::url()`.
-2. The stylesheet is its own Vite entry; `Vite::url()` gives the editor
-   style; `css_url()` is removed (it guessed the CSS path in dev mode).
-3. `Menu` builds the tree; `MenuItem` gets a private constructor and loses
-   `add_child()`, `mark_current_ancestor()`, `parent_id()`.
-4. `Pagination::from_counts()` is internal.
-5. `meta()` keeps returning `mixed`.
-6. `View::env()` is internal.
-7. Only `Post` and `Term` are for theme subclasses. (`Attachment` can't be
-   final: `Image` extends it.)
+- **Methods and constants:** PHP's own attribute,
+  `#[\Deprecated(message: 'use fresh()', since: '1.3')]`. PHP raises
+  `E_USER_DEPRECATED` on every call (shown/logged like any notice under
+  `WP_DEBUG`), `doctor` warns about theme code that uses it (PHP and Twig;
+  instance methods by name), and `api.txt` marks it ` #[Deprecated]`. The old
+  member keeps working, usually by calling the new one.
+- **Twig functions and filters:** `deprecationInfo: new
+  DeprecatedCallableInfo('onstage2426/gaffer', '1.3', 'fresh')` on the
+  `#[AsTwigFunction]`/`#[AsTwigFilter]`. Twig triggers it while compiling;
+  `doctor` reports it with the template and line.
+- **Classes:** PHP can't mark a class: deprecate its factories and methods.
+- **Data and conventions** (config keys, layout, request keys, CLI options):
+  keep accepting the old form and add a `doctor` warning naming the new one.
+  An error (like `ConfigCheck::MOVED`) only comes with the major that
+  removes it.
+- Every deprecation goes in the changelog of its release; the next major
+  removes them all.

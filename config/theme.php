@@ -28,7 +28,7 @@ return [
     */
 
     // 'twig_extensions' => [
-    //     \App\Twig\CustomExtension::class,
+    //     \Theme\Twig\CustomExtension::class,
     // ],
 
     /*
@@ -42,7 +42,7 @@ return [
     */
 
     // 'types' => [
-    //     'product' => \App\Types\Product::class,
+    //     'product' => \Theme\Types\Product::class,
     // ],
 
     /*
@@ -56,7 +56,7 @@ return [
     */
 
     // 'terms' => [
-    //     'product_cat' => \App\Types\ProductCategory::class,
+    //     'product_cat' => \Theme\Types\ProductCategory::class,
     // ],
 
 ];

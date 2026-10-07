@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      - run: composer validate --strict
+      - run: composer install --no-interaction --no-progress --prefer-dist
+
+      # PHPUnit, including the public API snapshot (tests/ApiTest.php vs api.txt)
+      - run: composer test
+      - run: composer phpstan -- --no-progress

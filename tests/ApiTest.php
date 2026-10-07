@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Gaffer\Tests;
 
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
+use Gaffer\Console\PublicApi;
 use ReflectionClass;
+use ReflectionClassConstant;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -17,8 +16,9 @@ use ReflectionType;
  * The public API (API.md) as signatures, compared with the committed api.txt:
  * a change to the public API fails here until api.txt is updated on purpose
  * (`UPDATE_API=1 composer test`), so it shows up as a diff in review.
- * Public = classes outside Console\, Ai\ and Mcp\ (plus Console\Console, the CLI
- * entry point), minus everything marked @internal.
+ * Public = Console\PublicApi: classes outside Console\, Ai\ and Mcp\ (plus
+ * Console\Console, the CLI entry point), minus everything marked @internal.
+ * Members marked #[\Deprecated] end in " #[Deprecated]".
  */
 final class ApiTest extends TestCase
 {
@@ -43,11 +43,8 @@ final class ApiTest extends TestCase
     public static function api(): string
     {
         $lines = [];
-        foreach (self::classes() as $class) {
+        foreach (PublicApi::classes() as $class) {
             $r = new ReflectionClass($class);
-            if (self::internal($r->getDocComment())) {
-                continue;
-            }
 
             $kind = match (true) {
                 $r->isInterface() => 'interface',
@@ -58,50 +55,34 @@ final class ApiTest extends TestCase
             $lines[] = "{$kind} {$class}" . ($parent ? " extends {$parent->getName()}" : '');
 
             foreach ($r->getReflectionConstants() as $constant) {
-                if ($constant->isPublic() && $constant->getDeclaringClass()->getName() === $class && !self::internal($constant->getDocComment())) {
-                    $lines[] = "  const {$constant->getName()} = " . var_export($constant->getValue(), true);
+                if ($constant->isPublic() && $constant->getDeclaringClass()->getName() === $class && !PublicApi::internal($constant->getDocComment())) {
+                    $lines[] = "  const {$constant->getName()} = " . var_export($constant->getValue(), true) . self::deprecated($constant);
                 }
             }
             foreach ($r->getProperties() as $property) {
-                if ($property->isPublic() && $property->getDeclaringClass()->getName() === $class && !self::internal($property->getDocComment())) {
+                if ($property->isPublic() && $property->getDeclaringClass()->getName() === $class && !PublicApi::internal($property->getDocComment())) {
                     $lines[] = '  ' . ($property->isReadOnly() ? 'readonly ' : '') . self::type($property->getType()) . " \${$property->getName()}";
                 }
             }
             $methods = array_filter(
                 $r->getMethods(ReflectionMethod::IS_PUBLIC),
-                static fn(ReflectionMethod $m): bool => $m->getDeclaringClass()->getName() === $class && !self::internal($m->getDocComment()),
+                static fn(ReflectionMethod $m): bool => $m->getDeclaringClass()->getName() === $class && !PublicApi::internal($m->getDocComment()),
             );
             usort($methods, static fn(ReflectionMethod $a, ReflectionMethod $b): int => $a->getName() <=> $b->getName());
             foreach ($methods as $m) {
                 $lines[] = '  ' . ($m->isFinal() ? 'final ' : '') . ($m->isStatic() ? 'static ' : '') . $m->getName()
                     . '(' . implode(', ', array_map(self::parameter(...), $m->getParameters())) . ')'
-                    . ($m->hasReturnType() ? ': ' . self::type($m->getReturnType()) : '');
+                    . ($m->hasReturnType() ? ': ' . self::type($m->getReturnType()) : '')
+                    . self::deprecated($m);
             }
         }
 
         return implode("\n", $lines) . "\n";
     }
 
-    /** @return list<class-string> */
-    private static function classes(): array
+    private static function deprecated(ReflectionMethod|ReflectionClassConstant $member): string
     {
-        $src = dirname(__DIR__) . '/src';
-        $classes = [];
-        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS)) as $file) {
-            $class = 'Gaffer\\' . str_replace(['/', '.php'], ['\\', ''], substr($file->getPathname(), strlen($src) + 1));
-            if (!preg_match('/^Gaffer\\\\(Console|Ai|Mcp)\\\\/', $class) || $class === 'Gaffer\\Console\\Console') {
-                /** @var class-string $class */
-                $classes[] = $class;
-            }
-        }
-        sort($classes);
-
-        return $classes;
-    }
-
-    private static function internal(string|false $doc): bool
-    {
-        return $doc !== false && str_contains($doc, '@internal');
+        return $member->getAttributes(\Deprecated::class) === [] ? '' : ' #[Deprecated]';
     }
 
     private static function parameter(ReflectionParameter $p): string

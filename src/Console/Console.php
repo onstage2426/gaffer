@@ -30,11 +30,6 @@ final class Console
      */
     public static function boot(string $dir): int
     {
-        if (!class_exists(Application::class)) {
-            fwrite(STDERR, "The Gaffer CLI needs symfony/console: composer require --dev symfony/console\n");
-            return 1;
-        }
-
         Gaffer::configure($dir);
 
         $app = new Application('Gaffer', Gaffer::version());

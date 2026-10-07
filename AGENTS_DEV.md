@@ -213,16 +213,13 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   thenewbride). For WP-CLI (the MCP server): `wp --require=<file that preloads
   every clone class>` and the theme's `gaffer` entry pointed at the clone
   temporarily (`git checkout gaffer` afterwards).
-- **Fuzor** (the user's search plugin, `~/workspace/fuzor-wp`, branch `0.x`,
-  docs in its `docs/`; both sites have a copy in `wp-content/plugins/fuzor-wp`,
-  updated with its `deploy.sh` or a release): split settled 2026-10-05. Glue
-  both themes duplicated moved into Fuzor 0.2.1 (`fuzor_archive()`,
-  `fuzor_visibility_filter()`, `initial` + pagination in
-  `createAlpineSearch()`, `createFacetSearch()`); Gaffer only has the
-  guideline `plugins/fuzor.md`, on when `fuzor_archive()` exists. Gaffer's
-  API never mentions Fuzor. Site parts (index fields, filter widgets, markup)
-  stay in the themes: blueprint's searchbar, thenewbride's searchbar + shop
-  archive (its `.ai/guidelines/search.md`).
+- **Fuzor** (the user's search plugin, `~/workspace/fuzor-wp`, branch `0.x`; its own
+  `CLAUDE.md` and `plan.md` hold the details and roadmap): glue themes shared moved into Fuzor
+  (`fuzor_archive()`, `fuzor_visibility_filter()`, Alpine helpers); Gaffer only has the guideline
+  `resources/ai/guidelines/plugins/fuzor.md` (on when `fuzor_archive()` exists) — update it when
+  Fuzor's theme-facing API changes. As of 2026-10-07 Fuzor's phases A–D are done (tests, slugs +
+  labels, multisite, WPML per-language indexes); next is E (customer groups). Test network for
+  it: `~/docker/appdata/websites/blueprint-base` (multisite + WPML, free to change).
 
 ## Open
 

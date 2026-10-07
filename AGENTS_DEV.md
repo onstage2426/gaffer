@@ -33,19 +33,12 @@ code. This repository is a sandbox for now (a fresh repo comes before launch).
 - **Breaking changes are fine** (the user prefers breaking now over carrying
   a messy design). When a design needs a workaround, look for the root cause
   and propose fixing that instead, even if it breaks things.
-- **Every change a site must react to gets a migration book entry** (below).
-  A breaking change in Gaffer usually breaks blueprint until it's updated, so
+- **Every change a site must react to goes in the changelog** (`CHANGELOG.md`,
+  starts with the fresh repository): what changed, a `grep` to find affected
+  code, before/after, what to check afterwards. After 1.0 that's a
+  deprecation, not a break (`API.md`). A breaking change in Gaffer usually breaks blueprint until it's updated, so
   Gaffer and blueprint changes land in one cycle: Gaffer commit → user
   pushes → update blueprint immediately.
-
-### Migration book (`MIGRATION.md`)
-
-Two other sites run an older Gaffer. Until the user says they're updated,
-`MIGRATION.md` in this repo collects step-by-step instructions an AI agent
-applies when updating those sites: what changed, a `grep` to find affected
-code, before/after examples, what to check afterwards. It is **local only**
-(listed in `.git/info/exclude`): never commit or push it. When the user says
-the sites are updated, delete it (and the exclude line).
 
 ### Testing against real WordPress before pushing
 
@@ -209,9 +202,8 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   `.ai/guidelines/` (site, search, design, frontend). The user keeps the
   production deploy list (menu locations, ACF syncs/options, Gravity Forms
   Admin Field Labels, the content migrations).
-- **The other old site** still runs an older Gaffer: the migration book
-  (`MIGRATION.md`, 50 entries, local only; its "How to run it" section is what
-  thenewbride taught) is for it. Delete the book when it's updated.
+- **The other old site** (another server) is migrated there by its own
+  agent, from a copy of the old migration book (deleted here 2026-10-07).
 - **MCP:** the MCP Adapter plugin (0.7.x) is on both dev sites, never on
   production; `doctor --wp` checks the server over the protocol. Claude Code
   in Zed uses it via the generated `.mcp.json`.

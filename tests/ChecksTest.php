@@ -179,17 +179,15 @@ final class ChecksTest extends TestCase
         self::assertSame([['relativeLink', 4], ['helperThing', 5]], AppCheck::camel_case_methods($code));
     }
 
-    public function test_keys_that_moved_out_of_config(): void
+    public function test_unknown_config_keys(): void
     {
-        file_put_contents("{$this->theme}/config/theme.php", "<?php return ['debug' => true, 'cache' => false];");
-        file_put_contents("{$this->theme}/config/console.php", "<?php return ['url' => 'https://x.test'];");
+        file_put_contents("{$this->theme}/config/theme.php", "<?php return ['cahce' => true, 'cache' => false];");
         Config::load("{$this->theme}/config");
 
         $messages = $this->messages(new ConfigCheck());
 
-        self::assertStringContainsString('theme.debug is no longer read', $messages);
-        self::assertStringContainsString('console.url is no longer read', $messages);
-        self::assertStringNotContainsString('theme.cache', $messages);
+        self::assertStringContainsString('Unknown key theme.cahce', $messages);
+        self::assertStringNotContainsString('theme.cache ', $messages);
     }
 
     public function test_env_file(): void

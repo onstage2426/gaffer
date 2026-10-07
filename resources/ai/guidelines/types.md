@@ -2,8 +2,8 @@
 
 Types wrap a WordPress object. Raw fields are on `wp` (`$post->wp->post_name`,
 `post.wp.post_name`, `term.wp.slug`); methods exist only where they add
-something (filters, URLs, related objects). Every type has `id()`, `title()`
-and `link()`.
+something (filters, URLs, related objects). `Post`, `Term` and `MenuItem`
+have `id()`, `title()` and `link()`.
 
 Text methods (`title()`, `excerpt()`) return plain text with WordPress's
 entities decoded: print them escaped (`{{ post.title() }}`), never `|raw`. HTML

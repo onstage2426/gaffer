@@ -17,31 +17,18 @@ use Gaffer\Types\Term;
  */
 final class ConfigCheck implements Check
 {
-    /** Keys that moved out of theme config: where they went. */
-    private const array MOVED = [
-        'theme.debug' => 'Twig debug follows WP_DEBUG now (wp-config.php, per server). Delete the key.',
-        'console.url' => 'The CLI reads SITE_URL from the theme\'s .env now (per checkout, not committed). Move the value there and delete the key.',
-    ];
-
     #[\Override]
     public function run(Report $report): void
     {
         $this->autoload($report);
         $stubs = ConfigStubs::keys();
 
-        if (Config::get('path') !== null) {
-            $report->error('config', 'config/path.php is no longer used: the theme layout is fixed', Paths::base('config/path.php'), null,
-                'Delete it. Move any folder it pointed elsewhere back to views/, inc/, blocks/, ajax/ or public/; storage can be moved with GAFFER_STORAGE in wp-config.php.');
-        }
-
         foreach (Config::all() as $file => $values) {
-            if (!isset($stubs[$file]) || $file === 'path') {
+            if (!isset($stubs[$file])) {
                 continue; // the theme's own config file
             }
             foreach (array_keys($values) as $key) {
-                if (isset(self::MOVED["{$file}.{$key}"])) {
-                    $report->error('config', "{$file}.{$key} is no longer read", Paths::base("config/{$file}.php"), null, self::MOVED["{$file}.{$key}"]);
-                } elseif (!in_array($key, $stubs[$file], true)) {
+                if (!in_array($key, $stubs[$file], true)) {
                     $hint = ConfigStubs::did_you_mean($key, $stubs[$file]);
                     $report->error('config', "Unknown key {$file}.{$key} (Gaffer ignores it)", Paths::base("config/{$file}.php"), null,
                         $hint !== null ? "Did you mean {$file}.{$hint}?" : null);

@@ -53,13 +53,6 @@ final class AjaxCheck implements Check
                 $report->error('ajax', 'METHOD is "' . $class::METHOD . '"; the dispatcher only accepts GET or POST', $file);
             }
 
-            // Pre-constants actions: these properties are ignored now.
-            foreach (['method' => 'METHOD', 'shortinit' => 'SHORTINIT'] as $property => $constant) {
-                if (property_exists($class, $property)) {
-                    $report->error('ajax', "\${$property} is ignored; declare `public const {$constant} = ...` instead", $file);
-                }
-            }
-
             $instance = new $class();
             $problem = method_exists($instance, 'run')
                 ? AjaxArguments::problem(AjaxArguments::run_method($instance))

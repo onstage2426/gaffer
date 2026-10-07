@@ -183,31 +183,17 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   the caller of a `_doing_it_wrong` notice with a `doing_it_wrong_run` hook
   that prints `debug_backtrace()` (`wp --require=<file>`).
 
-## Current state (2026-10-04)
+## Current state (2026-10-07)
 
-- **Pushed through `e76f7ca`.** Both sites are on it: blueprint (clean
-  `doctor --wp`) and thenewbride (one accepted warning, see Open).
-- **Before 1.0 (2026-10-07):** deprecations (`#[\Deprecated]` + `doctor`),
-  `symfony/console` a runtime requirement (the CLI works with `--no-dev`),
-  CI (`.github/workflows/ci.yml`: validate, PHPUnit, phpstan), `API.md` final
-  (supported versions: always the latest; MCP and Fuzor experimental).
-  Left: the user migrates the third site (another server), the fresh
-  repository, `CHANGELOG.md`, the tag.
-- **Stability round done**: `API.md` + `api.txt` (snapshot test),
-  `@internal` on everything else; `Vite` trimmed to `tags()`/`url()` with CSS
-  as its own Vite entry; `MenuItem` built only by `Menu`; `doctor` compares ACF
-  groups by content, follows computed includes, warns about Twig functions
-  that look content up; `migrate:fields` replaced the block-fields script.
-- **thenewbride** (`~/docker/appdata/websites/thenewbride`, theme
-  `wp-content/themes/thenewbride`, local git repo, dev site,
-  `WP_ENVIRONMENT_TYPE=development`): migrated from Gaffer `9a9f0e5` in six
-  rounds (2026-10-04). Backups of the starting state in
-  `~/backups/thenewbride-2026-10-03/`. Its own guidelines are in
-  `.ai/guidelines/` (site, search, design, frontend). The user keeps the
-  production deploy list (menu locations, ACF syncs/options, Gravity Forms
-  Admin Field Labels, the content migrations).
-- **The other old site** (another server) is migrated there by its own
-  agent, from a copy of the old migration book (deleted here 2026-10-07).
+- **Sites:** blueprint, thenewbride (`~/docker/appdata/websites/thenewbride`,
+  theme `wp-content/themes/thenewbride`, dev site, its own `.ai/guidelines/`)
+  and a live site on another server (no WooCommerce, forms or Fuzor; WP
+  Rocket) all run current Gaffer with a clean `doctor --wp`.
+- **Before 1.0, done:** public API (`API.md`, `api.txt` snapshot, `@internal`
+  on the rest), deprecations (`#[\Deprecated]` + `doctor`), `symfony/console`
+  a runtime requirement, CI (`.github/workflows/ci.yml`), supported versions
+  (always the latest; MCP and Fuzor experimental). **Left:** the fresh
+  repository, `CHANGELOG.md`, a README, the tag.
 - **MCP:** the MCP Adapter plugin (0.7.x) is on both dev sites, never on
   production; `doctor --wp` checks the server over the protocol. Claude Code
   in Zed uses it via the generated `.mcp.json`.
@@ -226,12 +212,10 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Open
 
-- **From migrating thenewbride (2026-10-04), for the stability pass:**
-  - Standalone documents (thenewbride's print page, with its own `<html>`):
-    `doctor` warns "HTML in PHP"; accepted there (its `site.md` says why).
-    Decided: no convention for one case. Revisit when a second site needs a
-    standalone document (print view, PDF export, email preview).
-
+- **Standalone documents** (thenewbride's print page, with its own `<html>`):
+  `doctor` warns "HTML in PHP"; accepted there (its `site.md` says why).
+  Decided: no convention for one case. Revisit when a second site needs a
+  standalone document (print view, PDF export, email preview).
 - **Forms, maybe later:** file uploads, multi-page forms, Gravity Forms'
   combined fields (Name, Address), conditional logic. Decided: Turnstile is
   the only captcha (no reCAPTCHA provider); Gravity Forms is always the

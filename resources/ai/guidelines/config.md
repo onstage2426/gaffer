@@ -16,5 +16,4 @@ Each `config/{file}.php` returns an array; the file name is the top-level key:
     `GAFFER_STORAGE`, secrets like `TURNSTILE_SECRET_KEY`;
   - developer settings go in the theme's `.env` (not committed; keep
     `.env.example` up to date): `SITE_URL` for the CLI and Vite's dev server.
-- `config:show` and `doctor` flag unknown keys (with a did-you-mean) and keys
-  that moved out of config (`theme.debug`, `console.url`).
+- `config:show` and `doctor` flag unknown keys (with a did-you-mean).

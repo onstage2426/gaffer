@@ -20,7 +20,8 @@ use WP_Block_Type_Registry;
 
 /**
  * What WordPress actually has: registered blocks, block names and ACF field keys
- * used in content, ACF JSON vs database, menu locations, the image fallback.
+ * used in content, ACF JSON vs database, ACF field types, WooCommerce template
+ * names, form templates vs Gravity Forms, menu locations, the MCP server.
  * Needs WordPress loaded.
  */
 final class WordPressCheck implements Check

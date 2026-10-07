@@ -7,7 +7,7 @@ namespace Gaffer;
 final class Config
 {
     /** @var array<string, array<string, mixed>> */
-    protected static array $config = [];
+    private static array $config = [];
 
     /** @internal */
     public static function load(string $dir): void
@@ -19,7 +19,7 @@ final class Config
             if (!is_array($data)) {
                 continue;
             }
-            $config[basename($file, ".php")] = $data;
+            $config[basename($file, '.php')] = $data;
         }
 
         self::$config = $config;
@@ -37,7 +37,7 @@ final class Config
 
     public static function get(string $key): mixed
     {
-        $parts = explode(".", $key);
+        $parts = explode('.', $key);
         $value = self::$config[array_shift($parts)] ?? null;
 
         foreach ($parts as $part) {

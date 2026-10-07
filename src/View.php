@@ -62,7 +62,7 @@ final class View
     }
 
     /**
-     * @internal Called by the Twig bootstrapper.
+     * @internal Called by Gaffer::twig().
      */
     public static function set_env(Environment $env): void
     {

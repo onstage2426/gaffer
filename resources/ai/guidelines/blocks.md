@@ -100,6 +100,8 @@ php gaffer migrate:fields [acf/content-faq]                        # after movin
 php gaffer migrate:rollback [backup]                               # undo (no argument: list backups)
 ```
 
+- Moving fields out of the ACF UI/JSON: `migrate:fields` first. Renames and
+  removals refuse while a block still stores data under its old field keys.
 - Dry run by default; `--run` writes. It refuses (and writes nothing) when
   anything looks off: the code isn't changed yet, content WordPress doesn't
   reproduce exactly, data in an unexpected shape, a name that already exists,

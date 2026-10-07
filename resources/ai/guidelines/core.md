@@ -55,6 +55,10 @@ site-specific code.
 - `get_term_children()` returns `WP_Error` for an unknown taxonomy: check `is_array()`.
 - `wp_redirect()`'s third parameter is the redirect source label, not a boolean.
 - `get_post(0)` returns the current post; Gaffer's factories return `null` for `0`.
+- Template files (`page.php`, `woocommerce/*.php`, ...) run with WordPress's
+  globals in scope: never assign `$post`, `$posts`, `$wp_query` or `$wp` there
+  (nor `$product` in WooCommerce templates). Use another name (`$page`);
+  `doctor` warns.
 
 ### Check your work
 

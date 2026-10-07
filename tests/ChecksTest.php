@@ -14,10 +14,12 @@ use Gaffer\Console\Checks\ConfigCheck;
 use Gaffer\Console\Checks\GuidelinesCheck;
 use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
+use Gaffer\Console\Checks\TemplateGlobalsCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
 use Gaffer\Console\Checks\WordPressCheck;
 use Gaffer\Console\Env;
 use Gaffer\Console\Report;
+use Gaffer\Console\WordPress;
 use Gaffer\Gaffer;
 use Gaffer\Paths;
 use Gaffer\View;
@@ -276,6 +278,53 @@ final class ChecksTest extends TestCase
             [['product', 'Product::from', 4], ['faq', 'get_field', 8]],
             AppCheck::twig_lookups($code),
         );
+    }
+
+    public function test_wordpress_globals_assigned_in_template_files(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            global $product;
+            $post = Post::current();
+            $page = Post::current();
+            foreach ($items as $wp_query) {}
+            foreach ($items as $i => $posts) {}
+            $product ??= null;
+            $post->title();
+            if ($post == null) {}
+            $render = function () use ($x): void { $post = 1; };
+            function helper(): void { $post = 2; }
+            $html = "{$post}";
+            PHP;
+
+        self::assertSame(
+            [['post', 3], ['wp_query', 5], ['posts', 6], ['product', 7]],
+            TemplateGlobalsCheck::assignments($code),
+        );
+    }
+
+    public function test_only_template_files_are_checked(): void
+    {
+        mkdir("{$this->theme}/woocommerce", 0755, true);
+        file_put_contents("{$this->theme}/page.php", "<?php\n\$post = 1;\n");
+        file_put_contents("{$this->theme}/functions.php", "<?php\n\$post = 1;\n");
+        file_put_contents("{$this->theme}/woocommerce/single-product.php", "<?php\nglobal \$product;\n\$product = 1;\n");
+
+        $messages = $this->messages(new TemplateGlobalsCheck());
+
+        self::assertSame(2, substr_count($messages, 'a WordPress global'));
+        self::assertStringContainsString('$product', $messages);
+    }
+
+    public function test_the_cli_skips_page_cache_drop_ins(): void
+    {
+        $before = $GLOBALS['wp_filter'] ?? null;
+        WordPress::skip_page_cache();
+        $hook = $GLOBALS['wp_filter']['enable_loading_advanced_cache_dropin'][10][0] ?? null;
+        $GLOBALS['wp_filter'] = $before;
+
+        self::assertIsCallable($hook['function'] ?? null);
+        self::assertFalse(($hook['function'])(true));
     }
 
     private function messages(Check $check): string

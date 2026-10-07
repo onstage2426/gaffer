@@ -74,9 +74,10 @@ final class MenuItem
         return (string) $this->field('url');
     }
 
-    public function target(): string
+    /** The link target ("_blank"), null when the item has none. */
+    public function target(): ?string
     {
-        return (string) $this->field('target') ?: '_self';
+        return (string) $this->field('target') ?: null;
     }
 
     /** @return list<string> */

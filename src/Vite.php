@@ -7,58 +7,63 @@ namespace Gaffer;
 /**
  * The theme's Vite assets: the build in public/ (via its manifest), or the dev
  * server's while it runs (public/.vite/hotfile), for administrators only.
- * Every asset is a Vite entry ("assets/js/app.js", "assets/css/app.css").
+ * Every asset is a Vite entry ("assets/js/app.js", "assets/css/app.css"). Built
+ * file names carry a content hash, so URLs need no version parameter.
  */
 final class Vite
 {
     /** @var array<string, array<string, mixed>>|null */
     private static ?array $manifest = null;
-    private static string $dev_url;
+
     private static ?bool $dev_mode = null;
 
+    private static ?string $dev_server = null;
+
+    /** @var array<string, true> URLs tags() already output, so a second call doesn't repeat them */
+    private static array $printed = [];
+
     /**
-     * The URL of an entry: on a <link> or in JS, and for the editor style (`mce_css`).
+     * The URL of an entry (the editor style for `mce_css`, a script in JS), null
+     * when the build doesn't have it.
      */
-    public static function url(string $asset): string
+    public static function url(string $asset): ?string
     {
         if (self::is_dev_asset()) {
-            return self::dev_url($asset);
+            return self::dev_server() . '/' . $asset;
+        }
+        $file = self::manifest()[$asset]['file'] ?? null;
+
+        return is_string($file) ? self::public_url() . '/' . $file : null;
+    }
+
+    /**
+     * The tags for these entries: <link rel="stylesheet"> for CSS,
+     * <script type="module"> for JS (plus, in the build, the CSS it imports and a
+     * modulepreload for each chunk it imports), a font preload for woff2. With
+     * the dev server, its client script first (hot reload).
+     *
+     * @param list<string> $assets
+     */
+    public static function tags(array $assets): void
+    {
+        $dev = self::is_dev_asset();
+        if ($dev) {
+            self::output('script', self::dev_server() . '/@vite/client');
         }
 
-        return self::build_url($asset);
-    }
+        foreach ($assets as $asset) {
+            $url = self::url($asset);
+            if ($url === null) {
+                continue;
+            }
 
-    private static function is_dev_asset(): bool
-    {
-        return self::is_dev_mode() && \current_user_can('manage_options');
-    }
-
-    private static function build_url(string $asset): string
-    {
-        $manifest = self::manifest();
-
-        if (isset($manifest[$asset])) {
-            return self::public_url() . '/' . $manifest[$asset]['file'];
+            match (pathinfo($asset, PATHINFO_EXTENSION)) {
+                'css' => self::output('style', $url),
+                'js' => $dev ? self::output('script', $url) : self::output_built_script($asset, $url),
+                'woff2' => self::output('font', $url),
+                default => null,
+            };
         }
-
-        return '';
-    }
-
-    private static function dev_url(string $asset): string
-    {
-        self::$dev_url ??= rtrim(file_get_contents(self::hotfile()));
-        return self::$dev_url . '/' . $asset;
-    }
-
-    private static function path(string $asset): ?string
-    {
-        $manifest = self::manifest();
-
-        if (isset($manifest[$asset])) {
-            return Paths::public() . '/' . $manifest[$asset]['file'];
-        }
-
-        return null;
     }
 
     /**
@@ -68,13 +73,10 @@ final class Vite
     public static function manifest(): array
     {
         if (self::$manifest === null) {
-            $public_path = Paths::public();
-            $file_path = "$public_path/.vite/manifest.json";
-
-            $contents = file_exists($file_path) ? file_get_contents($file_path) : null;
-            self::$manifest = $contents !== null && json_validate($contents)
-                ? json_decode($contents, true)
-                : [];
+            $file = Paths::public() . '/.vite/manifest.json';
+            $contents = is_file($file) ? (string) file_get_contents($file) : '';
+            $manifest = json_validate($contents) ? json_decode($contents, true) : null;
+            self::$manifest = is_array($manifest) ? $manifest : [];
         }
 
         return self::$manifest;
@@ -83,7 +85,72 @@ final class Vite
     /** @internal For the admin bar and doctor. */
     public static function is_dev_mode(): bool
     {
-        return self::$dev_mode ??= file_exists(self::hotfile());
+        return self::$dev_mode ??= is_file(self::hotfile());
+    }
+
+    private static function is_dev_asset(): bool
+    {
+        return self::is_dev_mode() && \current_user_can('manage_options');
+    }
+
+    /**
+     * A built JS entry: the CSS it and its imported chunks pull in, a
+     * modulepreload per imported chunk, then the script.
+     */
+    private static function output_built_script(string $asset, string $url): void
+    {
+        $chunks = self::imported_chunks($asset);
+        foreach ([$asset, ...$chunks] as $key) {
+            foreach ((array) (self::manifest()[$key]['css'] ?? []) as $css) {
+                self::output('style', self::public_url() . '/' . $css);
+            }
+        }
+        foreach ($chunks as $key) {
+            self::output('modulepreload', self::public_url() . '/' . self::manifest()[$key]['file']);
+        }
+        self::output('script', $url);
+    }
+
+    /**
+     * The manifest keys of the chunks an entry imports statically, recursively.
+     *
+     * @param array<string, true> $seen
+     * @return list<string>
+     */
+    private static function imported_chunks(string $key, array &$seen = []): array
+    {
+        $chunks = [];
+        foreach ((array) (self::manifest()[$key]['imports'] ?? []) as $import) {
+            if (is_string($import) && !isset($seen[$import]) && isset(self::manifest()[$import]['file'])) {
+                $seen[$import] = true;
+                $chunks[] = $import;
+                array_push($chunks, ...self::imported_chunks($import, $seen));
+            }
+        }
+
+        return $chunks;
+    }
+
+    /** @param 'script'|'style'|'modulepreload'|'font' $kind */
+    private static function output(string $kind, string $url): void
+    {
+        if (isset(self::$printed[$url])) {
+            return;
+        }
+        self::$printed[$url] = true;
+
+        $href = \esc_url($url);
+        echo match ($kind) {
+            'script' => "<script type=\"module\" src=\"{$href}\"></script>\n",
+            'style' => "<link rel=\"stylesheet\" href=\"{$href}\">\n",
+            'modulepreload' => "<link rel=\"modulepreload\" href=\"{$href}\">\n",
+            'font' => "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"{$href}\" crossorigin>\n",
+        };
+    }
+
+    private static function dev_server(): string
+    {
+        return self::$dev_server ??= rtrim((string) file_get_contents(self::hotfile()));
     }
 
     private static function hotfile(): string
@@ -93,67 +160,6 @@ final class Vite
 
     private static function public_url(): string
     {
-        $public_path = Paths::public();
-        $theme_dir = \get_template_directory();
-        $theme_uri = \get_template_directory_uri();
-
-        return $theme_uri . substr($public_path, strlen($theme_dir));
-    }
-
-    /**
-     * The tags for these entries: <link> for CSS (also the CSS a JS entry
-     * imports, in the build), <script type="module"> for JS, preload for fonts.
-     *
-     * @param list<string> $assets
-     */
-    public static function tags(array $assets): void
-    {
-        $is_dev = self::is_dev_asset();
-        $manifest = self::manifest();
-        $public_path = Paths::public();
-
-        foreach ($assets as $asset) {
-            $file_url = self::url($asset);
-            if ($file_url === '') {
-                continue;
-            }
-
-            $file_ext = pathinfo((string) $asset, PATHINFO_EXTENSION);
-            $abs_path = $is_dev ? null : self::path($asset);
-            $versioned = $abs_path ? self::versioned($file_url, $abs_path) : $file_url;
-
-            if ($file_ext === 'css') {
-                echo <<<HTML
-                <link rel="preload" as="style" href="{$versioned}" />
-                <link rel="stylesheet" href="{$versioned}" />
-                HTML;
-            } elseif ($file_ext === 'js') {
-                if (!$is_dev && !empty($manifest[$asset]['css'])) {
-                    foreach ($manifest[$asset]['css'] as $css_file) {
-                        $css_url = self::public_url() . "/$css_file";
-                        $css_versioned = self::versioned($css_url, "$public_path/$css_file");
-                        echo <<<HTML
-                        <link rel="preload" as="style" href="{$css_versioned}" />
-                        <link rel="stylesheet" href="{$css_versioned}" />
-                        HTML;
-                    }
-                }
-
-                echo <<<HTML
-                <link rel="modulepreload" href="{$versioned}" />
-                <script type="module" src="{$versioned}"></script>
-                HTML;
-            } elseif ($file_ext === 'woff2') {
-                echo <<<HTML
-                <link rel="preload" as="font" type="font/woff2" href="{$versioned}" crossorigin />
-                HTML;
-            }
-        }
-    }
-
-    private static function versioned(string $url, string $abs_path): string
-    {
-        $ver = file_exists($abs_path) ? filemtime($abs_path) : null;
-        return $ver !== null ? "{$url}?ver={$ver}" : $url;
+        return \get_template_directory_uri() . substr(Paths::public(), strlen(\get_template_directory()));
     }
 }

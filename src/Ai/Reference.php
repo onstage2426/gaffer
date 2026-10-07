@@ -106,25 +106,14 @@ final class Reference
 
     private static function ajax(): string
     {
-        $dir = Paths::ajax();
-        $files = glob("{$dir}/*/*.php") ?: [];
-        $is_action = static fn(string $f): bool => basename($f, '.php') === basename(dirname($f));
-        usort($files, static fn(string $a, string $b): int => $is_action($a) <=> $is_action($b));
-
         $lines = ["### Ajax actions\n"];
-        foreach ($files as $file) {
+        foreach (Ajax::actions() as $name) {
             try {
-                require_once $file;
+                $class = Ajax::action_class($name);
             } catch (Throwable) {
                 continue;
             }
-            if (!$is_action($file)) {
-                continue;
-            }
-
-            $name = basename($file, '.php');
-            $class = Ajax::NAMESPACE . "\\{$name}\\{$name}";
-            if (!is_subclass_of($class, AjaxAction::class) || !method_exists($class, 'run')) {
+            if ($class === null || !method_exists($class, 'run')) {
                 continue;
             }
 
@@ -161,7 +150,7 @@ final class Reference
         $ignore = [...$shared, ...array_keys(View::env()->getGlobals())];
         $lines = ["### Views\n"];
         if ($shared !== []) {
-            $lines[] = 'Shared with every template (`View::share()`): `' . implode('`, `', $shared) . '`.';
+            $lines[] = 'Shared with the page templates (`View::share()`, not ajax): `' . implode('`, `', $shared) . '`.';
             $lines[] = '';
         }
 

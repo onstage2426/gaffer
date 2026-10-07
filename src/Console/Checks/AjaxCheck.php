@@ -14,38 +14,25 @@ use Throwable;
 /**
  * Each ajax/{Name}/{Name}.php defines Theme\Ajax\{Name}\{Name} extending AjaxAction,
  * with a GET or POST METHOD and a run() Gaffer can fill, and warns about SHORTINIT
- * actions using things SHORTINIT doesn't load. Loads the files the same way the
- * dispatcher does.
+ * actions using things SHORTINIT doesn't load. Loads them the way the dispatcher
+ * does (Ajax::action_class()).
  */
 final class AjaxCheck implements Check
 {
     #[\Override]
     public function run(Report $report): void
     {
-        $dir = Paths::ajax();
-        $namespace = Ajax::NAMESPACE;
-        $files = glob("{$dir}/*/*.php") ?: [];
-
-        // Support files (traits, helpers) first, like Ajax::handle().
-        usort($files, static fn(string $a, string $b): int => self::is_action($a) <=> self::is_action($b));
-
-        foreach ($files as $file) {
+        foreach (Ajax::actions() as $action) {
+            $file = Paths::ajax() . "/{$action}/{$action}.php";
             try {
-                require_once $file;
+                $class = Ajax::action_class($action);
             } catch (Throwable $e) {
-                $report->error('ajax', 'Fails to load: ' . $e->getMessage(), $file, $e->getLine());
+                $report->error('ajax', 'Fails to load: ' . $e->getMessage(), $e->getFile(), $e->getLine());
                 continue;
             }
 
-            if (!self::is_action($file)) {
-                continue;
-            }
-
-            $action = basename($file, '.php');
-            $class = "{$namespace}\\{$action}\\{$action}";
-
-            if (!is_subclass_of($class, AjaxAction::class)) {
-                $report->error('ajax', "{$class} is not defined here or doesn't extend " . AjaxAction::class, $file);
+            if ($class === null) {
+                $report->error('ajax', Ajax::NAMESPACE . "\\{$action}\\{$action} is not defined here or doesn't extend " . AjaxAction::class, $file);
                 continue;
             }
 
@@ -116,10 +103,5 @@ final class AjaxCheck implements Check
                 }
             }
         }
-    }
-
-    private static function is_action(string $file): bool
-    {
-        return basename($file, '.php') === basename(dirname($file));
     }
 }

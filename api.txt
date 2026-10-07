@@ -25,24 +25,25 @@ final class Gaffer\Forms\FormState
   checked(string $field, ?string $choice = NULL): bool
   error(string $field): ?string
   value(string $field): string
+final class Gaffer\Forms\Spam
+  static log(string $form, string $reason): void
 final class Gaffer\Gaffer
   static boot(string $dir): void
 final class Gaffer\Paths
   static base(string $path = ''): string
 final class Gaffer\Turnstile
   static enabled(): bool
-  static log_spam(string $form, string $reason): void
-  static site_key(): string
+  static site_key(): ?string
   static verify(string $token): bool
 class Gaffer\Types\Attachment extends Gaffer\Types\Post
   mime(): string
-  url(): string
+  url(): ?string
 final class Gaffer\Types\Image extends Gaffer\Types\Attachment
   alt(): string
   attrs(string $size = 'full'): Twig\Markup
-  height(): int
-  src(string $size = 'full'): string
-  width(): int
+  height(): ?int
+  src(string $size = 'full'): ?string
+  width(): ?int
 final class Gaffer\Types\Menu
   items(): array
   static location(string $location): ?Gaffer\Types\Menu
@@ -56,7 +57,7 @@ final class Gaffer\Types\MenuItem
   is_current_ancestor(): bool
   is_external(): bool
   link(): string
-  target(): string
+  target(): ?string
   title(): string
 final class Gaffer\Types\Pagination
   readonly int $page
@@ -113,4 +114,4 @@ final class Gaffer\View
   static share(string $key, mixed $value): void
 final class Gaffer\Vite
   static tags(array $assets): void
-  static url(string $asset): string
+  static url(string $asset): ?string

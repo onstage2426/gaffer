@@ -39,7 +39,7 @@ versions offer. No minimum plugin versions are declared or checked.
 - `Acf::field_array(string $selector, ?int $post_id = null)`, `Acf::option_array(string $selector)`
 - `Ajax::url(string $action)`
 - `Turnstile::enabled()`, `Turnstile::site_key()`, `Turnstile::verify(string $token)`,
-  `Turnstile::log_spam(string $form, string $reason)` (for a theme's own forms)
+  `Forms\Spam::log(string $form, string $reason)` (for a theme's own forms)
 
 **Types** (`Gaffer\Types\`): factories and methods as they are now, except
 the questions below.

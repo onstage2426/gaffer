@@ -10,9 +10,10 @@ namespace Gaffer\Types;
  */
 class Attachment extends Post
 {
-    public function url(): string
+    /** The file's URL, null when WordPress can't give one. */
+    public function url(): ?string
     {
-        return \wp_get_attachment_url($this->wp->ID) ?: '';
+        return \wp_get_attachment_url($this->wp->ID) ?: null;
     }
 
     public function mime(): string

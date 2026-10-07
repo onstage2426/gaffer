@@ -4,65 +4,49 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
+/**
+ * Cloudflare Turnstile: the site key from theme config (public), the secret
+ * from the TURNSTILE_SECRET_KEY constant in wp-config.php (per server).
+ */
 final class Turnstile
 {
-    public static function site_key(): string
+    private const string SECRET = 'TURNSTILE_SECRET_KEY';
+
+    /** The public site key, null when none is configured. */
+    public static function site_key(): ?string
     {
-        return (string) (Config::get('turnstile.site_key') ?? '');
+        $key = Config::get('turnstile.site_key');
+
+        return is_string($key) && $key !== '' ? $key : null;
     }
 
+    /** A site key and a secret: forms check tokens. */
     public static function enabled(): bool
     {
-        return self::site_key() !== '' && self::secret() !== null;
+        return self::site_key() !== null && defined(self::SECRET);
     }
 
     public static function verify(string $token): bool
     {
-        $secret = self::secret();
-
-        if ($secret === null) {
-            error_log('Gaffer Turnstile: secret constant ' . self::secret_constant() . ' is not defined');
+        if (!defined(self::SECRET)) {
+            error_log('Gaffer Turnstile: ' . self::SECRET . ' is not defined in wp-config.php');
             return false;
         }
 
-        $response = wp_remote_post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+        $response = \wp_remote_post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
             'body' => [
-                'secret'   => $secret,
+                'secret' => (string) constant(self::SECRET),
                 'response' => $token,
                 'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
             ],
         ]);
 
-        if (is_wp_error($response)) {
-            return true; // CF unreachable — fail open rather than block legitimate users.
+        if (\is_wp_error($response)) {
+            return true; // Cloudflare unreachable: let people through rather than block every form
         }
 
-        $data = json_decode(wp_remote_retrieve_body($response), true);
+        $data = json_decode(\wp_remote_retrieve_body($response), true);
 
-        return !empty($data['success']);
-    }
-
-    private static function secret(): ?string
-    {
-        $constant = self::secret_constant();
-        return defined($constant) ? (string) constant($constant) : null;
-    }
-
-    private static function secret_constant(): string
-    {
-        return (string) (Config::get('turnstile.secret_constant') ?? 'TURNSTILE_SECRET_KEY');
-    }
-
-    /**
-     * Logs a rejected submission to storage/logs/spam.log: time, form and
-     * reason only. No names, emails or IPs (personal data).
-     */
-    public static function log_spam(string $form, string $reason): void
-    {
-        file_put_contents(
-            Storage::private_dir('logs') . '/spam.log',
-            sprintf("[%s] %s %s\n", wp_date('Y-m-d H:i:s'), $form, $reason),
-            FILE_APPEND | LOCK_EX,
-        );
+        return is_array($data) && ($data['success'] ?? false) === true;
     }
 }

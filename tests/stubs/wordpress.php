@@ -38,3 +38,31 @@ if (!class_exists('GF_Field')) {
         public $choices = null;
     }
 }
+
+if (!function_exists('current_user_can')) {
+    function current_user_can(string $capability): bool
+    {
+        return $GLOBALS['gaffer_test_admin'] ?? false;
+    }
+}
+
+if (!function_exists('esc_url')) {
+    function esc_url(string $url): string
+    {
+        return $url;
+    }
+}
+
+if (!function_exists('get_template_directory')) {
+    function get_template_directory(): string
+    {
+        return \Gaffer\Paths::base();
+    }
+}
+
+if (!function_exists('get_template_directory_uri')) {
+    function get_template_directory_uri(): string
+    {
+        return 'https://site.test/wp-content/themes/t';
+    }
+}

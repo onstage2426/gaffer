@@ -13,6 +13,8 @@ use WP_Term;
  */
 class Term
 {
+    use Wraps;
+
     private ?string $link = null;
 
     protected function __construct(public readonly WP_Term $wp) {}
@@ -23,9 +25,7 @@ class Term
      */
     public static function from(int $id): ?static
     {
-        $wp = $id > 0 ? \get_term($id) : null;
-
-        return $wp instanceof WP_Term ? self::narrow(self::wrap($wp)) : null;
+        return $id > 0 ? self::wrap_one(\get_term($id)) : null;
     }
 
     /**
@@ -33,9 +33,7 @@ class Term
      */
     public static function current(): ?static
     {
-        $wp = \get_queried_object();
-
-        return $wp instanceof WP_Term ? self::narrow(self::wrap($wp)) : null;
+        return self::wrap_one(\get_queried_object());
     }
 
     /**
@@ -49,15 +47,7 @@ class Term
         unset($args['fields']);
         $terms = \get_terms($args);
 
-        $wrapped = [];
-        foreach (is_array($terms) ? $terms : [] as $wp) {
-            $term = $wp instanceof WP_Term ? self::narrow(self::wrap($wp)) : null;
-            if ($term !== null) {
-                $wrapped[] = $term;
-            }
-        }
-
-        return $wrapped;
+        return self::wrap_all(is_array($terms) ? $terms : []);
     }
 
     public function id(): int
@@ -122,15 +112,13 @@ class Term
         return Image::from((int) $this->meta('thumbnail_id'));
     }
 
-    private static function wrap(WP_Term $wp): Term
+    private static function wrapped(mixed $wp): ?Term
     {
+        if (!$wp instanceof WP_Term) {
+            return null;
+        }
         $class = (Config::get('theme.terms') ?? [])[$wp->taxonomy] ?? Term::class;
 
         return new $class($wp);
-    }
-
-    private static function narrow(Term $term): ?static
-    {
-        return $term instanceof static ? $term : null;
     }
 }

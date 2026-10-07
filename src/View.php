@@ -21,6 +21,8 @@ final class View
     /** @var array<string, mixed> */
     private static array $resolved = [];
 
+    private static bool $use_shared = true;
+
     /** @param array<string, mixed> $data */
     public static function render(string $template, array $data = []): void
     {
@@ -30,12 +32,14 @@ final class View
     /** @param array<string, mixed> $data */
     public static function fetch(string $template, array $data = []): string
     {
-        return self::env()->render($template, [...self::shared(), ...$data]);
+        return self::env()->render($template, self::$use_shared ? [...self::shared(), ...$data] : $data);
     }
 
     /**
-     * Data available to every template. Closures are resolved once, on the first
-     * render that needs shared data, then cached for the request.
+     * Data for the page's templates (the ones render()/fetch() get, not their
+     * isolated includes). Closures are resolved once, on the first render, then
+     * cached for the request. Ajax actions don't get it: they answer with a
+     * fragment, so a menu isn't looked up for nothing.
      */
     public static function share(string $key, mixed $value): void
     {
@@ -53,6 +57,16 @@ final class View
     public static function shared_keys(): array
     {
         return array_keys(self::$shared);
+    }
+
+    /**
+     * Renders from here on get only the data they're given (Ajax::handle()).
+     *
+     * @internal
+     */
+    public static function without_shared(): void
+    {
+        self::$use_shared = false;
     }
 
     /** @internal */

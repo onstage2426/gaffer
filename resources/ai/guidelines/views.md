@@ -40,7 +40,7 @@
   ```php
   View::render('product/page.twig', ['post' => Post::current()]); // echoes
   $html = View::fetch('components/card.twig', $data);              // returns
-  View::share('nav_primary', fn() => Menu::location('primary'));   // every template; closures run once per request
+  View::share('nav_primary', fn() => Menu::location('primary'));   // page templates (not ajax); closures run once per request
   ```
 - **Templates get all content from PHP.** There are no lookup functions in
   Twig (`get_post()` etc. don't exist). Gaffer's Twig functions are `config(key)`

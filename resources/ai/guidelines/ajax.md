@@ -1,9 +1,12 @@
 ## Ajax actions (`ajax/`)
 
 One directory per action: `ajax/{Name}/{Name}.php` with class
-`Theme\Ajax\{Name}\{Name}` (the namespace is fixed). Other PHP files in an
-action's directory (traits, helpers) are loaded automatically before the
-action; shared code lives in the directory of the action that owns it.
+`Theme\Ajax\{Name}\{Name}` (the namespace is fixed). Other classes and traits
+in an action's directory are autoloaded by the same rule
+(`Theme\Ajax\CartDrawer\CartDrawerRenderer` → `ajax/CartDrawer/CartDrawerRenderer.php`);
+shared code lives in the directory of the action that owns it. Actions answer
+with a fragment, so their templates don't get `View::share()` data: pass what
+they show.
 
 ```php
 namespace Theme\Ajax\CartAdd;

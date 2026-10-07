@@ -8,7 +8,8 @@ entry's URL, e.g. the editor style); the names are the entries in
 imported by the JS, so both load as `Vite::tags(['assets/css/app.css',
 'assets/js/app.js'])`. While the dev
 server runs (`public/.vite/hotfile`), only administrators get dev-server
-assets; everyone else gets the build.
+assets (`Vite::tags()` adds Vite's client for hot reload); everyone else gets
+the build.
 
 - **Layout:** `assets/js/` holds the entries (`app.js`, `app-admin.js`) and
   shared setup; `assets/js/components/` one module per front-end component

@@ -54,23 +54,26 @@ final class Image extends Attachment
         return new Markup($html, 'UTF-8');
     }
 
-    public function src(string $size = 'full'): string
+    /** The URL of this size, null when WordPress can't give one. */
+    public function src(string $size = 'full'): ?string
     {
         $img = \wp_get_attachment_image_src($this->wp->ID, $size);
 
-        return is_array($img) ? $img[0] : '';
+        return is_array($img) ? $img[0] : null;
     }
 
-    public function width(): int
+    /** The full image's width, null when its metadata doesn't have one. */
+    public function width(): ?int
     {
         $width = $this->metadata('width');
-        return is_int($width) ? $width : 0;
+        return is_int($width) ? $width : null;
     }
 
-    public function height(): int
+    /** The full image's height, null when its metadata doesn't have one. */
+    public function height(): ?int
     {
         $height = $this->metadata('height');
-        return is_int($height) ? $height : 0;
+        return is_int($height) ? $height : null;
     }
 
     public function alt(): string

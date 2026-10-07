@@ -17,6 +17,8 @@ use WP_Post;
  */
 class Post
 {
+    use Wraps;
+
     private ?string $link = null;
 
     protected function __construct(public readonly WP_Post $wp) {}
@@ -27,9 +29,7 @@ class Post
      */
     public static function from(int $id): ?static
     {
-        $wp = $id > 0 ? \get_post($id) : null;
-
-        return $wp instanceof WP_Post ? self::narrow(self::wrap($wp)) : null;
+        return $id > 0 ? self::wrap_one(\get_post($id)) : null;
     }
 
     /**
@@ -37,9 +37,7 @@ class Post
      */
     public static function current(): ?static
     {
-        $wp = \get_post();
-
-        return $wp instanceof WP_Post ? self::narrow(self::wrap($wp)) : null;
+        return self::wrap_one(\get_post());
     }
 
     /**
@@ -177,35 +175,16 @@ class Post
     /**
      * The class for a WP_Post: attachments by mime type, everything else via theme.types.
      */
-    private static function wrap(WP_Post $wp): Post
+    private static function wrapped(mixed $wp): ?Post
     {
+        if (!$wp instanceof WP_Post) {
+            return null;
+        }
         $class = match (true) {
             $wp->post_type === 'attachment' => str_starts_with($wp->post_mime_type, 'image/') ? Image::class : Attachment::class,
             default => (Config::get('theme.types') ?? [])[$wp->post_type] ?? Post::class,
         };
 
         return new $class($wp);
-    }
-
-    /**
-     * @param array<mixed> $posts
-     * @return list<static>
-     */
-    private static function wrap_all(array $posts): array
-    {
-        $wrapped = [];
-        foreach ($posts as $wp) {
-            $post = $wp instanceof WP_Post ? self::narrow(self::wrap($wp)) : null;
-            if ($post !== null) {
-                $wrapped[] = $post;
-            }
-        }
-
-        return $wrapped;
-    }
-
-    private static function narrow(Post $post): ?static
-    {
-        return $post instanceof static ? $post : null;
     }
 }

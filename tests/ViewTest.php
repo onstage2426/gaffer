@@ -18,6 +18,7 @@ final class ViewTest extends TestCase
         self::reset(View::class, 'env', null);
         self::reset(View::class, 'shared', []);
         self::reset(View::class, 'resolved', []);
+        self::reset(View::class, 'use_shared', true);
     }
 
     public function test_env_throws_before_boot(): void
@@ -34,6 +35,20 @@ final class ViewTest extends TestCase
         View::share('b', 'shared-b');
 
         self::assertSame('shared-local', View::fetch('t.twig', ['b' => 'local']));
+    }
+
+    public function test_ajax_renders_without_shared_data(): void
+    {
+        View::set_env(new Environment(new ArrayLoader(['t.twig' => '{{ a ?? "none" }}'])));
+        $calls = 0;
+        View::share('a', function () use (&$calls): string {
+            $calls++;
+            return 'shared';
+        });
+        View::without_shared();
+
+        self::assertSame('none', View::fetch('t.twig'));
+        self::assertSame(0, $calls);
     }
 
     public function test_shared_closures_run_once_per_request(): void

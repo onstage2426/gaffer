@@ -10,17 +10,20 @@ use LogicException;
 final class Ajax
 {
     /**
-     * Actions are {NAMESPACE}\{Name}\{Name} in ajax/{Name}/{Name}.php.
+     * Actions are {NAMESPACE}\{Name}\{Name} in ajax/{Name}/{Name}.php; other
+     * classes and traits in an action's directory are autoloaded the same way.
      *
      * @internal
      */
     public const string NAMESPACE = 'Theme\\Ajax';
 
+    private static bool $autoload = false;
+
     public static function boot(string $dir): void
     {
         Gaffer::configure($dir);
 
-        self::handle(Paths::ajax(), self::NAMESPACE);
+        self::handle();
     }
 
     /**
@@ -31,8 +34,43 @@ final class Ajax
         return \get_template_directory_uri() . '/ajax.php?action=' . rawurlencode($action);
     }
 
+    /**
+     * The actions in ajax/: every ajax/{Name}/{Name}.php.
+     *
+     * @return list<string>
+     *
+     * @internal
+     */
+    public static function actions(): array
+    {
+        $names = [];
+        foreach (glob(Paths::ajax() . '/*/*.php') ?: [] as $file) {
+            if (basename($file, '.php') === basename(dirname($file))) {
+                $names[] = basename($file, '.php');
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * The class of an action, autoloaded: null when its file doesn't define
+     * {NAMESPACE}\{Name}\{Name} extending AjaxAction.
+     *
+     * @return class-string<AjaxAction>|null
+     *
+     * @internal
+     */
+    public static function action_class(string $name): ?string
+    {
+        self::autoload();
+        $class = self::NAMESPACE . "\\{$name}\\{$name}";
+
+        return is_subclass_of($class, AjaxAction::class) ? $class : null;
+    }
+
     /** @internal */
-    public static function handle(string $dir, string $namespace): void
+    public static function handle(): void
     {
         $method = $_SERVER['REQUEST_METHOD'] ?? '';
 
@@ -43,30 +81,20 @@ final class Ajax
 
         $action = $_GET['action'] ?? '';
 
-        if (!preg_match('/^[A-Za-z][A-Za-z0-9]*$/', $action)) {
+        if (!is_string($action) || !preg_match('/^[A-Za-z][A-Za-z0-9]*$/', $action)) {
             http_response_code(400);
             exit();
         }
 
-        $action_file = "{$dir}/{$action}/{$action}.php";
-
-        if (!is_file($action_file)) {
+        if (!is_file(Paths::ajax() . "/{$action}/{$action}.php")) {
             http_response_code(404);
             exit();
         }
 
-        foreach (glob("{$dir}/*/*.php") ?: [] as $file) {
-            if (basename($file, '.php') !== basename(dirname($file))) {
-                require_once $file;
-            }
-        }
+        $class = self::action_class($action);
 
-        require_once $action_file;
-
-        $class = "{$namespace}\\{$action}\\{$action}";
-
-        if (!is_subclass_of($class, AjaxAction::class)) {
-            error_log("Gaffer Ajax: {$class} is not defined in {$action_file} or does not extend " . AjaxAction::class);
+        if ($class === null) {
+            error_log("Gaffer Ajax: ajax/{$action}/{$action}.php doesn't define " . self::NAMESPACE . "\\{$action}\\{$action} extending " . AjaxAction::class);
             http_response_code(500);
             exit();
         }
@@ -88,6 +116,9 @@ final class Ajax
         if ($shortinit) {
             Gaffer::twig();
         }
+
+        // An action answers with a fragment: the page shell's shared data isn't needed.
+        View::without_shared();
 
         $input = $method === 'POST' ? $_POST : $_GET;
 
@@ -113,5 +144,27 @@ final class Ajax
         }
 
         AjaxArguments::run_method($instance)->invokeArgs($instance, $args);
+    }
+
+    /**
+     * Theme\Ajax\{Dir}\{Class} → ajax/{Dir}/{Class}.php, loaded when first used.
+     */
+    private static function autoload(): void
+    {
+        if (self::$autoload) {
+            return;
+        }
+        self::$autoload = true;
+
+        spl_autoload_register(static function (string $class): void {
+            $prefix = self::NAMESPACE . '\\';
+            $parts = str_starts_with($class, $prefix) ? explode('\\', substr($class, strlen($prefix))) : [];
+            if (count($parts) === 2 && preg_match('/^[A-Za-z][A-Za-z0-9]*$/', $parts[0] . $parts[1]) === 1) {
+                $file = Paths::ajax() . "/{$parts[0]}/{$parts[1]}.php";
+                if (is_file($file)) {
+                    require_once $file;
+                }
+            }
+        });
     }
 }

@@ -44,7 +44,7 @@ abstract class FormAction extends AjaxAction
             default => null,
         };
         if ($spam !== null) {
-            Turnstile::log_spam($form, $spam);
+            Spam::log($form, $spam);
             $fake = $gravity->default_confirmation(); // spam must look like it worked
             $this->answer($form, $fields, $fake['message'], $fake['redirect']);
             return;

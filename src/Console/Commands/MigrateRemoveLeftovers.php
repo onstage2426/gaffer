@@ -15,12 +15,13 @@ use Symfony\Component\Console\Input\InputInterface;
 use Throwable;
 
 /**
- * Moves stored block data from field group keys (made in the ACF UI or JSON,
- * "field_6a2b…") to the keys derived from the block's fields.php, after the
- * fields moved to code. Each value's field is found by its name in fields.php.
+ * Deletes values a block stores for fields of something else (another block's fields.php,
+ * an old ACF field group) when its own fields.php has no field by that name: data a block
+ * kept after being transformed or copied, which it never shows. Values whose name is a
+ * field in fields.php are left for migrate:fields.
  */
-#[AsCommand('migrate:fields', "Move stored block data to the keys of the block's fields.php (after moving its fields from the ACF UI/JSON to code)")]
-final class MigrateFields extends MigrateCommand
+#[AsCommand('migrate:remove-leftovers', "Delete values a block stores for another block's or field group's fields that its fields.php doesn't have")]
+final class MigrateRemoveLeftovers extends MigrateCommand
 {
     #[\Override]
     protected function configure(): void
@@ -43,12 +44,6 @@ final class MigrateFields extends MigrateCommand
             return;
         }
 
-        // The old key's field type, while ACF still has the old field group.
-        $type = static function (string $key): ?string {
-            $field = function_exists('acf_get_field') ? acf_get_field($key) : false;
-            return is_array($field) && is_string($field['type'] ?? null) ? $field['type'] : null;
-        };
-
         $handlers = [];
         foreach ($blocks as $dir => $block) {
             try {
@@ -58,13 +53,12 @@ final class MigrateFields extends MigrateCommand
                 continue;
             }
             $prefix = BlockFields::prefix($block);
-            $rename = BlockData::fields_renamer($prefix, $fields, $type);
 
-            $handlers[$block] = static function (array $found) use ($block, $prefix, $rename): array {
+            $handlers[$block] = static function (array $found) use ($block, $prefix, $fields): array {
                 if (!is_array($found['attrs']['data'] ?? null)) {
                     return [$found, 0, []];
                 }
-                // Keys of another field group are what this command moves; every other problem stops it.
+                // Leftovers point elsewhere by definition; every other problem stops it.
                 $problems = array_filter(
                     BlockData::problems($found['attrs']['data'], $prefix),
                     static fn(string $problem): bool => !str_contains($problem, 'not to a field of this block'),
@@ -72,21 +66,12 @@ final class MigrateFields extends MigrateCommand
                 if ($problems !== []) {
                     return [$found, 0, array_map(static fn(string $p): string => "{$block}: {$p}", array_values($problems))];
                 }
-                $result = BlockData::rename($found['attrs']['data'], $rename);
-                if ($result['problems'] !== []) {
-                    $problems = array_map(static fn(string $p): string => "{$block}: {$p}", $result['problems']);
-                    if (array_any($result['problems'], static fn(string $p): bool => str_contains($p, "isn't a field in fields.php"))) {
-                        $problems[] = "{$block}: values of fields that fields.php doesn't have are left over from elsewhere (another block, an old field group): php gaffer migrate:remove-leftovers {$block} deletes them";
-                    }
-                    return [$found, 0, $problems];
-                }
+                $result = BlockData::remove_leftovers($found['attrs']['data'], $prefix, $fields);
                 $found['attrs']['data'] = $result['data'];
 
                 return [$found, $result['changes'], []];
             };
         }
         self::rewrite_blocks($migration, $handlers);
-
-        $migration->note('Afterwards: delete the old field groups of these blocks in ACF (php gaffer doctor lists them).');
     }
 }

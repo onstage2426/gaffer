@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Migrate;
 
 use Closure;
+use LogicException;
 use RuntimeException;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
@@ -55,6 +56,12 @@ final class Migration
 
     public function change(Location $location, string $before, string $after, string $summary): void
     {
+        foreach ($this->plan as $planned) {
+            if ($planned['location']->kind === $location->kind && $planned['location']->id === $location->id) {
+                // The second change was planned from content the first one replaces: the run would abort.
+                throw new LogicException("{$location->label} is changed twice in one run: rewrite it once");
+            }
+        }
         if ($user = ContentStore::locked_by($location)) {
             $this->problem("{$location->label}: open in the editor by user {$user}; try again when they're done");
             return;
@@ -73,13 +80,13 @@ final class Migration
             $changes = 0;
             $problems = [];
             $after = BlockData::walk($blocks, static function (array $block) use ($fn, &$changes, &$problems): array {
-                [$block, $count, $found] = $fn($block);
+                [$rewritten, $count, $found] = $fn($block);
                 array_push($problems, ...$found);
                 if ($count > 0) {
                     $changes += $count;
-                    array_push($problems, ...self::unresolved($block));
+                    array_push($problems, ...self::unresolved($block, $rewritten));
                 }
-                return $block;
+                return $rewritten;
             });
 
             return [$after, $changes, $problems];
@@ -205,9 +212,31 @@ final class Migration
         }
 
         $this->log($output, 'written', null, $backup);
-        $output->writeln('Wrote ' . count($this->plan) . ' location(s) and read them back. Clear page caches. Undo with: php gaffer migrate:rollback ' . basename($backup));
+        $output->writeln('Wrote ' . count($this->plan) . ' location(s) and read them back. Undo with: php gaffer migrate:rollback ' . basename($backup));
+        $output->writeln('<comment>' . $this->caches() . '</comment>');
 
         return 0;
+    }
+
+    /**
+     * What to purge from page caches: WordPress's post cache is cleaned (page cache plugins
+     * like WP Rocket purge a post on that), but a purge can fail or not exist.
+     */
+    private function caches(): string
+    {
+        $urls = [];
+        $widgets = false;
+        foreach ($this->plan as $change) {
+            if ($change['location']->kind === 'widget') {
+                $widgets = true;
+            } elseif (is_string($url = get_permalink($change['location']->id))) {
+                $urls[] = $url;
+            }
+        }
+
+        return 'Check that page caches show the new content'
+            . ($widgets ? ' (block widgets are on every page: purge the whole cache)' : '')
+            . ($urls !== [] ? ': ' . implode(' ', $urls) : '.');
     }
 
     private function log(OutputInterface $output, string $outcome, ?string $reason, ?string $backup): void
@@ -230,20 +259,26 @@ final class Migration
     }
 
     /**
-     * References in an ACF block's data that no ACF field has (the code isn't updated yet).
+     * References a rewrite wrote that no ACF field has (the code isn't updated yet). References
+     * it left alone are checked by the run that changes them, so one field at a time works.
      *
-     * @param array<string, mixed> $block
+     * @param array<string, mixed> $before
+     * @param array<string, mixed> $after
      * @return list<string>
      */
-    private static function unresolved(array $block): array
+    private static function unresolved(array $before, array $after): array
     {
         if (!function_exists('acf_get_field')) {
             return ['ACF is not active'];
         }
+        $old = is_array($before['attrs']['data'] ?? null) ? $before['attrs']['data'] : [];
         $problems = [];
-        foreach (is_array($block['attrs']['data'] ?? null) ? $block['attrs']['data'] : [] as $name => $key) {
+        foreach (is_array($after['attrs']['data'] ?? null) ? $after['attrs']['data'] : [] as $name => $key) {
+            if (($old[$name] ?? null) === $key) {
+                continue;
+            }
             if (str_starts_with((string) $name, '_') && is_string($key) && !acf_get_field($key)) {
-                $problems[] = "{$block['blockName']}: \"" . substr((string) $name, 1) . "\" would point to {$key}, which no field has (update fields.php first)";
+                $problems[] = "{$after['blockName']}: \"" . substr((string) $name, 1) . "\" would point to {$key}, which no field has (update fields.php first)";
             }
         }
 

@@ -250,15 +250,30 @@ final class BlockData
             }
         }
 
-        $kept = [];
-        foreach ($data as $name => $value) {
+        return ['data' => self::without($data, $drop), 'changes' => count($drop)];
+    }
+
+    /**
+     * Removes values whose reference points outside this block's keys ($prefix) and whose
+     * name is no field in $fields (field_by_name()): left over from another block or an
+     * old field group. Values with a field of that name are left (migrate:fields moves them).
+     *
+     * @param array<mixed> $data
+     * @param list<array<string, mixed>> $fields fields.php with derived keys (BlockFields::group())
+     * @return array{data: array<mixed>, changes: int}
+     */
+    public static function remove_leftovers(array $data, string $prefix, array $fields): array
+    {
+        $drop = [];
+        foreach ($data as $name => $key) {
             $name = (string) $name;
-            if (!isset($drop[str_starts_with($name, '_') ? substr($name, 1) : $name])) {
-                $kept[$name] = $value;
+            if (str_starts_with($name, '_') && is_string($key) && !str_starts_with($key, "{$prefix}__")
+                && self::field_by_name($fields, substr($name, 1)) === null) {
+                $drop[substr($name, 1)] = true;
             }
         }
 
-        return ['data' => $kept, 'changes' => count($drop)];
+        return ['data' => self::without($data, $drop), 'changes' => count($drop)];
     }
 
     /**
@@ -366,6 +381,26 @@ final class BlockData
         $block['innerBlocks'] = $kept;
 
         return ['block' => $block, 'removed' => $removed, 'problems' => $problems];
+    }
+
+    /**
+     * The data without these values and their references.
+     *
+     * @param array<mixed> $data
+     * @param array<string, true> $names
+     * @return array<mixed>
+     */
+    private static function without(array $data, array $names): array
+    {
+        $kept = [];
+        foreach ($data as $name => $value) {
+            $name = (string) $name;
+            if (!isset($names[str_starts_with($name, '_') ? substr($name, 1) : $name])) {
+                $kept[$name] = $value;
+            }
+        }
+
+        return $kept;
     }
 
     /** A top-level piece of nothing but whitespace between blocks. */

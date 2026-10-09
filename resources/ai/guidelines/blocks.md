@@ -97,11 +97,18 @@ php gaffer migrate:block acf/content-faq acf/faq                   # rename a bl
 php gaffer migrate:remove-field acf/content-faq vragen.bron        # delete a removed field's values
 php gaffer migrate:remove-block acf/content-team                   # delete a removed block from all content
 php gaffer migrate:fields [acf/content-faq]                        # after moving a block's fields from the ACF UI/JSON to fields.php
+php gaffer migrate:remove-leftovers [acf/content-faq]              # delete values of other blocks'/field groups' fields fields.php doesn't have
 php gaffer migrate:rollback [backup]                               # undo (no argument: list backups)
 ```
 
 - Moving fields out of the ACF UI/JSON: `migrate:fields` first. Renames and
   removals refuse while a block still stores data under its old field keys.
+- A block can keep values of fields that aren't its own (transformed or
+  copied from another block, an old field group). The commands refuse them;
+  `migrate:remove-leftovers` deletes the ones fields.php has no field for
+  (by name), and leaves the rest to `migrate:fields`.
+- One field per run: removing or renaming several fields of a block is one
+  run each, in any order.
 - Dry run by default; `--run` writes. It refuses (and writes nothing) when
   anything looks off: the code isn't changed yet, content WordPress doesn't
   reproduce exactly, data in an unexpected shape, a name that already exists,
@@ -116,6 +123,11 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
   `undoes`, user, theme commit, locations with checksums). Check it before
   assuming what state the content is in; `migrate:rollback` without an
   argument lists the backups with their outcome.
-- Make a database backup first on a live site, run it right after deploying
-  the code (until then a renamed field shows empty), and clear page caches.
+- Make a database backup first on a live site, and run it right after
+  deploying the code (until then a renamed field shows empty).
+- Page caches: the write bypasses `wp_update_post()`, so only cache plugins
+  that purge on `clean_post_cache` (WP Rocket does) see it, and a purge can
+  fail (e.g. cache files owned by the web server user). `--run` lists the
+  changed URLs: check them, purge by hand if they're stale. Changed block
+  widgets mean every page.
 - Covers posts of every type and status and block widgets, not revisions.

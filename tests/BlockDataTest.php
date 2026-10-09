@@ -291,4 +291,32 @@ final class BlockDataTest extends TestCase
         self::assertSame('"onbekend" (field_5) isn\'t a field in fields.php', $rename('onbekend', 'field_5'));
         self::assertSame('"vragen_0_vraag" was a textarea field (field_old_vraag), fields.php makes it a text', $rename('vragen_0_vraag', 'field_old_vraag'));
     }
+
+    public function test_remove_leftovers_drops_values_of_fields_that_fields_php_does_not_have(): void
+    {
+        $fields = [
+            ['key' => 'field_faq__titel', 'name' => 'titel', 'type' => 'text'],
+            ['key' => 'field_faq__vragen', 'name' => 'vragen', 'type' => 'repeater', 'sub_fields' => [
+                ['key' => 'field_faq__vragen__vraag', 'name' => 'vraag', 'type' => 'text'],
+            ]],
+        ];
+        $data = [
+            'titel' => 'Vragen', '_titel' => 'field_faq__titel',
+            'knop' => 'x', '_knop' => 'field_hero__knop',                       // another block's field
+            'vragen' => 1, '_vragen' => 'field_6a2b',                           // old group key, fields.php has it
+            'vragen_0_vraag' => 'Een?', '_vragen_0_vraag' => 'field_6a2c',
+            'vragen_0_bron' => 'y', '_vragen_0_bron' => 'field_6a2d',           // sub field fields.php doesn't have
+            'oud' => 'z', '_oud' => 'field_faq__oud',                           // own key: migrate:remove-field's job
+        ];
+
+        $result = BlockData::remove_leftovers($data, 'field_faq', $fields);
+
+        self::assertSame(2, $result['changes']);
+        self::assertSame([
+            'titel' => 'Vragen', '_titel' => 'field_faq__titel',
+            'vragen' => 1, '_vragen' => 'field_6a2b',
+            'vragen_0_vraag' => 'Een?', '_vragen_0_vraag' => 'field_6a2c',
+            'oud' => 'z', '_oud' => 'field_faq__oud',
+        ], $result['data']);
+    }
 }

@@ -56,7 +56,11 @@ final class MigrateRemoveField extends MigrateCommand
                     return [$found, 0, []];
                 }
                 if ($problems = BlockData::problems($found['attrs']['data'], $prefix)) {
-                    return [$found, 0, array_map(static fn(string $p): string => "{$block}: {$p}", $problems)];
+                    $problems = array_map(static fn(string $p): string => "{$block}: {$p}", $problems);
+                    if (array_any($problems, static fn(string $p): bool => str_contains($p, 'not to a field of this block'))) {
+                        $problems[] = "{$block}: values that point elsewhere are moved by php gaffer migrate:fields {$block} or, when fields.php has no such field, deleted by php gaffer migrate:remove-leftovers {$block}";
+                    }
+                    return [$found, 0, $problems];
                 }
                 $result = BlockData::remove_field($found['attrs']['data'], $prefix, $path);
                 $found['attrs']['data'] = $result['data'];

@@ -17,6 +17,7 @@ use Gaffer\Console\Commands\MigrateField;
 use Gaffer\Console\Commands\MigrateFields;
 use Gaffer\Console\Commands\MigrateRemoveBlock;
 use Gaffer\Console\Commands\MigrateRemoveField;
+use Gaffer\Console\Commands\MigrateRemoveLeftovers;
 use Gaffer\Console\Commands\MigrateRollback;
 use Gaffer\Console\Commands\TwigClear;
 use Gaffer\Console\Commands\TwigLint;
@@ -54,6 +55,7 @@ final class Console
             new MigrateFields(),
             new MigrateRemoveBlock(),
             new MigrateRemoveField(),
+            new MigrateRemoveLeftovers(),
             new MigrateRollback(),
             new TwigClear(),
             new TwigLint(),

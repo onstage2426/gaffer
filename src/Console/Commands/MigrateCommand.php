@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Commands;
 
+use Closure;
 use Gaffer\Console\Command;
+use Gaffer\Console\Migrate\ContentStore;
+use Gaffer\Console\Migrate\Location;
 use Gaffer\Console\Migrate\Migration;
 use RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
@@ -44,4 +47,30 @@ abstract class MigrateCommand extends Command
     }
 
     abstract protected function plan(Migration $migration, InputInterface $input): void;
+
+    /**
+     * Rewrites every location that has one of these blocks, once, giving each block to the
+     * handler of its name (see Migration::rewrite()). A page with two of the blocks is one
+     * change: two would be planned from the same content and the second would abort the run.
+     *
+     * @param array<string, Closure(array<string, mixed>): array{array<string, mixed>, int, list<string>}> $handlers block name => handler
+     */
+    protected static function rewrite_blocks(Migration $migration, array $handlers): void
+    {
+        $locations = [];
+        foreach (array_keys($handlers) as $block) {
+            foreach (ContentStore::find("<!-- wp:{$block} ") as $location) {
+                $locations["{$location->kind}:{$location->id}"] = $location;
+            }
+        }
+        usort($locations, static fn(Location $a, Location $b): int => [$a->kind, $a->id] <=> [$b->kind, $b->id]);
+
+        foreach ($locations as $location) {
+            $migration->rewrite($location, static function (array $block) use ($handlers): array {
+                $handler = is_string($block['blockName'] ?? null) ? ($handlers[$block['blockName']] ?? null) : null;
+
+                return $handler !== null ? $handler($block) : [$block, 0, []];
+            });
+        }
+    }
 }

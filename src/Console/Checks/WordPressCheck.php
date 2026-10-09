@@ -9,6 +9,7 @@ use Gaffer\BlockFields;
 use Gaffer\Config;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
+use Gaffer\Console\WordPress;
 use Gaffer\Forms\FormTemplates;
 use Gaffer\Forms\GravityForm;
 use Gaffer\Mcp\Mcp;
@@ -29,6 +30,7 @@ final class WordPressCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
+        $this->theme($report);
         $this->blocks($report);
         $this->acf_sync($report);
         $this->field_types($report);
@@ -36,6 +38,17 @@ final class WordPressCheck implements Check
         $this->forms($report);
         $this->menus($report);
         $this->mcp($report);
+    }
+
+    /**
+     * The other checks describe the loaded site: it must be the one that runs this theme.
+     */
+    private function theme(Report $report): void
+    {
+        if (!WordPress::is_theme_active()) {
+            $report->error('wp', 'The loaded site (' . \home_url('/') . ') runs the theme "' . \get_stylesheet() . '", not this one', null, null,
+                'Set SITE_URL in .env to the site that uses this theme (`php gaffer init`); the checks below describe the other site.');
+        }
     }
 
     /**

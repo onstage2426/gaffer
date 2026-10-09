@@ -11,6 +11,7 @@ use Gaffer\Console\Commands\ConfigShow;
 use Gaffer\Console\Commands\Doctor;
 use Gaffer\Console\Commands\DoctorRender;
 use Gaffer\Console\Commands\FormsShow;
+use Gaffer\Console\Commands\Init;
 use Gaffer\Console\Commands\MigrateBlock;
 use Gaffer\Console\Commands\MigrateField;
 use Gaffer\Console\Commands\MigrateFields;
@@ -47,6 +48,7 @@ final class Console
             new Doctor(),
             new DoctorRender(),
             new FormsShow(),
+            new Init(),
             new MigrateBlock(),
             new MigrateField(),
             new MigrateFields(),

@@ -42,6 +42,15 @@ final class WordPress
     }
 
     /**
+     * Whether the loaded site runs this theme. When SITE_URL points at another site
+     * (another site of a multisite), commands describe that site instead.
+     */
+    public static function is_theme_active(): bool
+    {
+        return realpath(\get_stylesheet_directory()) === realpath(Paths::base());
+    }
+
+    /**
      * A page cache drop-in (advanced-cache.php, e.g. WP Rocket) would answer the
      * fake request with a cached page and exit before the command runs, or hand
      * doctor:render cached HTML. WordPress only loads it when this filter allows;

@@ -201,6 +201,20 @@ final class ChecksTest extends TestCase
         self::reset(Env::class, 'values', null);
     }
 
+    public function test_env_set_keeps_other_lines(): void
+    {
+        file_put_contents("{$this->theme}/.env.example", "# Vite\nSITE_URL=\nVITE_PORT=5173\n");
+        self::reset(Env::class, 'values', null);
+
+        Env::set('SITE_URL', 'https://example.test/shop/');
+        self::assertSame("# Vite\nSITE_URL=https://example.test/shop/\nVITE_PORT=5173\n", file_get_contents("{$this->theme}/.env"));
+        self::assertSame('https://example.test/shop/', Env::get('SITE_URL'));
+
+        Env::set('OTHER', 'x');
+        self::assertStringEndsWith("VITE_PORT=5173\nOTHER=x\n", (string) file_get_contents("{$this->theme}/.env"));
+        self::reset(Env::class, 'values', null);
+    }
+
     public function test_json_decoded_string_parameters(): void
     {
         $action = new class {

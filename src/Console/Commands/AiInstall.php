@@ -51,7 +51,11 @@ final class AiInstall extends Command
         }
 
         Installer::agents($agents); // validates the names
-        file_put_contents(Paths::base('config/ai.php'), self::config_file($agents));
+        $dir = Paths::base('config');
+        if ((!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) || file_put_contents("{$dir}/ai.php", self::config_file($agents)) === false) {
+            $output->writeln("<error>Could not write {$dir}/ai.php.</error>");
+            return self::FAILURE;
+        }
         $output->writeln('Saved config/ai.php: ' . implode(', ', $agents));
 
         $status = AiUpdate::generate($agents, $input, $output);

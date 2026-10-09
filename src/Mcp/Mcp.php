@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Mcp;
 
+use Gaffer\Console\Env;
 use Gaffer\Mcp\Tools\BlockUsage;
 use Gaffer\Mcp\Tools\Doctor;
 use Gaffer\Mcp\Tools\Forms;
@@ -72,14 +73,17 @@ final class Mcp
     }
 
     /**
-     * How an agent starts the server, the same on every machine: WP-CLI finds
-     * WordPress from the theme directory the agent runs it in.
+     * How an agent starts the server: WP-CLI finds WordPress from the theme
+     * directory the agent runs it in, and on a multisite the site from SITE_URL in
+     * the theme's .env (without it, WP-CLI loads the main site).
      *
      * @return array{command: string, args: list<string>}
      */
     public static function launch(): array
     {
-        return ['command' => 'wp', 'args' => ['mcp-adapter', 'serve', '--server=' . self::SERVER]];
+        $url = Env::get('SITE_URL');
+
+        return ['command' => 'wp', 'args' => ['mcp-adapter', 'serve', '--server=' . self::SERVER, ...($url !== null ? ["--url={$url}"] : [])]];
     }
 
     /**

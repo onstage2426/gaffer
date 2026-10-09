@@ -4,8 +4,8 @@ The MCP Adapter plugin is active, so Gaffer serves read-only development tools
 as the MCP server `gaffer` (abilities `gaffer/*`). `php gaffer ai:update` adds it
 to each selected agent's MCP config (`.mcp.json`, `.codex/config.toml`,
 `.grok/config.toml`; gitignored, other servers in them are kept): `wp
-mcp-adapter serve --server=gaffer`, started from the theme directory, over STDIO
-only. It is never served on production.
+mcp-adapter serve --server=gaffer` (plus `--url=` from `SITE_URL`, which picks
+the site on a multisite), started from the theme directory, over STDIO only. It is never served on production.
 
 Prefer these tools over ad-hoc scripts:
 

@@ -325,6 +325,24 @@ final class ChecksTest extends TestCase
         self::assertFalse(($hook['function'])(true));
     }
 
+    public function test_the_cli_names_the_missing_multisite_site(): void
+    {
+        $before = $GLOBALS['wp_filter'] ?? null;
+        WordPress::fail_on_unknown_site();
+        $network = $GLOBALS['wp_filter']['ms_network_not_found'][10][0]['function'] ?? null;
+        $site = $GLOBALS['wp_filter']['ms_site_not_found'][10][0]['function'] ?? null;
+        $GLOBALS['wp_filter'] = $before;
+
+        self::assertIsCallable($network);
+        self::assertIsCallable($site);
+        try {
+            $site(new \stdClass(), 'localhost', '/');
+            self::fail('No exception');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('no site at localhost/', $e->getMessage());
+        }
+    }
+
     private function messages(Check $check): string
     {
         $report = new Report();

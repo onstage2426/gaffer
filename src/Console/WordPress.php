@@ -23,6 +23,7 @@ final class WordPress
 
         self::fake_request($url ?? Env::get('SITE_URL'));
         self::skip_page_cache();
+        self::fail_on_unknown_site();
 
         // Let fatal errors reach the terminal instead of WordPress's HTML error page.
         if (!defined('WP_DISABLE_FATAL_ERROR_HANDLER')) {
@@ -58,7 +59,29 @@ final class WordPress
     }
 
     /**
-     * WordPress expects a web request (host, URI, HTTPS) to build URLs and pick the site.
+     * On multisite, WordPress picks the site from the request's host and path. When
+     * none matches it prints "Error establishing a database connection" or redirects
+     * and exits silently; say what happened instead. Hooked before WordPress loads,
+     * like skip_page_cache().
+     */
+    public static function fail_on_unknown_site(): void
+    {
+        if (function_exists('add_action')) {
+            return;
+        }
+        $fail = static fn(string $domain, string $path): never => throw new \RuntimeException(
+            "This multisite has no site at {$domain}{$path}. Set SITE_URL in the theme's .env (or pass --url) to the site that uses this theme, e.g. https://example.com/shop/.",
+        );
+        $GLOBALS['wp_filter']['ms_network_not_found'][10][] = ['function' => $fail, 'accepted_args' => 2];
+        $GLOBALS['wp_filter']['ms_site_not_found'][10][] = [
+            'function' => static fn(object $network, string $domain, string $path): never => $fail($domain, $path),
+            'accepted_args' => 3,
+        ];
+    }
+
+    /**
+     * WordPress expects a web request (host, URI, HTTPS) to build URLs and pick the site
+     * (on a subdirectory multisite also by the path).
      */
     private static function fake_request(?string $url): void
     {
@@ -74,7 +97,7 @@ final class WordPress
 
         $_SERVER['HTTP_HOST'] ??= 'localhost';
         $_SERVER['SERVER_NAME'] ??= 'localhost';
-        $_SERVER['REQUEST_URI'] ??= '/';
+        $_SERVER['REQUEST_URI'] ??= rtrim($parts['path'] ?? '', '/') . '/';
         $_SERVER['REQUEST_METHOD'] ??= 'GET';
     }
 }

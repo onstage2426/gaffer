@@ -36,7 +36,35 @@ final class Report
         return in_array('error', array_column($this->findings, 'level'), true);
     }
 
-    public function render(OutputInterface $output, bool $json): int
+    /**
+     * Writes the current warnings as the baseline.
+     */
+    public function save_baseline(bool $wp): int
+    {
+        $baseline = Baseline::from($this->findings, $wp);
+        $baseline->save();
+
+        return $baseline->count();
+    }
+
+    /**
+     * Hides the warnings a baseline knows; returns a line saying what it hid ('' when nothing).
+     */
+    public function apply_baseline(Baseline $baseline, bool $wp): string
+    {
+        $result = $baseline->apply($this->findings);
+        $this->findings = $result['findings'];
+
+        $line = $result['known'] > 0 ? "{$result['known']} known warnings hidden (" . Baseline::FILE . '; --all shows them)' : '';
+        // Only when this run checks what the baseline was made with (with or without --wp).
+        if ($result['gone'] > 0 && $wp === $baseline->wp) {
+            $line .= ($line !== '' ? '; ' : '') . "{$result['gone']} known warnings no longer occur: run doctor --baseline" . ($wp ? ' --wp' : '') . ' to shrink it';
+        }
+
+        return $line;
+    }
+
+    public function render(OutputInterface $output, bool $json, string $footer = ''): int
     {
         if ($json) {
             $output->writeln((string) json_encode($this->findings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -61,6 +89,9 @@ final class Report
             $counts['warning'] ?? 0,
             $counts['info'] ?? 0,
         ));
+        if ($footer !== '') {
+            $output->writeln("<comment>{$footer}</comment>");
+        }
 
         return $this->has_errors() ? 1 : 0;
     }

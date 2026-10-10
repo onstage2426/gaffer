@@ -19,9 +19,11 @@ use Gaffer\Console\Checks\SourceCheck;
 use Gaffer\Console\Checks\TemplateGlobalsCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
 use Gaffer\Console\Checks\WordPressCheck;
+use Gaffer\Console\Baseline;
 use Gaffer\Console\Command;
 use Gaffer\Console\Report;
 use Gaffer\Console\WordPress;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -36,6 +38,8 @@ final class Doctor extends Command
         $this->addOption('wp', null, InputOption::VALUE_NONE, 'Also load WordPress: registered blocks, ACF sync, menus, render smoke test');
         $this->addOption('no-render', null, InputOption::VALUE_NONE, 'With --wp: skip the (slower) render smoke test');
         $this->addOption('json', null, InputOption::VALUE_NONE, 'Output as JSON');
+        $this->addOption('baseline', null, InputOption::VALUE_NONE, 'Write the current warnings to ' . Baseline::FILE . ' (commit it); later runs only show new ones');
+        $this->addOption('all', null, InputOption::VALUE_NONE, 'Also show the warnings ' . Baseline::FILE . ' knows');
     }
 
     #[\Override]
@@ -62,6 +66,24 @@ final class Doctor extends Command
             }
         }
 
-        return $report->render($output, $json);
+        $wp = (bool) $input->getOption('wp');
+        if ($input->getOption('baseline')) {
+            $count = $report->save_baseline($wp);
+            $output->writeln("Wrote {$count} warnings to " . Baseline::FILE . ' (commit it). Errors are never baselined.');
+            return $report->has_errors() ? self::FAILURE : self::SUCCESS;
+        }
+
+        $footer = '';
+        if (!$input->getOption('all')) {
+            try {
+                $baseline = Baseline::load();
+            } catch (RuntimeException $e) {
+                $report->error('baseline', $e->getMessage());
+                $baseline = null;
+            }
+            $footer = $baseline !== null ? $report->apply_baseline($baseline, $wp) : '';
+        }
+
+        return $report->render($output, $json, $footer);
     }
 }

@@ -54,8 +54,7 @@ final class Doctor extends Command
             new WordPressCheck()->run($report);
 
             if (!$input->getOption('no-render')) {
-                $entry = (string) realpath((string) $_SERVER['SCRIPT_FILENAME']);
-                new RenderCheck($entry, is_string($url) ? $url : null, static function (string $path) use ($output, $json): void {
+                new RenderCheck(is_string($url) ? $url : null, static function (string $path) use ($output, $json): void {
                     if (!$json && $output->isVerbose()) {
                         $output->writeln("<comment>rendering</comment> {$path}");
                     }

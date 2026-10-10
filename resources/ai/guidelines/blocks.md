@@ -123,6 +123,10 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
   `undoes`, user, theme commit, locations with checksums). Check it before
   assuming what state the content is in; `migrate:rollback` without an
   argument lists the backups with their outcome.
+- Check the result the same way every time: `php gaffer render:snapshot`
+  before changing code or content, `php gaffer render:diff` afterwards (see
+  CLI). When moving a site to new code, snapshot the live site with
+  `--from=<url>` and diff this copy against it. No throwaway compare scripts.
 - Make a database backup first on a live site, and run it right after
   deploying the code (until then a renamed field shows empty).
 - Page caches: the write bypasses `wp_update_post()`, so only cache plugins

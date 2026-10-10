@@ -72,6 +72,10 @@ final class DoctorRender extends Command
         });
 
         $_SERVER['REQUEST_URI'] = $path;
+        // WordPress reads query vars (s, paged, filters) from $_GET, which a CLI request doesn't fill.
+        $_SERVER['QUERY_STRING'] = (string) parse_url($path, PHP_URL_QUERY);
+        parse_str($_SERVER['QUERY_STRING'], $_GET);
+        $_REQUEST = $_GET;
         define('WP_USE_THEMES', true);
         WordPress::load($input->getOption('url'));
         View::env()->enableStrictVariables();

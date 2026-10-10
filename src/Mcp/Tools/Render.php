@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Gaffer\Mcp\Tools;
 
-use Dom\HTMLDocument;
 use Gaffer\Console\Commands\DoctorRender;
+use Gaffer\Console\Render\HtmlDiff;
 use Gaffer\Mcp\GafferCli;
 use Gaffer\Mcp\Tool;
+use InvalidArgumentException;
 use RuntimeException;
-use Throwable;
 use WP_Error;
 
 final class Render implements Tool
@@ -66,13 +66,9 @@ final class Render implements Tool
         $html = $result['html'] ?? '';
         unset($result['html']);
         try {
-            $document = HTMLDocument::createFromString($html, LIBXML_NOERROR);
-            $result['matches'] = array_map(
-                static fn(\Dom\Node $node): string => $document->saveHtml($node),
-                iterator_to_array($document->querySelectorAll($selector), false),
-            );
-        } catch (Throwable $e) {
-            return new WP_Error('gaffer_render', "Invalid selector \"{$selector}\": {$e->getMessage()}");
+            $result['matches'] = HtmlDiff::select_all($html, $selector);
+        } catch (InvalidArgumentException $e) {
+            return new WP_Error('gaffer_render', $e->getMessage());
         }
 
         return $result;

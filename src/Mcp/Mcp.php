@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Mcp;
 
+use Gaffer\Config;
 use Gaffer\Console\Env;
 use Gaffer\Mcp\Tools\BlockUsage;
 use Gaffer\Mcp\Tools\Doctor;
@@ -17,7 +18,8 @@ use RuntimeException;
  * Gaffer's MCP server for theme development: its tools are abilities
  * (`gaffer/*`, WordPress's Abilities API) served by the MCP Adapter plugin as the
  * server `gaffer`, over STDIO through WP-CLI only (no HTTP endpoint). Only when
- * the plugin is active and the site isn't production.
+ * the plugin is active, and on production only with ai.mcp_production (a theme
+ * migration on a live site).
  */
 final class Mcp
 {
@@ -25,7 +27,8 @@ final class Mcp
 
     public static function enabled(): bool
     {
-        return class_exists('WP\MCP\Core\McpAdapter') && \wp_get_environment_type() !== 'production';
+        return class_exists('WP\MCP\Core\McpAdapter')
+            && (\wp_get_environment_type() !== 'production' || Config::get('ai.mcp_production') === true);
     }
 
     public static function register(): void
@@ -75,15 +78,35 @@ final class Mcp
     /**
      * How an agent starts the server: WP-CLI finds WordPress from the theme
      * directory the agent runs it in, and on a multisite the site from SITE_URL in
-     * the theme's .env (without it, WP-CLI loads the main site).
+     * the theme's .env (without it, WP-CLI loads the main site). A `wp` that is a PHP
+     * file (the phar, Composer's bin script) runs with the PHP running this, which is
+     * the one the site works with: its `#!/usr/bin/env php` may find another version.
      *
      * @return array{command: string, args: list<string>}
      */
     public static function launch(): array
     {
         $url = Env::get('SITE_URL');
+        $args = ['mcp-adapter', 'serve', '--server=' . self::SERVER, ...($url !== null ? ["--url={$url}"] : [])];
+        $wp = self::wp_cli();
 
-        return ['command' => 'wp', 'args' => ['mcp-adapter', 'serve', '--server=' . self::SERVER, ...($url !== null ? ["--url={$url}"] : [])]];
+        return $wp !== null ? ['command' => PHP_BINARY, 'args' => [$wp, ...$args]] : ['command' => 'wp', 'args' => $args];
+    }
+
+    /** The first `wp` on the PATH when it's a PHP file, resolved; null otherwise. */
+    private static function wp_cli(): ?string
+    {
+        foreach (explode(PATH_SEPARATOR, (string) getenv('PATH')) as $dir) {
+            $file = $dir !== '' ? realpath("{$dir}/wp") : false;
+            if ($file === false || !is_file($file) || !is_executable($file)) {
+                continue;
+            }
+            $head = (string) file_get_contents($file, false, null, 0, 200);
+
+            return str_starts_with($head, '<?php') || preg_match('/^#![^\n]*\bphp\b/', $head) === 1 ? $file : null;
+        }
+
+        return null;
     }
 
     /**

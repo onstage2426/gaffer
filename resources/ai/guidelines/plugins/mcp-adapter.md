@@ -5,7 +5,10 @@ as the MCP server `gaffer` (abilities `gaffer/*`). `php gaffer ai:update` adds i
 to each selected agent's MCP config (`.mcp.json`, `.codex/config.toml`,
 `.grok/config.toml`; gitignored, other servers in them are kept): `wp
 mcp-adapter serve --server=gaffer` (plus `--url=` from `SITE_URL`, which picks
-the site on a multisite), started from the theme directory, over STDIO only. It is never served on production.
+the site on a multisite), started from the theme directory, over STDIO only.
+When `wp` is a PHP file, the config runs it with the PHP that ran `ai:update`.
+Not served on production unless `ai.mcp_production` is `true` (for a theme
+migration on a live site; turn it off afterwards).
 
 Prefer these tools over ad-hoc scripts:
 

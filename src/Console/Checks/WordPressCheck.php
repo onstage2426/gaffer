@@ -76,7 +76,8 @@ final class WordPressCheck implements Check
                 'Run the start command from .mcp.json by hand and look at stderr; abilities may have failed to register.');
             return;
         }
-        $report->info('mcp', 'MCP server "gaffer" serves its ' . count($expected) . ' tools');
+        $report->info('mcp', 'MCP server "gaffer" serves its ' . count($expected) . ' tools'
+            . (\wp_get_environment_type() === 'production' ? ' on production (ai.mcp_production: turn it off after the migration)' : ''));
     }
 
     private function blocks(Report $report): void

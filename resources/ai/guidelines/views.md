@@ -51,7 +51,11 @@
   <img class="w-full object-cover" {{ image.attrs('large') }} loading="lazy">
   ```
   `attrs(size)` gives `src`, `srcset`, `sizes`, `width`/`height` of that size and
-  the escaped `alt`. Use `fetchpriority="high"` instead of `loading="lazy"`
+  the escaped `alt`. An image cropped into a box with `object-cover` (a box
+  of another aspect ratio) is wider than the box, so give the width it needs
+  as `sizes`: `image.attrs('large', '(min-width: 1024px) 60vw, 150vw')`
+  (box height × the image's aspect ratio). Not `src('full')`: that loads the
+  full file on every screen. Use `fetchpriority="high"` instead of `loading="lazy"`
   above the fold. Always guard: `{% if image %}`; there is no fallback image.
 - **Theme graphics** (logo, icons) are SVG files in `views/components/icons/`,
   output with `{{ source('components/icons/name.svg') }}`. Never reference

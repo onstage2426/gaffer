@@ -40,7 +40,7 @@ class Gaffer\Types\Attachment extends Gaffer\Types\Post
   url(): ?string
 final class Gaffer\Types\Image extends Gaffer\Types\Attachment
   alt(): string
-  attrs(string $size = 'full'): Twig\Markup
+  attrs(string $size = 'full', ?string $sizes = NULL): Twig\Markup
   height(): ?int
   src(string $size = 'full'): ?string
   width(): ?int

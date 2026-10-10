@@ -35,7 +35,7 @@ Main methods:
   `array_last()`), `children()` (page order, then title), `terms($taxonomy)`,
   `blocks()`, `meta($key)`, `thumbnail()`, `is_current()`.
 - `Term`: `description()`, `parent()`, `ancestors()`, `children()`, `meta($key)`, `thumbnail()`.
-- `Image`: `attrs(size)`, `src(size)`, `alt()`, `width()`, `height()` (the
+- `Image`: `attrs(size, sizes)` (`sizes` optional, see Views), `src(size)`, `alt()`, `width()`, `height()` (the
   full image's; `null` when WordPress doesn't know). `Attachment`: `url()`, `mime()`.
 - `MenuItem`: `title()`, `link()`, `target()` (`null` unless set), `classes()`, `is_current()`,
   `is_current_ancestor()`, `children()`, `has_children()`, `is_external()`.

@@ -15,9 +15,12 @@ final class Image extends Attachment
      * <img class="..." {{ image.attrs('large') }} loading="lazy">
      *
      * sizes starts with "auto", which browsers only honor on lazy images and
-     * skip otherwise.
+     * skip otherwise. $sizes replaces it where the image is wider than its box:
+     * object-fit: cover in a box of another aspect ratio needs box height × the
+     * image's aspect ratio, which neither "auto" nor the size's width knows:
+     * <img class="object-cover" {{ image.attrs('large', '(min-width: 1024px) 60vw, 150vw') }}>
      */
-    public function attrs(string $size = 'full'): Markup
+    public function attrs(string $size = 'full', ?string $sizes = null): Markup
     {
         $img = \wp_get_attachment_image_src($this->wp->ID, $size);
 
@@ -32,9 +35,12 @@ final class Image extends Attachment
         $srcset = \wp_get_attachment_image_srcset($this->wp->ID, $size);
         if ($srcset) {
             $attrs['srcset'] = \esc_attr($srcset);
-            $sizes = \wp_get_attachment_image_sizes($this->wp->ID, $size);
-            if ($sizes) {
-                $attrs['sizes'] = \esc_attr('auto, ' . $sizes);
+            if ($sizes === null) {
+                $default = \wp_get_attachment_image_sizes($this->wp->ID, $size);
+                $sizes = $default ? 'auto, ' . $default : null;
+            }
+            if ($sizes !== null) {
+                $attrs['sizes'] = \esc_attr($sizes);
             }
         }
 

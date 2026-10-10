@@ -6,6 +6,7 @@ namespace Gaffer\Console\Checks;
 
 use Gaffer\Console\Commands\DoctorRender;
 use Gaffer\Console\Report;
+use RuntimeException;
 use WP_Post_Type;
 use WP_Taxonomy;
 use WP_Term;
@@ -37,8 +38,8 @@ final class RenderCheck implements Check
         $errors = [];
         $notices = [];
         foreach ($results as $path => $result) {
-            if ($result === null) {
-                $report->error('render', "{$path}: the render process crashed without a result");
+            if (is_string($result)) {
+                $report->error('render', "{$path}: {$result}");
                 continue;
             }
             if ($result['status'] === 'error') {
@@ -58,7 +59,7 @@ final class RenderCheck implements Check
             $report->warning('render', $notice . self::on($paths));
         }
 
-        $ok = count(array_filter($results, static fn(?array $r): bool => $r !== null && $r['status'] !== 'error'));
+        $ok = count(array_filter($results, static fn(array|string $r): bool => is_array($r) && $r['status'] !== 'error'));
         $report->info('render', "Rendered {$ok}/" . count($results) . ' URLs with strict variables');
     }
 
@@ -120,7 +121,7 @@ final class RenderCheck implements Check
 
     /**
      * @param list<string> $paths
-     * @return array<string, array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int}|null>
+     * @return array<string, array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, html?: string}|string> a result, or why there is none
      */
     private function render_all(array $paths): array
     {
@@ -138,7 +139,7 @@ final class RenderCheck implements Check
                 }
                 $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
                 if ($process === false) {
-                    $results[$path] = null;
+                    $results[$path] = 'could not start the render process';
                     continue;
                 }
                 stream_set_blocking($pipes[1], false);
@@ -157,13 +158,17 @@ final class RenderCheck implements Check
                     fclose($pipes[2]);
                     proc_close($process);
                     unset($running[$path]);
-                    $results[$path] = DoctorRender::parse($stdout);
+                    try {
+                        $results[$path] = DoctorRender::parse($stdout);
+                    } catch (RuntimeException $e) {
+                        $results[$path] = $e->getMessage();
+                    }
                 }
             }
 
             usleep(20_000);
         }
 
-        return array_replace(array_fill_keys($paths, null), $results);
+        return array_replace(array_fill_keys($paths, 'not rendered'), $results);
     }
 }

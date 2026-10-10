@@ -8,6 +8,7 @@ use Dom\HTMLDocument;
 use Gaffer\Console\Commands\DoctorRender;
 use Gaffer\Mcp\GafferCli;
 use Gaffer\Mcp\Tool;
+use RuntimeException;
 use Throwable;
 use WP_Error;
 
@@ -51,9 +52,10 @@ final class Render implements Tool
     public function run(array $input): array|WP_Error
     {
         $output = GafferCli::run(['doctor:render', (string) $input['path'], '--html']);
-        $result = DoctorRender::parse($output);
-        if ($result === null) {
-            return new WP_Error('gaffer_render', 'The render process crashed without a result: ' . mb_substr($output, -2000));
+        try {
+            $result = DoctorRender::parse($output);
+        } catch (RuntimeException $e) {
+            return new WP_Error('gaffer_render', ucfirst($e->getMessage()));
         }
 
         $selector = $input['selector'] ?? null;

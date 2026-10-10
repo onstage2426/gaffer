@@ -8,6 +8,7 @@ use Gaffer\Console\Command;
 use Gaffer\Console\WordPress;
 use Gaffer\Paths;
 use Gaffer\View;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -114,20 +115,27 @@ final class DoctorRender extends Command
     }
 
     /**
-     * The result line from this command's output; null when the process died before writing it.
+     * The result line from this command's output. Reads that one line only: plugins
+     * print after it on shutdown (Redis Object Cache's HTML comment). Throws with what
+     * it couldn't read when the process died first or the line isn't a result.
      *
-     * @return array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, html?: string}|null
+     * @return array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, html?: string}
      */
-    public static function parse(string $stdout): ?array
+    public static function parse(string $stdout): array
     {
         $at = strrpos($stdout, self::MARKER);
         if ($at === false) {
-            return null;
+            $tail = trim(mb_substr($stdout, -500));
+            throw new RuntimeException('the render process ended without a result line' . ($tail !== '' ? "; its last output: {$tail}" : ' and without output'));
         }
 
-        $result = json_decode(trim(substr($stdout, $at + strlen(self::MARKER))), true);
+        $line = strtok(substr($stdout, $at + strlen(self::MARKER)), "\n");
+        $result = json_decode((string) $line, true);
+        if (!is_array($result) || !is_string($result['status'] ?? null)) {
+            throw new RuntimeException('the render result line isn\'t readable: ' . mb_substr((string) $line, 0, 300));
+        }
 
-        return is_array($result) ? $result : null;
+        return $result;
     }
 
     private function fail(string $message, string $file, int $line): void

@@ -55,7 +55,14 @@
   of another aspect ratio) is wider than the box, so give the width it needs
   as `sizes`: `image.attrs('large', '(min-width: 1024px) 60vw, 150vw')`
   (box height × the image's aspect ratio). Not `src('full')`: that loads the
-  full file on every screen. Use `fetchpriority="high"` instead of `loading="lazy"`
+  full file on every screen. WordPress prefixes `auto, ` to the `sizes` of
+  lazy images in block content, which makes browsers ignore the list; Gaffer
+  takes it off again for a `sizes` given to `attrs()`. Better still: crop the
+  image to the box's shape (a registered size), then the default fits.
+  `attrs()` writes the size's own `width` and `height`: set the shown size
+  with CSS (`h-20 w-auto`), never with a `width`/`height` attribute next to
+  it. A srcset only reaches the widest registered size (`doctor --wp` warns
+  below 1536px): keep WordPress's `1536x1536` and `2048x2048` sizes. Use `fetchpriority="high"` instead of `loading="lazy"`
   above the fold. Always guard: `{% if image %}`; there is no fallback image.
 - **Theme graphics** (logo, icons) are SVG files in `views/components/icons/`,
   output with `{{ source('components/icons/name.svg') }}`. Never reference

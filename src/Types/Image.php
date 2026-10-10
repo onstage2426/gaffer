@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Types;
 
+use Gaffer\ImageSizes;
 use Twig\Markup;
 
 final class Image extends Attachment
@@ -19,6 +20,10 @@ final class Image extends Attachment
      * object-fit: cover in a box of another aspect ratio needs box height × the
      * image's aspect ratio, which neither "auto" nor the size's width knows:
      * <img class="object-cover" {{ image.attrs('large', '(min-width: 1024px) 60vw, 150vw') }}>
+     * WordPress's "auto, " for lazy images in content is taken off again (ImageSizes).
+     *
+     * Writes the size's own width and height: set the shown size with CSS (h-20 w-auto),
+     * not a width or height attribute on the tag, which would be a second one.
      */
     public function attrs(string $size = 'full', ?string $sizes = null): Markup
     {
@@ -38,6 +43,8 @@ final class Image extends Attachment
             if ($sizes === null) {
                 $default = \wp_get_attachment_image_sizes($this->wp->ID, $size);
                 $sizes = $default ? 'auto, ' . $default : null;
+            } else {
+                ImageSizes::keep($sizes); // WordPress would prefix "auto, " in block content
             }
             if ($sizes !== null) {
                 $attrs['sizes'] = \esc_attr($sizes);

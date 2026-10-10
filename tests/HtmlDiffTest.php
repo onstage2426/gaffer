@@ -36,10 +36,10 @@ final class HtmlDiffTest extends TestCase
 
     public function test_ignore_and_select(): void
     {
-        self::assertSame(['<div data-delay="">', '</div>'], HtmlDiff::lines('<div data-delay="300"></div>', ['/(?<=data-delay=")\d+/']));
+        self::assertSame("<div data-delay=''></div>", HtmlDiff::without("<div data-delay='300'></div>", ["/(?<=data-delay=')\\d+/"]));
         self::assertSame(['<p class="faq">Hi</p>'], HtmlDiff::select_all('<main><p class="faq">Hi</p><p>No</p></main>', '.faq'));
 
         $this->expectException(InvalidArgumentException::class);
-        HtmlDiff::lines('', ['no delimiters']);
+        HtmlDiff::without('', ['no delimiters']);
     }
 }

@@ -31,7 +31,7 @@ final class RenderDiff extends Command
     {
         $this->addArgument('name', InputArgument::OPTIONAL, 'Snapshot name', 'snapshot');
         $this->addOption('select', null, InputOption::VALUE_REQUIRED, 'Compare only the elements matching this CSS selector, e.g. main or ".faq"');
-        $this->addOption('ignore', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Remove matches of this regular expression first (repeatable), e.g. \'/data-delay="\d+"/\'');
+        $this->addOption('ignore', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Remove matches of this regular expression first (repeatable), e.g. \'/data-delay="\d+"/\'. It matches the page as rendered (before --select and normalizing): mind single and double quotes');
         $this->addOption('lines', null, InputOption::VALUE_REQUIRED, 'Diff lines shown per page', '40');
     }
 
@@ -44,7 +44,7 @@ final class RenderDiff extends Command
 
         try {
             $snapshot = Snapshot::load((string) $input->getArgument('name'));
-            HtmlDiff::lines('', $ignore); // invalid expressions fail before rendering
+            HtmlDiff::without('', $ignore); // invalid expressions fail before rendering
         } catch (RuntimeException | InvalidArgumentException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
             return self::FAILURE;
@@ -108,8 +108,11 @@ final class RenderDiff extends Command
             $changes[] = "+ HTTP {$after['http']}" . ($after['redirect'] !== null ? " → {$after['redirect']}" : '');
         }
 
-        $html = static fn(string $page): string => $select !== null ? implode("\n", HtmlDiff::select_all($page, $select)) : $page;
-        array_push($changes, ...HtmlDiff::diff(HtmlDiff::lines($html($before['html']), $ignore), HtmlDiff::lines($html($after['html']), $ignore), 2, $max));
+        $lines = static function (string $page) use ($select, $ignore): array {
+            $page = HtmlDiff::without($page, $ignore);
+            return HtmlDiff::lines($select !== null ? implode("\n", HtmlDiff::select_all($page, $select)) : $page);
+        };
+        array_push($changes, ...HtmlDiff::diff($lines($before['html']), $lines($after['html']), 2, $max));
 
         return $changes;
     }

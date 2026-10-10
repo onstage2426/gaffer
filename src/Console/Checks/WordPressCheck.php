@@ -37,7 +37,28 @@ final class WordPressCheck implements Check
         $this->woocommerce_templates($report);
         $this->forms($report);
         $this->menus($report);
+        $this->image_sizes($report);
         $this->mcp($report);
+    }
+
+    /**
+     * A srcset only offers registered sizes up to max_srcset_image_width, plus the original when
+     * it fits under that: with WordPress's 1536 and 2048 sizes removed, a large original's widest
+     * candidate can be 1024px, blurry on wide or high-density screens (and in cropped boxes).
+     */
+    private function image_sizes(Report $report): void
+    {
+        $original = 4000; // a large upload
+        $cap = (int) \apply_filters('max_srcset_image_width', 2048, [$original, $original]);
+        $widths = array_filter(
+            array_map(static fn(array $size): int => (int) ($size['width'] ?? 0), \wp_get_registered_image_subsizes()),
+            static fn(int $width): bool => $width > 0 && $width <= $cap,
+        );
+        $widest = $widths === [] ? 0 : max($widths);
+        if ($widest < 1536) {
+            $report->warning('wp', "srcset candidates for large uploads stop at {$widest}px wide (registered image sizes up to max_srcset_image_width {$cap}px)", null, null,
+                "Keep WordPress's 1536x1536 and 2048x2048 sizes, or register a wide size; raising max_srcset_image_width only helps originals up to that width.");
+        }
     }
 
     /**

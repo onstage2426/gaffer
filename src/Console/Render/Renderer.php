@@ -82,7 +82,9 @@ final class Renderer
     {
         global $wpdb;
 
-        $likes = array_map(static fn(string $b): string => $wpdb->prepare('post_content LIKE %s', '%' . $wpdb->esc_like("<!-- wp:{$b} ") . '%'), $blocks === [] ? ['acf/'] : $blocks);
+        // "<!-- wp:acf/x " (with the space: not acf/x-other), or any "<!-- wp:acf/".
+        $needles = $blocks === [] ? ['<!-- wp:acf/'] : array_map(static fn(string $b): string => "<!-- wp:{$b} ", $blocks);
+        $likes = array_map(static fn(string $needle): string => $wpdb->prepare('post_content LIKE %s', '%' . $wpdb->esc_like($needle) . '%'), $needles);
         $types = array_values(get_post_types(['public' => true]));
         $ids = $wpdb->get_col(
             "SELECT ID FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ('" . implode("','", array_map('esc_sql', $types)) . "')"

@@ -36,14 +36,14 @@ final class HtmlDiff
     }
 
     /**
-     * One tag or text run per line. $ignore: regular expressions (with delimiters)
-     * whose matches are removed first (timestamps, nonces, random order).
+     * The page without the matches of these regular expressions (with delimiters):
+     * timestamps, nonces, random order. They match the page as rendered, before
+     * select_all() and lines() rewrite it.
      *
      * @param list<string> $ignore
-     * @return list<string>
      * @throws InvalidArgumentException on an invalid expression
      */
-    public static function lines(string $html, array $ignore = []): array
+    public static function without(string $html, array $ignore): string
     {
         foreach ($ignore as $pattern) {
             $html = @preg_replace($pattern, '', $html);
@@ -51,6 +51,17 @@ final class HtmlDiff
                 throw new InvalidArgumentException("Invalid regular expression {$pattern} (with delimiters, e.g. /data-delay=\"\\d+\"/)");
             }
         }
+
+        return $html;
+    }
+
+    /**
+     * One tag or text run per line: entities decoded, whitespace collapsed.
+     *
+     * @return list<string>
+     */
+    public static function lines(string $html): array
+    {
         $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $html = (string) preg_replace(['/\s+/u', '/\s*</', '/>\s*/'], [' ', "\n<", ">\n"], $html);
 

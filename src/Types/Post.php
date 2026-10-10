@@ -73,6 +73,8 @@ class Post
     /**
      * Plain text: the_title's entities (&#8217; from texturize, &#038;) are decoded, so
      * Twig's escaping shows them correctly instead of escaping them a second time.
+     * The_title's filters change the text itself (wptexturize: "60x60" → "60×60");
+     * the stored title is $this->wp->post_title.
      */
     public function title(): string
     {

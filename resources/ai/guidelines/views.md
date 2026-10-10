@@ -59,6 +59,10 @@
 - **Menus** are registered locations (`register_nav_menus()` in `inc/`) and
   loaded with `Menu::location('primary')`, usually shared with `View::share()`.
   Never use menu IDs. Loop safely: `{% for item in nav_primary.items ?? [] %}`.
-- `|raw` only for HTML that is already trusted (WordPress content, notices);
-  `doctor` counts it against `console.raw_baseline`.
+- `|raw` only for HTML that is already trusted (WordPress content, notices,
+  plugin output like Yoast breadcrumbs or a Gravity Forms shortcode): pass it
+  to the template as a string and print it with `|raw` there. `doctor` counts
+  `|raw` and `new Markup(...)` in theme PHP together against
+  `console.raw_baseline`, so wrapping HTML in `Twig\Markup` in PHP doesn't
+  hide it; prefer `|raw` in the template, where the trust is visible.
 - Twig gotcha: `and` binds tighter than `or`; use parentheses.

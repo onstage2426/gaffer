@@ -14,6 +14,7 @@ use Gaffer\Console\Checks\ConfigCheck;
 use Gaffer\Console\Checks\GuidelinesCheck;
 use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
+use Gaffer\Console\Checks\SourceCheck;
 use Gaffer\Console\Checks\TemplateGlobalsCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
 use Gaffer\Console\Checks\WordPressCheck;
@@ -113,6 +114,16 @@ final class ChecksTest extends TestCase
         $messages = $this->messages(new MarkupCheck());
 
         self::assertSame('HTML in PHP (line 4, 6)', $messages);
+    }
+
+    public function test_new_markup_in_php_counts_as_raw(): void
+    {
+        mkdir("{$this->theme}/views", 0755, true);
+        mkdir("{$this->theme}/inc", 0755, true);
+        file_put_contents("{$this->theme}/views/a.twig", "{{ a|raw }}\n{{ b }}\n");
+        file_put_contents("{$this->theme}/inc/x.php", "<?php\n\$c = new \\Twig\\Markup(\$html, 'UTF-8');\n\$d = new MarkupThing();\n");
+
+        self::assertSame('2 uses of |raw (templates) and new Markup (PHP)', $this->messages(new SourceCheck()));
     }
 
     public function test_declarations_in_inc(): void

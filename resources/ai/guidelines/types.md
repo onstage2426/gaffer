@@ -41,7 +41,7 @@ Main methods:
   `is_current_ancestor()`, `children()`, `has_children()`, `is_external()`,
   `object()` (the linked `Post`/`Term` as its type, e.g. a category's
   `thumbnail()`; `null` for custom links and archives), `meta($key)` (the
-  item's own fields, e.g. an ACF icon: `Image::from((int) item.meta('icon'))`
+  item's own fields, e.g. an ACF icon: `Image::from((int) $item->meta('icon'))`
   in PHP). Large menus are slow: `Menu::location()` takes ~100+ ms for
   hundreds of items, every request. Share a big menu only where it's shown,
   and keep `object()`/`meta()` out of loops over all items when only the

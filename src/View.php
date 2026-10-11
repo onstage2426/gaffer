@@ -32,13 +32,14 @@ final class View
     /** @param array<string, mixed> $data */
     public static function fetch(string $template, array $data = []): string
     {
-        return self::env()->render($template, self::$use_shared ? [...self::shared(), ...$data] : $data);
+        return self::env()->render($template, self::$use_shared ? [...self::shared(array_keys($data)), ...$data] : $data);
     }
 
     /**
      * Data for the page's templates (the ones render()/fetch() get, not their
-     * isolated includes). Closures are resolved once, on the first render, then
-     * cached for the request. Ajax actions don't get it: they answer with a
+     * isolated includes). Closures are resolved once, on the first render that
+     * doesn't pass that key itself, then cached for the request: a page can skip
+     * a costly one (a large menu on checkout) by passing it, e.g. as null. Ajax actions don't get it: they answer with a
      * fragment, so a menu isn't looked up for nothing.
      */
     public static function share(string $key, mixed $value): void
@@ -83,15 +84,23 @@ final class View
         self::$env = $env;
     }
 
-    /** @return array<string, mixed> */
-    private static function shared(): array
+    /**
+     * @param list<string> $except keys the render passes itself: not resolved
+     * @return array<string, mixed>
+     */
+    private static function shared(array $except): array
     {
+        $shared = [];
         foreach (self::$shared as $key => $value) {
+            if (in_array($key, $except, true)) {
+                continue;
+            }
             if (!array_key_exists($key, self::$resolved)) {
                 self::$resolved[$key] = $value instanceof Closure ? $value() : $value;
             }
+            $shared[$key] = self::$resolved[$key];
         }
 
-        return self::$resolved;
+        return $shared;
     }
 }

@@ -37,6 +37,21 @@ final class ViewTest extends TestCase
         self::assertSame('shared-local', View::fetch('t.twig', ['b' => 'local']));
     }
 
+    public function test_a_shared_closure_the_render_passes_itself_is_not_resolved(): void
+    {
+        View::set_env(new Environment(new ArrayLoader(['t.twig' => '{{ menu ?? "none" }}'])));
+        $calls = 0;
+        View::share('menu', function () use (&$calls): string {
+            $calls++;
+            return 'menu';
+        });
+
+        self::assertSame('none', View::fetch('t.twig', ['menu' => null]));
+        self::assertSame(0, $calls);
+        self::assertSame('menu', View::fetch('t.twig'));
+        self::assertSame(1, $calls);
+    }
+
     public function test_ajax_renders_without_shared_data(): void
     {
         View::set_env(new Environment(new ArrayLoader(['t.twig' => '{{ a ?? "none" }}'])));

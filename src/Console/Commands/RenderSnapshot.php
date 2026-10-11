@@ -17,7 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * Saves how pages look now, to compare with render:diff after changing code
  * (migrating a block, rewriting a template). The pages: doctor's sample plus every
- * published post using an ACF block (or the given blocks). Rendered here like
+ * published post using an ACF block (or the given blocks), plus any --path. Rendered here like
  * doctor does, or with --from fetched from a site over HTTP (the live site on the
  * old theme, while this copy runs the new one).
  */
@@ -31,6 +31,7 @@ final class RenderSnapshot extends Command
     {
         $this->addArgument('name', InputArgument::OPTIONAL, 'Snapshot name', 'snapshot');
         $this->addOption('block', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Only doctor\'s sample and pages using this block (repeatable), e.g. acf/content-faq');
+        $this->addOption('path', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Also this URL path (repeatable), e.g. /afwatering/ or "/winkel/?filter=x"');
         $this->addOption('from', null, InputOption::VALUE_REQUIRED, 'Fetch the pages over HTTP from this site instead of rendering them, e.g. https://www.example.com');
     }
 
@@ -42,7 +43,14 @@ final class RenderSnapshot extends Command
         $blocks = array_values(array_map('strval', (array) $input->getOption('block')));
         $file = Snapshot::file($name);
 
-        $paths = array_values(array_unique([...Renderer::sample(), ...Renderer::using_blocks($blocks)]));
+        $extra = array_values(array_map('strval', (array) $input->getOption('path')));
+        foreach ($extra as $path) {
+            if (!str_starts_with($path, '/')) {
+                $output->writeln("<error>\"{$path}\" is not a URL path (it starts with /)</error>");
+                return self::FAILURE;
+            }
+        }
+        $paths = array_values(array_unique([...Renderer::sample(), ...Renderer::using_blocks($blocks), ...$extra]));
         $output->writeln('Saving ' . count($paths) . ' pages ' . (is_string($from) ? "from {$from}" : 'rendered with this code') . '...');
         $progress = static function (string $path) use ($output): void {
             if ($output->isVerbose()) {

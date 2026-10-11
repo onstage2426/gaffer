@@ -42,4 +42,32 @@ final class HtmlDiffTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         HtmlDiff::without('', ['no delimiters']);
     }
+
+    public function test_a_long_page_still_lines_up(): void
+    {
+        $menu = static function (array $changes): array {
+            $lines = [];
+            for ($i = 0; $i < 3000; $i++) {
+                array_push($lines, '<li>', "<a href=\"/c/{$i}/\">", $changes[$i] ?? "Item {$i}", '</a>', '</li>');
+            }
+            return $lines;
+        };
+        $old = $menu([]);
+        $new = $menu([1500 => 'Renamed']);
+        array_splice($new, 2500 * 5, 0, ['<li>', '<a href="/new/">', 'New', '</a>', '</li>']);
+
+        $start = microtime(true);
+        $diff = HtmlDiff::diff($old, $new, 1, 100);
+
+        self::assertLessThan(2.0, microtime(true) - $start);
+        self::assertContains('- Item 1500', $diff);
+        self::assertContains('+ Renamed', $diff);
+        self::assertContains('+ <a href="/new/">', $diff);
+        self::assertLessThan(20, count($diff));
+    }
+
+    public function test_hunks_split_at_gaps(): void
+    {
+        self::assertSame([['  b', '- c', '+ C'], ['+ j']], HtmlDiff::hunks(['  b', '- c', '+ C', '…', '+ j', '…']));
+    }
 }

@@ -77,6 +77,10 @@ final class DoctorRender extends Command
         parse_str($_SERVER['QUERY_STRING'], $_GET);
         $_REQUEST = $_GET;
         define('WP_USE_THEMES', true);
+        // The theme's own output: page cache and optimization plugins leave it alone (WP Rocket and
+        // others honor these), so renders are stable and the CLI user writes no cache files.
+        define('DONOTCACHEPAGE', true);
+        define('DONOTROCKETOPTIMIZE', true);
         WordPress::load($input->getOption('url'));
         View::env()->enableStrictVariables();
 

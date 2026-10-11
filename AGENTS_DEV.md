@@ -193,8 +193,8 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   Rocket). A large WooCommerce site (multisite, WP Rocket, Redis, YITH filters,
   Gravity Forms shortcodes) is being converted from PHP templates to Gaffer by
   its own Claude Code, on the live server (no staging): its feedback drives
-  the render/doctor/migrate tooling. Blueprint and thenewbride remove WordPress's
-  1536/2048 image sizes, so `doctor --wp` warns about srcset width there.
+  the render/doctor/migrate tooling. Blueprint and thenewbride keep WordPress's
+  1536/2048 image sizes (re-added 2026-10-11, thumbnails not regenerated).
 - **Before 1.0, done:** public API (`API.md`, `api.txt` snapshot, `@internal`
   on the rest), deprecations (`#[\Deprecated]` + `doctor`), `symfony/console`
   a runtime requirement, CI (`.github/workflows/ci.yml`), supported versions

@@ -16,6 +16,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 use Twig\Error\Error as TwigError;
+use Twig\Extension\ProfilerExtension;
+use Twig\Profiler\Profile;
 
 /**
  * Renders one URL the way a web request would, with Twig strict_variables on,
@@ -28,30 +30,36 @@ final class DoctorRender extends Command
 {
     public const string MARKER = 'GAFFER_RENDER_RESULT ';
 
-    /** @var array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, html?: string} */
+    /** @var array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, time_ms?: int, queries?: int, twig_ms?: int, html?: string} */
     private array $result;
 
     /** Output buffer level below the page's buffer. */
     private ?int $buffer_level = null;
+
+    /** Twig's render time, once the environment exists. */
+    private ?Profile $profile = null;
 
     #[\Override]
     protected function configure(): void
     {
         $this->addArgument('path', InputArgument::REQUIRED, 'URL path, e.g. /contact/');
         $this->addOption('html', null, InputOption::VALUE_NONE, 'Include the rendered page in the result');
+        $this->addOption('user', null, InputOption::VALUE_REQUIRED, 'Render as this user (ID), e.g. the account pages or role prices');
+        $this->addOption('cart', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'WooCommerce: put this product in the cart first, ID or ID:quantity (a variation by its own ID; repeatable)');
     }
 
     #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $path = (string) $input->getArgument('path');
-        $this->result = ['path' => $path, 'status' => 'ok', 'error' => null, 'file' => null, 'line' => null, 'redirect' => null, 'http' => 200, 'notices' => [], 'bytes' => 0];
+        $started = hrtime(true);
+        $this->result = ['path' => $path, 'status' => 'ok', 'error' => null, 'file' => null, 'line' => null, 'redirect' => null, 'http' => 200, 'notices' => [], 'bytes' => 0, 'time_ms' => 0, 'queries' => 0, 'twig_ms' => 0];
         if ($input->getOption('html')) {
             $this->result['html'] = '';
         }
 
         // Templates may redirect and exit, or fatal; report from shutdown either way.
-        register_shutdown_function(function (): void {
+        register_shutdown_function(function () use ($started): void {
             // Runs before WordPress's own shutdown flush: empty the page into the result first.
             while ($this->buffer_level !== null && ob_get_level() > $this->buffer_level) {
                 ob_end_flush();
@@ -60,6 +68,9 @@ final class DoctorRender extends Command
             if ($this->result['status'] === 'ok' && $error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
                 $this->fail(strtok($error['message'], "\n") ?: $error['message'], $error['file'], $error['line']);
             }
+            $this->result['time_ms'] = (int) round((hrtime(true) - $started) / 1e6);
+            $this->result['queries'] = isset($GLOBALS['wpdb']) ? (int) $GLOBALS['wpdb']->num_queries : 0;
+            $this->result['twig_ms'] = $this->profile !== null ? (int) round($this->profile->getDuration() * 1000) : 0;
             fwrite(STDOUT, "\n" . self::MARKER . json_encode($this->result, JSON_UNESCAPED_SLASHES) . "\n");
         });
 
@@ -81,8 +92,16 @@ final class DoctorRender extends Command
         // others honor these), so renders are stable and the CLI user writes no cache files.
         define('DONOTCACHEPAGE', true);
         define('DONOTROCKETOPTIMIZE', true);
+        try {
+            $this->as_visitor(is_string($user = $input->getOption('user')) ? $user : null, array_values(array_map('strval', (array) $input->getOption('cart'))));
+        } catch (\InvalidArgumentException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            return self::FAILURE;
+        }
         WordPress::load($input->getOption('url'));
         View::env()->enableStrictVariables();
+        $this->profile = new Profile();
+        View::env()->addExtension(new ProfilerExtension($this->profile));
 
         // The HTTP status WordPress sends (404 for a missing page, 3xx for a redirect).
         add_filter('status_header', function (string $header, int $code): string {
@@ -127,7 +146,7 @@ final class DoctorRender extends Command
      * print after it on shutdown (Redis Object Cache's HTML comment). Throws with what
      * it couldn't read when the process died first or the line isn't a result.
      *
-     * @return array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, html?: string}
+     * @return array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, time_ms?: int, queries?: int, twig_ms?: int, html?: string}
      */
     public static function parse(string $stdout): array
     {
@@ -144,6 +163,56 @@ final class DoctorRender extends Command
         }
 
         return $result;
+    }
+
+    /**
+     * Logged in as $user and with these products in the WooCommerce cart, hooked before WordPress
+     * loads (the session and cart are set up while it does). Writes nothing: no persistent cart
+     * (the user's saved cart is neither read nor changed: the cart is exactly --cart) and no
+     * WooCommerce session row.
+     *
+     * @param list<string> $cart "ID" or "ID:quantity"
+     * @throws \InvalidArgumentException on a malformed value
+     */
+    private function as_visitor(?string $user, array $cart): void
+    {
+        if ($user !== null) {
+            $id = ctype_digit($user) ? (int) $user : 0;
+            if ($id <= 0) {
+                throw new \InvalidArgumentException("--user takes a user ID, not \"{$user}\"");
+            }
+            $GLOBALS['wp_filter']['determine_current_user'][PHP_INT_MAX][] = ['function' => static fn(): int => $id, 'accepted_args' => 1];
+        }
+        if ($user === null && $cart === []) {
+            return;
+        }
+
+        $items = [];
+        foreach ($cart as $item) {
+            if (!preg_match('/^(\d+)(?::(\d+))?$/', $item, $m)) {
+                throw new \InvalidArgumentException("--cart takes a product ID or ID:quantity, not \"{$item}\"");
+            }
+            $items[] = [(int) $m[1], (int) ($m[2] ?? 1)];
+        }
+        // A logged-in visitor or a cart gets a WooCommerce session: keep it in this process.
+        $GLOBALS['wp_filter']['woocommerce_persistent_cart_enabled'][10][] = ['function' => static fn(): bool => false, 'accepted_args' => 1];
+        $GLOBALS['wp_filter']['wp_loaded'][PHP_INT_MAX][] = ['function' => function () use ($items): void {
+            if (!function_exists('WC')) {
+                if ($items !== []) {
+                    $this->fail('--cart needs WooCommerce', __FILE__, __LINE__);
+                }
+                return;
+            }
+            if (WC()->session !== null) {
+                remove_action('shutdown', [WC()->session, 'save_data'], 20);
+            }
+            foreach ($items as [$product, $quantity]) {
+                if (WC()->cart === null || WC()->cart->add_to_cart($product, $quantity) === false) {
+                    $this->fail("Product {$product} could not be added to the cart (not purchasable, out of stock, or a variable product: pass the variation's ID)", __FILE__, __LINE__);
+                    return;
+                }
+            }
+        }, 'accepted_args' => 1];
     }
 
     private function fail(string $message, string $file, int $line): void

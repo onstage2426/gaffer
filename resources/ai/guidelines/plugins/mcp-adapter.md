@@ -17,8 +17,10 @@ Prefer these tools over ad-hoc scripts:
   and to find a page to test a block on.
 - `gaffer-doctor`: `doctor --wp` as structured findings.
 - `gaffer-render`: one URL in a fresh WordPress with strict variables: status,
-  HTTP code, redirect, error with file and line, theme notices, and the HTML
-  (pass a CSS `selector`; whole pages are large).
+  HTTP code, redirect, error with file and line, theme notices, `time_ms`,
+  `queries`, `twig_ms`, and the HTML (pass a CSS `selector`; whole pages are
+  large). `user` renders logged in, `cart` (WooCommerce) fills the cart
+  first: check cart, checkout and account pages that way. Nothing is written.
 - `gaffer-last-errors`: the recent PHP error log (repeats merged) and the
   theme's `storage/logs/`. Look here before guessing why something broke.
 - `gaffer-forms` (with Gravity Forms): forms and their fields, as

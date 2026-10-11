@@ -7,15 +7,18 @@ API is documented in the plugin, `wp-content/plugins/fuzor-wp/docs/` (`php.md`,
 Gaffer theme.
 
 - **The index** is registered in `inc/fuzor.php`, inside
-  `if (function_exists('fuzor_register_index'))` (`inc/` loads before `init`,
-  which registration needs). The right-hand side of the builder's `taxonomy`
-  map (`'pa_kleur' => 'color'`) is the field name everywhere else:
-  `filter[color]`, facets, the JS fields. Filter values, facet keys, URLs and
+  `add_action('fuzor_register_indexes', function (): void { … })` (the plugin
+  fires it at `init:0`; with the plugin inactive it never runs, so no
+  `function_exists()` check), with `FuzorSearch\IndexDefinition` and a builder
+  from `FuzorSearch\Builders\` (`ProductIndexBuilder`). The right-hand side of
+  the builder's `taxonomy` map (`'pa_kleur' => 'color'`) is the field name
+  everywhere else: `filter[color]`, facets, the JS fields. Filter values, facet keys, URLs and
   theme maps (icons per term, the SEO allowlist) use term **slugs**; the names
   come with every response as `labels`: `opt.label` in option lists,
   `hit.labels.brand` on a hit, `label` on a facet-typeahead hit. Never show a
   slug. Only facet fields sort: alphabetical sorting needs `sortable: ['title']`
-  and sorts on `title_sort`.
+  and sorts on `title_sort`. A locked filter (a token's, `fuzor_archive()`'s)
+  names facet fields only: any other field fails the search.
 - **PHP prepares it, in one class** (`Theme\Search`): a searchbar's endpoint
   and token (`fuzor_generate_token()`), an archive's `fuzor_archive()` (token,
   the results for this URL, facet tokens; on a term archive the token is locked
@@ -43,8 +46,8 @@ Gaffer theme.
   text (`{{ hit.title }}`, `x-text`); only `hit.formatted.*` is HTML (`|raw`,
   `x-html`).
 - **SEO (Yoast):** strip `token` from the canonical (`wpseo_canonical`), set
-  robots with `fuzor_archive_seo_directives($index)` (`wpseo_robots_array`),
-  and on an archive that pages with `?offset=`, redirect old URLs with
-  `fuzor_redirect_legacy_archive_params()` on `template_redirect`. Which facet
-  values get an indexable page is the site's call
+  robots with `fuzor_archive_indexable($index)` (`wpseo_robots_array`), and on
+  an archive that pages with `?offset=`, redirect `/page/N/` with
+  `fuzor_redirect_archive_params($perPage)` on `template_redirect`. Which
+  facet values get an indexable page is the site's call
   (`fuzor_archive_indexable_facets`).

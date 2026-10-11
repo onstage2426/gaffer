@@ -32,6 +32,8 @@ final class RenderSnapshot extends Command
         $this->addArgument('name', InputArgument::OPTIONAL, 'Snapshot name', 'snapshot');
         $this->addOption('block', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Only doctor\'s sample and pages using this block (repeatable), e.g. acf/content-faq');
         $this->addOption('path', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Also this URL path (repeatable), e.g. /afwatering/ or "/winkel/?filter=x"');
+        $this->addOption('user', null, InputOption::VALUE_REQUIRED, 'Render logged in as this user ID (render:diff does the same)');
+        $this->addOption('cart', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'WooCommerce: render with this product in the cart, ID or ID:quantity (repeatable)');
         $this->addOption('from', null, InputOption::VALUE_REQUIRED, 'Fetch the pages over HTTP from this site instead of rendering them, e.g. https://www.example.com');
     }
 
@@ -42,6 +44,14 @@ final class RenderSnapshot extends Command
         $from = $input->getOption('from');
         $blocks = array_values(array_map('strval', (array) $input->getOption('block')));
         $file = Snapshot::file($name);
+        $visitor = [
+            ...(is_string($user = $input->getOption('user')) ? ["--user={$user}"] : []),
+            ...array_map(static fn(mixed $item): string => '--cart=' . $item, (array) $input->getOption('cart')),
+        ];
+        if (is_string($from) && $visitor !== []) {
+            $output->writeln('<error>--user and --cart render here; --from fetches over HTTP as a visitor. Use one or the other.</error>');
+            return self::FAILURE;
+        }
 
         $extra = array_values(array_map('strval', (array) $input->getOption('path')));
         foreach ($extra as $path) {
@@ -60,9 +70,9 @@ final class RenderSnapshot extends Command
 
         $pages = is_string($from)
             ? array_map(self::fetch(...), array_combine($paths, array_map(static fn(string $p): string => rtrim($from, '/') . $p, $paths)))
-            : array_map(Snapshot::page(...), new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress)->render($paths, true));
+            : array_map(Snapshot::page(...), new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $visitor)->render($paths, true));
 
-        new Snapshot($name, is_string($from) ? $from : 'rendered', gmdate('c'), $pages)->save();
+        new Snapshot($name, is_string($from) ? $from : 'rendered' . ($visitor !== [] ? ' ' . implode(' ', $visitor) : ''), gmdate('c'), $pages, $visitor)->save();
 
         foreach ($pages as $path => $page) {
             if ($page['error'] !== null) {

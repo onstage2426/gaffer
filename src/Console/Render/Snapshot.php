@@ -18,12 +18,14 @@ final class Snapshot
 {
     /**
      * @param array<string, Page> $pages by URL path
+     * @param list<string> $visitor who rendered it (--user=, --cart=): render:diff renders the same way
      */
     public function __construct(
         public readonly string $name,
         public readonly string $source,
         public readonly string $created,
         public readonly array $pages,
+        public readonly array $visitor = [],
     ) {}
 
     public static function file(string $name): string
@@ -38,7 +40,7 @@ final class Snapshot
     public function save(): string
     {
         $file = self::file($this->name);
-        $json = json_encode(['source' => $this->source, 'created' => $this->created, 'pages' => $this->pages], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        $json = json_encode(['source' => $this->source, 'created' => $this->created, 'visitor' => $this->visitor, 'pages' => $this->pages], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         if ($json === false || file_put_contents($file, $json) === false) {
             throw new RuntimeException("Could not write {$file}");
         }
@@ -67,7 +69,9 @@ final class Snapshot
             ];
         }
 
-        return new self($name, (string) ($data['source'] ?? ''), (string) ($data['created'] ?? ''), $pages);
+        $visitor = array_values(array_filter(is_array($data['visitor'] ?? null) ? $data['visitor'] : [], 'is_string'));
+
+        return new self($name, (string) ($data['source'] ?? ''), (string) ($data['created'] ?? ''), $pages, $visitor);
     }
 
     /**

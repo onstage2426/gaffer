@@ -22,10 +22,14 @@ final class Renderer
     private const int PARALLEL = 4;
     private const int MAX_PAGES = 40;
 
-    /** @param \Closure(string): void $progress called with each path as it starts */
+    /**
+     * @param \Closure(string): void $progress called with each path as it starts
+     * @param list<string> $visitor doctor:render options for who renders (--user=, --cart=)
+     */
     public function __construct(
         private readonly ?string $url,
         private readonly \Closure $progress,
+        private readonly array $visitor = [],
     ) {}
 
     /**
@@ -109,7 +113,7 @@ final class Renderer
             while ($queue !== [] && count($running) < self::PARALLEL) {
                 $path = array_shift($queue);
                 ($this->progress)($path);
-                $command = [PHP_BINARY, $entry, 'doctor:render', $path, '--no-ansi', ...($html ? ['--html'] : [])];
+                $command = [PHP_BINARY, $entry, 'doctor:render', $path, '--no-ansi', ...($html ? ['--html'] : []), ...$this->visitor];
                 if ($this->url !== null) {
                     $command[] = "--url={$this->url}";
                 }

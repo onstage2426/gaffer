@@ -56,7 +56,7 @@ final class RenderDiff extends Command
                 $output->writeln("<comment>rendering</comment> {$path}");
             }
         };
-        $now = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress)->render(array_keys($snapshot->pages), true);
+        $now = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $snapshot->visitor)->render(array_keys($snapshot->pages), true);
 
         // The same change on many pages (a header, a footer) is shown once, with its pages.
         $same = 0;

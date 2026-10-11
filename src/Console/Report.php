@@ -48,6 +48,17 @@ final class Report
     }
 
     /**
+     * Removes the baseline's entries that no longer occur; returns how many warnings it dropped.
+     */
+    public function prune_baseline(Baseline $baseline): int
+    {
+        $pruned = $baseline->prune($this->findings);
+        $pruned->save();
+
+        return $baseline->count() - $pruned->count();
+    }
+
+    /**
      * Hides the warnings a baseline knows; returns a line saying what it hid ('' when nothing).
      */
     public function apply_baseline(Baseline $baseline, bool $wp): string
@@ -58,7 +69,7 @@ final class Report
         $line = $result['known'] > 0 ? "{$result['known']} known warnings hidden (" . Baseline::FILE . '; --all shows them)' : '';
         // Only when this run checks what the baseline was made with (with or without --wp).
         if ($result['gone'] > 0 && $wp === $baseline->wp) {
-            $line .= ($line !== '' ? '; ' : '') . "{$result['gone']} known warnings no longer occur: run doctor --baseline" . ($wp ? ' --wp' : '') . ' to shrink it';
+            $line .= ($line !== '' ? '; ' : '') . "{$result['gone']} known warnings no longer occur: run doctor --prune" . ($wp ? ' --wp' : '') . ' to shrink it';
         }
 
         return $line;

@@ -36,4 +36,13 @@ final class BaselineTest extends TestCase
         self::assertSame(1, $result['gone']);
         self::assertSame([], $result['findings']);
     }
+
+    public function test_prune_drops_what_no_longer_occurs_and_adds_nothing(): void
+    {
+        $baseline = Baseline::from([self::finding('warning', 'old'), self::finding('warning', 'old'), self::finding('warning', 'fixed')], false);
+
+        $pruned = $baseline->prune([self::finding('warning', 'old'), self::finding('warning', 'caused just now')]);
+
+        self::assertSame([['check' => 'views', 'file' => 'a.php', 'message' => 'old', 'count' => 1]], $pruned->entries);
+    }
 }

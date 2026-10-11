@@ -94,7 +94,8 @@ final class ChecksTest extends TestCase
         file_put_contents("{$this->theme}/views/components/card.twig", '{{ post }}');
         file_put_contents("{$this->theme}/views/components/old.twig", 'unused');
         file_put_contents("{$this->theme}/views/page.twig", "{{ include('components/card.twig', { post: post }, with_context = false) }}\n{{ include('components/card.twig') }}\n{{ include('components/gone.twig', {}, with_context = false) }}");
-        file_put_contents("{$this->theme}/page.php", "<?php View::render('page.twig', []);\nView::render(\"missing.twig\");\n");
+        file_put_contents("{$this->theme}/views/footer.twig", 'footer');
+        file_put_contents("{$this->theme}/page.php", "<?php View::render('page.twig', []);\nView::render(\"missing.twig\");\nView::render(\n    'footer.twig',\n    ['a' => 1],\n);\n");
         self::reset(View::class, 'env', null);
         self::reset(Gaffer::class, 'twig', false);
 
@@ -103,7 +104,7 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString("Renders missing.twig, which doesn't exist", $messages);
         self::assertStringContainsString("include() loads components/gone.twig, which doesn't exist", $messages);
         self::assertSame(1, substr_count($messages, 'passes all of this template'));
-        self::assertSame(1, substr_count($messages, 'Nothing renders or includes this template')); // old.twig
+        self::assertSame(1, substr_count($messages, 'Nothing renders or includes this template')); // old.twig, not the multi-line footer.twig
     }
 
     public function test_html_in_php_outside_the_shell(): void
@@ -111,9 +112,11 @@ final class ChecksTest extends TestCase
         file_put_contents("{$this->theme}/header.php", "<?php ?>\n<html><body>");
         file_put_contents("{$this->theme}/page.php", "<?php\n// a <div> in a comment is fine\n\$x = 1;\necho '<div class=\"a\">';\n\$y = <<<HTML\n    <p>x</p>\nHTML;\n\$z = 'a < b';\n");
 
-        $messages = $this->messages(new MarkupCheck());
+        $findings = $this->findings(new MarkupCheck());
 
-        self::assertSame('HTML in PHP (line 4, 6)', $messages);
+        self::assertSame('HTML in PHP', $findings[0]['message']); // stable for doctor-baseline.json
+        self::assertSame(4, $findings[0]['line']);
+        self::assertStringStartsWith('On line 4, 6.', $findings[0]['hint']);
     }
 
     public function test_new_markup_in_php_counts_as_raw(): void
@@ -370,11 +373,17 @@ final class ChecksTest extends TestCase
 
     private function messages(Check $check): string
     {
+        return implode("\n", array_column($this->findings($check), 'message'));
+    }
+
+    /** @return list<array{level: string, check: string, message: string, file: ?string, line: ?int, hint: ?string}> */
+    private function findings(Check $check): array
+    {
         $report = new Report();
         $check->run($report);
         $output = new BufferedOutput();
         $report->render($output, true);
 
-        return implode("\n", array_column((array) json_decode($output->fetch(), true), 'message'));
+        return (array) json_decode($output->fetch(), true);
     }
 }

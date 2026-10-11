@@ -72,6 +72,28 @@ final class Baseline
         return new self($wp, array_values($entries));
     }
 
+    /**
+     * Without what no longer occurs (doctor --prune): each entry keeps at most as many as
+     * occur now; nothing is added, so a warning just caused stays visible.
+     *
+     * @param list<array{level: string, check: string, message: string, file: ?string, line: ?int, hint: ?string}> $findings
+     */
+    public function prune(array $findings): self
+    {
+        $now = self::from($findings, $this->wp)->entries;
+        $counts = array_combine(array_map(self::key(...), $now), array_column($now, 'count'));
+
+        $entries = [];
+        foreach ($this->entries as $entry) {
+            $count = min($entry['count'], $counts[self::key($entry)] ?? 0);
+            if ($count > 0) {
+                $entries[] = [...$entry, 'count' => $count];
+            }
+        }
+
+        return new self($this->wp, $entries);
+    }
+
     public function save(): void
     {
         $json = json_encode(['wp' => $this->wp, 'warnings' => $this->entries], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

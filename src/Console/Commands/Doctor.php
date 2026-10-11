@@ -39,6 +39,7 @@ final class Doctor extends Command
         $this->addOption('no-render', null, InputOption::VALUE_NONE, 'With --wp: skip the (slower) render smoke test');
         $this->addOption('json', null, InputOption::VALUE_NONE, 'Output as JSON');
         $this->addOption('baseline', null, InputOption::VALUE_NONE, 'Write the current warnings to ' . Baseline::FILE . ' (commit it); later runs only show new ones');
+        $this->addOption('prune', null, InputOption::VALUE_NONE, 'Remove the warnings that no longer occur from ' . Baseline::FILE . ' (adds none)');
         $this->addOption('all', null, InputOption::VALUE_NONE, 'Also show the warnings ' . Baseline::FILE . ' knows');
     }
 
@@ -70,6 +71,22 @@ final class Doctor extends Command
         if ($input->getOption('baseline')) {
             $count = $report->save_baseline($wp);
             $output->writeln("Wrote {$count} warnings to " . Baseline::FILE . ' (commit it). Errors are never baselined.');
+            return $report->has_errors() ? self::FAILURE : self::SUCCESS;
+        }
+
+        if ($input->getOption('prune')) {
+            try {
+                $baseline = Baseline::load() ?? throw new RuntimeException('There is no ' . Baseline::FILE . ' to prune: write one with doctor --baseline');
+            } catch (RuntimeException $e) {
+                $output->writeln("<error>{$e->getMessage()}</error>");
+                return self::FAILURE;
+            }
+            if ($baseline->wp !== $wp) {
+                $output->writeln('<error>' . Baseline::FILE . ' was written ' . ($baseline->wp ? 'with' : 'without') . ' --wp: prune it the same way, or it drops the other checks\' warnings.</error>');
+                return self::FAILURE;
+            }
+            $dropped = $report->prune_baseline($baseline);
+            $output->writeln("Removed {$dropped} warnings that no longer occur from " . Baseline::FILE . ' (commit it); added none.');
             return $report->has_errors() ? self::FAILURE : self::SUCCESS;
         }
 

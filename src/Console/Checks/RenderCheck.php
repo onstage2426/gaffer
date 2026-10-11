@@ -47,7 +47,8 @@ final class RenderCheck implements Check
             $report->error('render', $result['error'] . self::on($paths), $result['file'], $result['line']);
         }
         foreach ($notices as $notice => $paths) {
-            $report->warning('render', $notice . self::on($paths));
+            // The pages in the hint: doctor-baseline.json matches messages, and the sample changes.
+            $report->warning('render', $notice, null, null, 'Seen' . self::on($paths) . '.');
         }
 
         $ok = count(array_filter($results, static fn(array|string $r): bool => is_array($r) && $r['status'] !== 'error'));

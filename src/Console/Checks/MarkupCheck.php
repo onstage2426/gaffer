@@ -35,8 +35,9 @@ final class MarkupCheck implements Check
                 }
             }
             if ($lines !== []) {
-                $report->warning('views', 'HTML in PHP (line ' . implode(', ', array_keys($lines)) . ')', $file, array_key_first($lines),
-                    'Move the markup to a Twig template and render it with View::render() / View::fetch().');
+                // Lines in the hint, not the message: doctor-baseline.json matches messages, and lines shift.
+                $report->warning('views', 'HTML in PHP', $file, array_key_first($lines),
+                    'On line ' . implode(', ', array_keys($lines)) . '. Move the markup to a Twig template and render it with View::render() / View::fetch().');
             }
         }
     }

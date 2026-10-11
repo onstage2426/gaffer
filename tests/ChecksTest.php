@@ -160,13 +160,20 @@ final class ChecksTest extends TestCase
         mkdir("{$this->theme}/public/.vite", 0755, true);
         file_put_contents("{$this->theme}/public/.vite/manifest.json", '{"assets/js/app.js": {"file": "assets/app-1.js"}}');
         touch("{$this->theme}/public/.vite/manifest.json", time() - 60);
-        file_put_contents("{$this->theme}/page.php", "<?php Vite::tags([\"assets/js/app.js\", 'assets/js/gone.js']);\n");
+        file_put_contents("{$this->theme}/page.php", "<?php Vite::tags([\n    \"assets/js/app.js\",\n    'assets/js/gone.js',\n]);\n");
+        touch("{$this->theme}/assets/js/app.js", time() - 120);
+        mkdir("{$this->theme}/assets/img", 0755, true);
+        file_put_contents("{$this->theme}/assets/img/new.png", 'x'); // served directly, not built
         self::reset(Vite::class, 'manifest', null);
 
-        $messages = $this->messages(new AssetsCheck());
-        self::assertStringContainsString('older than its sources (assets/js/app.js', $messages);
-        self::assertStringContainsString('assets/js/gone.js is not a Vite entry', $messages);
-        self::assertStringNotContainsString('assets/js/app.js is not', $messages);
+        $findings = $this->findings(new AssetsCheck());
+        self::assertSame(["assets/js/gone.js is not a Vite entry (not in the manifest)"], array_column($findings, 'message'));
+        self::assertSame(1, $findings[0]['line']); // where the multi-line call starts
+
+        touch("{$this->theme}/assets/js/app.js");
+        $findings = $this->findings(new AssetsCheck());
+        self::assertSame('The build is older than its sources', $findings[0]['message']);
+        self::assertStringStartsWith('assets/js/app.js changed since.', (string) $findings[0]['hint']);
 
         touch("{$this->theme}/public/.vite/hotfile");
         self::reset(Vite::class, 'dev_mode', null);

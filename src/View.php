@@ -38,8 +38,9 @@ final class View
     /**
      * Data for the page's templates (the ones render()/fetch() get, not their
      * isolated includes). Closures are resolved once, on the first render that
-     * doesn't pass that key itself, then cached for the request: a page can skip
-     * a costly one (a large menu on checkout) by passing it, e.g. as null. Ajax actions don't get it: they answer with a
+     * doesn't pass that key itself, then cached for the request. To leave a costly
+     * one out of some pages, decide in the closure (fn() => is_checkout() ? null :
+     * ...): one render's data only covers that render, a page is several. Ajax actions don't get it: they answer with a
      * fragment, so a menu isn't looked up for nothing.
      */
     public static function share(string $key, mixed $value): void

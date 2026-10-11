@@ -42,10 +42,11 @@
   $html = View::fetch('components/card.twig', $data);              // returns
   View::share('nav_primary', fn() => Menu::location('primary'));   // page templates (not ajax); closures run once per request
   ```
-  A render's own data wins over shared data with the same key, and a shared
-  closure it overrides isn't run: a page that doesn't show a costly shared
-  value (a large menu on checkout) passes it as `null` to skip it. Check
-  overrides on purpose: a `null` by mistake hides the shared value silently.
+  A render's own data wins over shared data with the same key (check that on
+  purpose: a `null` by mistake hides the shared value silently). A page is
+  several renders (head, header, blocks, footer), so skip a costly shared value
+  on pages that don't show it in the closure, which runs once per request:
+  `View::share('nav_mega', fn() => is_checkout() ? null : Menu::location('mega'));`
 - **Templates get all content from PHP.** There are no lookup functions in
   Twig (`get_post()` etc. don't exist). Gaffer's Twig functions are `config(key)`
   and `ajax_url(action)`; the theme's are listed in the reference below.

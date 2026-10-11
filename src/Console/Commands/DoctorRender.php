@@ -92,6 +92,11 @@ final class DoctorRender extends Command
         // others honor these), so renders are stable and the CLI user writes no cache files.
         define('DONOTCACHEPAGE', true);
         define('DONOTROCKETOPTIMIZE', true);
+        // Nonces the same in every render (rendered pages are never submitted), so render:diff
+        // doesn't show them as changes: no time tick, and one id for logged-out visitors, which
+        // WooCommerce otherwise makes each render's new session id.
+        $GLOBALS['wp_filter']['nonce_life'][PHP_INT_MAX][] = ['function' => static fn(): int => PHP_INT_MAX, 'accepted_args' => 1];
+        $GLOBALS['wp_filter']['nonce_user_logged_out'][PHP_INT_MAX][] = ['function' => static fn(): string => 'gaffer-render', 'accepted_args' => 1];
         try {
             $this->as_visitor(is_string($user = $input->getOption('user')) ? $user : null, array_values(array_map('strval', (array) $input->getOption('cart'))));
         } catch (\InvalidArgumentException $e) {

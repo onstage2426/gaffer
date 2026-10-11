@@ -57,6 +57,8 @@ final class Gaffer\Types\MenuItem
   is_current_ancestor(): bool
   is_external(): bool
   link(): string
+  meta(string $key): mixed
+  object(): Gaffer\Types\Post|Gaffer\Types\Term|null
   target(): ?string
   title(): string
 final class Gaffer\Types\Pagination

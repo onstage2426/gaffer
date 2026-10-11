@@ -125,6 +125,27 @@ final class MenuItem
     }
 
     /**
+     * What the item links to, as a type: the post (a page, a product: its mapped class) or
+     * the term. Null for a custom link, an archive, or something that no longer exists.
+     */
+    public function object(): Post|Term|null
+    {
+        $id = (int) $this->field('object_id');
+
+        return match ($this->field('type')) {
+            'post_type' => Post::from($id),
+            'taxonomy' => Term::from($id),
+            default => null,
+        };
+    }
+
+    /** The item's own meta (also its ACF fields: an icon, a label), as stored. */
+    public function meta(string $key): mixed
+    {
+        return \get_post_meta($this->wp->ID, $key, true);
+    }
+
+    /**
      * Menu fields (title, url, target, classes, menu_item_parent) are added to
      * the WP_Post by wp_setup_nav_menu_item(), so they aren't declared on WP_Post.
      */

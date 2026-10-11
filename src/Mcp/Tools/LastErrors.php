@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Mcp\Tools;
 
+use Gaffer\Console\Env;
 use Gaffer\Mcp\Tool;
 use Gaffer\Paths;
 
@@ -27,7 +28,7 @@ final class LastErrors implements Tool
     #[\Override]
     public function description(): string
     {
-        return "The most recent entries of PHP's error log (WordPress's debug.log when WP_DEBUG_LOG is on), repeated "
+        return "The most recent entries of PHP's error log (PHP_ERROR_LOG in the theme's .env, else WordPress's debug.log when WP_DEBUG_LOG is on), repeated "
             . "messages merged with a count and the last time, newest last; plus the last lines of the theme's own logs "
             . '(storage/logs: spam.log, migrate.log, ...). Use when something broke or behaves oddly, before guessing.';
     }
@@ -47,16 +48,19 @@ final class LastErrors implements Tool
     public function run(array $input): array
     {
         $limit = (int) ($input['limit'] ?? 20);
-        $file = (string) ini_get('error_log');
+        // The web server's PHP may log elsewhere than this CLI process (a PHP-FPM pool's error_log).
+        $file = Env::get('PHP_ERROR_LOG') ?? (string) ini_get('error_log');
 
         $php = is_file($file) && is_readable($file)
             ? ['file' => $file, 'entries' => array_slice(self::entries(...self::tail($file)), -$limit)]
-            : ['file' => $file ?: null, 'entries' => [], 'note' => 'No readable PHP error log: turn on WP_DEBUG_LOG in wp-config.php to log to wp-content/debug.log.'];
+            : ['file' => $file ?: null, 'entries' => [], 'note' => 'No readable PHP error log. Set PHP_ERROR_LOG in the theme\'s .env to the file the web server\'s PHP logs to, or turn on WP_DEBUG_LOG in wp-config.php (wp-content/debug.log).'];
 
         $logs = [];
         foreach (glob(Paths::storage() . '/logs/*.log') ?: [] as $log) {
             [$text] = self::tail($log);
-            $logs[basename($log)] = array_slice(array_values(array_filter(explode("\n", $text), static fn(string $line): bool => trim($line) !== '')), -$limit);
+            $lines = array_slice(array_values(array_filter(explode("\n", $text), static fn(string $line): bool => trim($line) !== '')), -$limit);
+            // migrate.log lines are whole JSON records of several KB.
+            $logs[basename($log)] = array_map(static fn(string $line): string => mb_strlen($line) > 400 ? mb_substr($line, 0, 400) . '… (' . mb_strlen($line) . ' characters)' : $line, $lines);
         }
 
         return ['php' => $php, 'theme_logs' => $logs];

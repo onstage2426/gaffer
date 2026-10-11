@@ -38,7 +38,14 @@ Main methods:
 - `Image`: `attrs(size, sizes)` (`sizes` optional, see Views), `src(size)`, `alt()`, `width()`, `height()` (the
   full image's; `null` when WordPress doesn't know). `Attachment`: `url()`, `mime()`.
 - `MenuItem`: `title()`, `link()`, `target()` (`null` unless set), `classes()`, `is_current()`,
-  `is_current_ancestor()`, `children()`, `has_children()`, `is_external()`.
+  `is_current_ancestor()`, `children()`, `has_children()`, `is_external()`,
+  `object()` (the linked `Post`/`Term` as its type, e.g. a category's
+  `thumbnail()`; `null` for custom links and archives), `meta($key)` (the
+  item's own fields, e.g. an ACF icon: `Image::from((int) item.meta('icon'))`
+  in PHP). Large menus are slow: `Menu::location()` takes ~100+ ms for
+  hundreds of items, every request. Share a big menu only where it's shown,
+  and keep `object()`/`meta()` out of loops over all items when only the
+  top level is displayed.
 
 **Theme subclasses:** map a post type or taxonomy to a class in `app/Types/`
 via `theme.types` / `theme.terms` in `config/theme.php`; every factory then

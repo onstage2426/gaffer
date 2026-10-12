@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Render;
 
 use Gaffer\Console\Commands\DoctorRender;
+use Gaffer\Paths;
 use RuntimeException;
 use WP_Post_Type;
 use WP_Taxonomy;
@@ -25,11 +26,13 @@ final class Renderer
     /**
      * @param \Closure(string): void $progress called with each path as it starts
      * @param list<string> $visitor doctor:render options for who renders (--user=, --cart=)
+     * @param string|null $entry another theme's `gaffer` to render with (StagedTheme::entry())
      */
     public function __construct(
         private readonly ?string $url,
         private readonly \Closure $progress,
         private readonly array $visitor = [],
+        private readonly ?string $entry = null,
     ) {}
 
     /**
@@ -104,7 +107,7 @@ final class Renderer
      */
     public function render(array $paths, bool $html = false): array
     {
-        $entry = (string) realpath((string) $_SERVER['SCRIPT_FILENAME']);
+        $entry = $this->entry ?? (string) realpath((string) $_SERVER['SCRIPT_FILENAME']);
         $queue = $paths;
         $running = [];
         $results = [];
@@ -139,7 +142,7 @@ final class Renderer
                     proc_close($process);
                     unset($running[$path]);
                     try {
-                        $results[$path] = DoctorRender::parse($stdout);
+                        $results[$path] = $this->as_live(DoctorRender::parse($stdout));
                     } catch (RuntimeException $e) {
                         $results[$path] = $e->getMessage();
                     }
@@ -150,6 +153,22 @@ final class Renderer
         }
 
         return array_replace(array_fill_keys($paths, 'not rendered'), $results);
+    }
+
+    /**
+     * A staged copy's render reads as the live theme's: its directory name (in asset and
+     * ajax URLs, body classes) becomes the live theme's, so a comparison shows code changes only.
+     *
+     * @param Result $result
+     * @return Result
+     */
+    private function as_live(array $result): array
+    {
+        if ($this->entry !== null && isset($result['html'])) {
+            $result['html'] = str_replace(basename(dirname($this->entry)), basename(Paths::base()), $result['html']);
+        }
+
+        return $result;
     }
 
     /**

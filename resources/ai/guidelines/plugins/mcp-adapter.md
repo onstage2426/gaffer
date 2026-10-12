@@ -21,6 +21,7 @@ Prefer these tools over ad-hoc scripts:
   `queries`, `twig_ms`, and the HTML (pass a CSS `selector`; whole pages are
   large). `user` renders logged in, `cart` (WooCommerce) fills the cart
   first: check cart, checkout and account pages that way. Nothing is written.
+  `theme` renders a staged full copy of the theme next to it instead.
 - `gaffer-last-errors`: the recent PHP error log (repeats merged) and the
   theme's `storage/logs/`. Look here before guessing why something broke.
 - `gaffer-forms` (with Gravity Forms): forms and their fields, as

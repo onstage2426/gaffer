@@ -131,7 +131,12 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
 - Check the result the same way every time: `php gaffer render:snapshot`
   before changing code or content, `php gaffer render:diff` afterwards (see
   CLI). When moving a site to new code, snapshot the live site with
-  `--from=<url>` and diff this copy against it. No throwaway compare scripts.
+  `--from=<url>` and diff this copy against it. On a site without staging,
+  stage the change in a full copy of the theme next to it (`cp -r theme
+  theme-stage`, `vendor/` included), edit the copy, then `php gaffer
+  render:snapshot` and `php gaffer render:diff --theme=theme-stage` from the
+  live theme: staged against live, before switching. No throwaway compare
+  scripts.
 - Make a database backup first on a live site, and run it right after
   deploying the code (until then a renamed field shows empty).
 - Page caches: the write bypasses `wp_update_post()`, so only cache plugins

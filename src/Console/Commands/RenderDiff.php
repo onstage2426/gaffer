@@ -9,6 +9,7 @@ use Gaffer\Console\Command;
 use Gaffer\Console\Render\HtmlDiff;
 use Gaffer\Console\Render\Renderer;
 use Gaffer\Console\Render\Snapshot;
+use Gaffer\Console\Render\StagedTheme;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -33,6 +34,7 @@ final class RenderDiff extends Command
         $this->addArgument('name', InputArgument::OPTIONAL, 'Snapshot name', 'snapshot');
         $this->addOption('select', null, InputOption::VALUE_REQUIRED, 'Compare only the elements matching this CSS selector, e.g. main or ".faq"');
         $this->addOption('ignore', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Remove matches of this regular expression first (repeatable), e.g. \'/data-delay="\d+"/\'. It matches the page as rendered (before --select and normalizing): mind single and double quotes');
+        $this->addOption('theme', null, InputOption::VALUE_REQUIRED, 'Render with a full copy of this theme next to it (e.g. blueprint-stage: cp -r, vendor/ included): staged code against live, before switching');
         $this->addOption('lines', null, InputOption::VALUE_REQUIRED, 'Lines shown per change', '40');
         $this->addOption('json', null, InputOption::VALUE_NONE, 'Output as JSON: the counts and each change with its pages and lines (all of them)');
     }
@@ -50,6 +52,7 @@ final class RenderDiff extends Command
         $max = max(1, (int) $input->getOption('lines'));
 
         try {
+            $entry = is_string($theme = $input->getOption('theme')) ? StagedTheme::entry($theme) : null;
             $snapshot = Snapshot::load((string) $input->getArgument('name'));
             HtmlDiff::without('', $ignore); // invalid expressions fail before rendering
         } catch (RuntimeException | InvalidArgumentException $e) {
@@ -57,7 +60,7 @@ final class RenderDiff extends Command
             return self::FAILURE;
         }
         if (!$json) {
-            $output->writeln("Comparing with {$snapshot->name} ({$snapshot->source}, {$snapshot->created}): " . count($snapshot->pages) . ' pages...');
+            $output->writeln("Comparing with {$snapshot->name} ({$snapshot->source}, {$snapshot->created}): " . count($snapshot->pages) . ' pages' . ($entry !== null ? ', rendered with ' . basename(dirname($entry)) : '') . '...');
         }
 
         $progress = static function (string $path) use ($output, $json): void {
@@ -65,7 +68,7 @@ final class RenderDiff extends Command
                 $output->writeln("<comment>rendering</comment> {$path}");
             }
         };
-        $now = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $snapshot->visitor)->render(array_keys($snapshot->pages), true);
+        $now = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $snapshot->visitor, $entry)->render(array_keys($snapshot->pages), true);
 
         // The same change on many pages (a header, a footer) is shown once, with its pages.
         $same = 0;

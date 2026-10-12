@@ -14,9 +14,9 @@ use RuntimeException;
 final class GafferCli
 {
     /** @param list<string> $arguments */
-    public static function run(array $arguments): string
+    public static function run(array $arguments, ?string $entry = null): string
     {
-        $entry = Paths::base('gaffer');
+        $entry ??= Paths::base('gaffer');
         if (!is_file($entry)) {
             throw new RuntimeException("The theme has no `gaffer` CLI entry file ({$entry}).");
         }

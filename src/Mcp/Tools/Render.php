@@ -6,6 +6,7 @@ namespace Gaffer\Mcp\Tools;
 
 use Gaffer\Console\Commands\DoctorRender;
 use Gaffer\Console\Render\HtmlDiff;
+use Gaffer\Console\Render\StagedTheme;
 use Gaffer\Mcp\GafferCli;
 use Gaffer\Mcp\Tool;
 use InvalidArgumentException;
@@ -34,7 +35,7 @@ final class Render implements Tool
             . 'line, PHP notices from theme files, time_ms, queries and twig_ms (template render time; compiling is extra while the Twig cache is off), and the HTML. '
             . 'Pass a CSS selector to get only the matching elements: whole pages are often 50-100 KB. `user` (a user ID) renders logged in; '
             . '`cart` (WooCommerce) puts products in the cart first: cart, checkout and account pages are where shops break. Nothing is written '
-            . '(no session, the user\'s saved cart untouched). Use to check a page after a change.';
+            . '(no session, the user\'s saved cart untouched). `theme` renders a staged copy of the theme (a full copy next to it) instead of the live one. Use to check a page after a change.';
     }
 
     #[\Override]
@@ -46,6 +47,7 @@ final class Render implements Tool
                 'path' => ['type' => 'string', 'pattern' => '^/', 'description' => 'URL path with query string, e.g. "/contact/" or "/winkel/?s=shirt"'],
                 'selector' => ['type' => 'string', 'description' => 'CSS selector, e.g. "main" or "#form-contact"; returns the outer HTML of every match'],
                 'user' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Render logged in as this user ID'],
+                'theme' => ['type' => 'string', 'description' => 'Render with a full copy of the theme next to it (its directory name, e.g. "blueprint-stage"): staged code before switching'],
                 'cart' => [
                     'type' => 'array',
                     'description' => 'WooCommerce: products to put in the cart first (a variation by its own ID)',
@@ -70,7 +72,12 @@ final class Render implements Tool
         foreach (is_array($input['cart'] ?? null) ? $input['cart'] : [] as $item) {
             $args[] = '--cart=' . (int) ($item['product'] ?? 0) . ':' . max(1, (int) ($item['quantity'] ?? 1));
         }
-        $output = GafferCli::run($args);
+        try {
+            $entry = is_string($input['theme'] ?? null) ? StagedTheme::entry($input['theme']) : null;
+        } catch (InvalidArgumentException $e) {
+            return new WP_Error('gaffer_render', $e->getMessage());
+        }
+        $output = GafferCli::run($args, $entry);
         try {
             $result = DoctorRender::parse($output);
         } catch (RuntimeException $e) {

@@ -7,6 +7,7 @@ namespace Gaffer\Console\Commands;
 use Gaffer\Console\Command;
 use Gaffer\Console\Render\Renderer;
 use Gaffer\Console\Render\Snapshot;
+use Gaffer\Console\Render\StagedTheme;
 use Gaffer\Paths;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -34,6 +35,7 @@ final class RenderSnapshot extends Command
         $this->addOption('path', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Also this URL path (repeatable), e.g. /afwatering/ or "/winkel/?filter=x"');
         $this->addOption('user', null, InputOption::VALUE_REQUIRED, 'Render logged in as this user ID (render:diff does the same)');
         $this->addOption('cart', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'WooCommerce: render with this product in the cart, ID or ID:quantity (repeatable)');
+        $this->addOption('theme', null, InputOption::VALUE_REQUIRED, 'Render with a full copy of this theme next to it (e.g. blueprint-stage: cp -r, vendor/ included): staged code against live, before switching');
         $this->addOption('from', null, InputOption::VALUE_REQUIRED, 'Fetch the pages over HTTP from this site instead of rendering them, e.g. https://www.example.com');
     }
 
@@ -48,8 +50,14 @@ final class RenderSnapshot extends Command
             ...(is_string($user = $input->getOption('user')) ? ["--user={$user}"] : []),
             ...array_map(static fn(mixed $item): string => '--cart=' . $item, (array) $input->getOption('cart')),
         ];
-        if (is_string($from) && $visitor !== []) {
-            $output->writeln('<error>--user and --cart render here; --from fetches over HTTP as a visitor. Use one or the other.</error>');
+        try {
+            $entry = is_string($theme = $input->getOption('theme')) ? StagedTheme::entry($theme) : null;
+        } catch (\InvalidArgumentException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            return self::FAILURE;
+        }
+        if (is_string($from) && ($visitor !== [] || $entry !== null)) {
+            $output->writeln('<error>--user, --cart and --theme render here; --from fetches over HTTP. Use one or the other.</error>');
             return self::FAILURE;
         }
 
@@ -70,9 +78,9 @@ final class RenderSnapshot extends Command
 
         $pages = is_string($from)
             ? array_map(self::fetch(...), array_combine($paths, array_map(static fn(string $p): string => rtrim($from, '/') . $p, $paths)))
-            : array_map(Snapshot::page(...), new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $visitor)->render($paths, true));
+            : array_map(Snapshot::page(...), new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $visitor, $entry)->render($paths, true));
 
-        new Snapshot($name, is_string($from) ? $from : 'rendered' . ($visitor !== [] ? ' ' . implode(' ', $visitor) : ''), gmdate('c'), $pages, $visitor)->save();
+        new Snapshot($name, is_string($from) ? $from : 'rendered' . ($entry !== null ? ' with ' . basename(dirname($entry)) : '') . ($visitor !== [] ? ' ' . implode(' ', $visitor) : ''), gmdate('c'), $pages, $visitor)->save();
 
         foreach ($pages as $path => $page) {
             if ($page['error'] !== null) {

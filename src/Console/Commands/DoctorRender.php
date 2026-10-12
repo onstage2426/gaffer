@@ -103,6 +103,7 @@ final class DoctorRender extends Command
             $output->writeln("<error>{$e->getMessage()}</error>");
             return self::FAILURE;
         }
+        $this->as_this_theme();
         WordPress::load($input->getOption('url'));
         View::env()->enableStrictVariables();
         $this->profile = new Profile();
@@ -218,6 +219,32 @@ final class DoctorRender extends Command
                 }
             }
         }, 'accepted_args' => 1];
+    }
+
+    /**
+     * Renders the theme whose `gaffer` started this, also when that's a copy next to the
+     * active one (StagedTheme): WordPress loads the copy instead, with the active theme's
+     * theme mods (menu locations, customizer settings are stored per theme). Run from the
+     * active theme itself, nothing changes.
+     */
+    private function as_this_theme(): void
+    {
+        $slug = basename(Paths::base());
+        $active = null;
+        $swap = static function (string $current) use ($slug, &$active): string {
+            if ($current === $slug || dirname(Paths::base()) !== realpath(\get_theme_root())) {
+                return $current;
+            }
+            $active ??= $current;
+            return $slug;
+        };
+        foreach (['stylesheet', 'template'] as $hook) {
+            $GLOBALS['wp_filter'][$hook][PHP_INT_MAX][] = ['function' => $swap, 'accepted_args' => 1];
+        }
+        $GLOBALS['wp_filter']["pre_option_theme_mods_{$slug}"][10][] = [
+            'function' => static fn(mixed $value): mixed => $active !== null ? \get_option("theme_mods_{$active}") : $value,
+            'accepted_args' => 1,
+        ];
     }
 
     private function fail(string $message, string $file, int $line): void

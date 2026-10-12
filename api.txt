@@ -1,6 +1,7 @@
 final class Gaffer\Acf
   static field_array(string $selector, ?int $post_id = NULL): array
   static option_array(string $selector): array
+  static term_array(string $selector, Gaffer\Types\Term $term): array
 final class Gaffer\Ajax
   static boot(string $dir): void
   static url(string $action): string

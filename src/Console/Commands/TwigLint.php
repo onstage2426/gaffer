@@ -34,8 +34,22 @@ final class TwigLint extends Command
         $env = View::env();
         $report = new Report();
 
-        $only = $input->getArgument('path');
-        $only = is_string($only) ? Paths::base(trim($only, '/')) : null;
+        $path = $input->getArgument('path');
+        $only = null;
+        if (is_string($path)) {
+            // Absolute paths too, but only the theme's: templates elsewhere aren't in its Twig loader.
+            $only = str_starts_with($path, '/') ? $path : Paths::base(trim($path, '/'));
+            $real = realpath($only);
+            if ($real === false) {
+                $output->writeln("<error>{$path} doesn't exist: nothing was linted.</error>");
+                return self::FAILURE;
+            }
+            if (!str_starts_with($real . '/', Paths::base() . '/')) {
+                $output->writeln("<error>{$path} is outside this theme (" . Paths::base() . "): twig:lint compiles the theme's own templates; nothing was linted.</error>");
+                return self::FAILURE;
+            }
+            $only = $real;
+        }
         $count = 0;
 
         foreach (Templates::all() as $name => $file) {
@@ -51,6 +65,9 @@ final class TwigLint extends Command
             }
         }
 
+        if ($only !== null && $count === 0) {
+            $report->error('twig', 'No templates under ' . substr($only, strlen(Paths::base()) + 1) . ': nothing was linted');
+        }
         if (!$input->getOption('json')) {
             $output->writeln("Linted {$count} templates.");
         }

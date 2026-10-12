@@ -82,7 +82,7 @@ final class BlocksCheck implements Check
                 foreach (self::names_in($fields) as $field) {
                     if (!preg_match('/([\'"])' . preg_quote($field, '/') . '\1/', $php)) {
                         $report->warning('blocks', "Field \"{$field}\" is never read in functions.php", "{$dir}/fields.php", null,
-                            'Pass it to the template, or remove it from fields.php.');
+                            'Read it in functions.php (also when an app/ class does the work: pass it the values) and pass it to the template, or remove it from fields.php.');
                     }
                 }
             }

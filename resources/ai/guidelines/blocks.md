@@ -62,6 +62,11 @@ return [
   migrated (see below). Tab labels aren't stored: change them freely.
   `doctor --wp` warns about content that stores fields which no longer exist,
   and `doctor` about fields `functions.php` never reads.
+- **A block reads its own fields in its `functions.php`**, by name (also
+  sub fields: `$row['vraag']`). When an `app/` class does the work (shared with
+  a page), keep the field reading in `functions.php` and pass the values to
+  the class; that keeps the block's data in one place and `doctor`'s
+  "never read" check right. Don't baseline that warning.
 - Fields several blocks share are static methods on `Theme\Fields`
   (`app/Fields.php`), spread into each block's list. It must not need
   WordPress (the CLI reads `fields.php` without it).

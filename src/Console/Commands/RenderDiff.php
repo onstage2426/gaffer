@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Commands;
 
+use Gaffer\Config;
 use Gaffer\Console\Command;
 use Gaffer\Console\Render\HtmlDiff;
 use Gaffer\Console\Render\Renderer;
@@ -33,13 +34,19 @@ final class RenderDiff extends Command
         $this->addOption('select', null, InputOption::VALUE_REQUIRED, 'Compare only the elements matching this CSS selector, e.g. main or ".faq"');
         $this->addOption('ignore', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Remove matches of this regular expression first (repeatable), e.g. \'/data-delay="\d+"/\'. It matches the page as rendered (before --select and normalizing): mind single and double quotes');
         $this->addOption('lines', null, InputOption::VALUE_REQUIRED, 'Lines shown per change', '40');
+        $this->addOption('json', null, InputOption::VALUE_NONE, 'Output as JSON: the counts and each change with its pages and lines (all of them)');
     }
 
     #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $select = $input->getOption('select');
-        $ignore = array_values(array_map('strval', (array) $input->getOption('ignore')));
+        // The theme's own (console.render_ignore: its plugins' per-request tokens), then this run's.
+        $ignore = [
+            ...array_values(array_map('strval', (array) (Config::get('console.render_ignore') ?? []))),
+            ...array_values(array_map('strval', (array) $input->getOption('ignore'))),
+        ];
+        $json = (bool) $input->getOption('json');
         $max = max(1, (int) $input->getOption('lines'));
 
         try {
@@ -49,10 +56,12 @@ final class RenderDiff extends Command
             $output->writeln("<error>{$e->getMessage()}</error>");
             return self::FAILURE;
         }
-        $output->writeln("Comparing with {$snapshot->name} ({$snapshot->source}, {$snapshot->created}): " . count($snapshot->pages) . ' pages...');
+        if (!$json) {
+            $output->writeln("Comparing with {$snapshot->name} ({$snapshot->source}, {$snapshot->created}): " . count($snapshot->pages) . ' pages...');
+        }
 
-        $progress = static function (string $path) use ($output): void {
-            if ($output->isVerbose()) {
+        $progress = static function (string $path) use ($output, $json): void {
+            if ($output->isVerbose() && !$json) {
                 $output->writeln("<comment>rendering</comment> {$path}");
             }
         };
@@ -83,6 +92,15 @@ final class RenderDiff extends Command
         }
 
         uasort($groups, static fn(array $a, array $b): int => count($b['paths']) <=> count($a['paths']));
+        if ($json) {
+            $output->writeln((string) json_encode([
+                'snapshot' => $snapshot->name,
+                'same' => $same,
+                'different' => $differ,
+                'changes' => array_values(array_map(static fn(array $group): array => ['pages' => array_keys($group['paths']), 'lines' => $group['hunk']], $groups)),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
+            return $differ === 0 ? self::SUCCESS : self::FAILURE;
+        }
         foreach ($groups as ['hunk' => $hunk, 'paths' => $paths]) {
             $paths = array_keys($paths);
             $shown = array_slice($paths, 0, 3);

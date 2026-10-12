@@ -61,14 +61,14 @@ final class Pagination
     {
         $previous = $this->previous();
 
-        return $previous !== null ? \get_pagenum_link($previous) : null;
+        return $previous !== null ? self::link($previous) : null;
     }
 
     public function next_link(): ?string
     {
         $next = $this->next();
 
-        return $next !== null ? \get_pagenum_link($next) : null;
+        return $next !== null ? self::link($next) : null;
     }
 
     /**
@@ -91,11 +91,11 @@ final class Pagination
 
         $pages = [];
         foreach (range($start, $end) as $page) {
-            $pages[$page] = \get_pagenum_link($page);
+            $pages[$page] = self::link($page);
         }
 
         if ($start > 1) {
-            $pages[1] = \get_pagenum_link(1);
+            $pages[1] = self::link(1);
             if ($start > 2) {
                 $pages[2] = null;
             }
@@ -104,11 +104,21 @@ final class Pagination
             if ($end < $total - 1) {
                 $pages[$total - 1] = null;
             }
-            $pages[$total] = \get_pagenum_link($total);
+            $pages[$total] = self::link($total);
         }
 
         ksort($pages);
 
         return $pages;
+    }
+
+    /**
+     * Unescaped, like every URL a type returns: Twig escapes it. get_pagenum_link()
+     * escapes by default ("&" → "&#038;"), and escaped twice the rest of the query
+     * string turns into a fragment (?a=1&amp;#038;b=2 drops b).
+     */
+    private static function link(int $page): string
+    {
+        return \get_pagenum_link($page, false);
     }
 }

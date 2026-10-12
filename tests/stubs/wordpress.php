@@ -4,9 +4,12 @@
 // Excluded from phpstan, which has the real WordPress stubs.
 
 if (!function_exists('get_pagenum_link')) {
-    function get_pagenum_link(int $page = 1): string
+    // Like WordPress: the current query string kept, escaped unless $escape is false.
+    function get_pagenum_link(int $page = 1, bool $escape = true): string
     {
-        return "/page/{$page}/";
+        $url = "/page/{$page}/" . ($GLOBALS['gaffer_test_query'] ?? '');
+
+        return $escape ? str_replace('&', '&#038;', $url) : $url;
     }
 }
 

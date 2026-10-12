@@ -85,4 +85,17 @@ final class PaginationTest extends TestCase
 
         self::assertSame(['/page/1/', '/page/2/', '/page/3/'], array_values($p->pages()));
     }
+
+    public function test_links_keep_every_query_parameter_unescaped(): void
+    {
+        $GLOBALS['gaffer_test_query'] = '?show=all&yith_wcan=1';
+        try {
+            $p = Pagination::from_counts(page: 2, total_pages: 3, items: 10, total_items: 25, per_page: 10);
+
+            self::assertSame('/page/3/?show=all&yith_wcan=1', $p->next_link()); // Twig escapes it once
+            self::assertSame('/page/1/?show=all&yith_wcan=1', $p->pages()[1]);
+        } finally {
+            unset($GLOBALS['gaffer_test_query']);
+        }
+    }
 }

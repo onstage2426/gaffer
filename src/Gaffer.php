@@ -140,12 +140,12 @@ final class Gaffer
 
     /**
      * ACF local JSON is saved to and loaded from storage/acf-json; block data is read
-     * without kses's "&amp;" (BlockValues).
+     * without kses's "&amp;" (AcfValues).
      */
     private static function acf(): void
     {
         $dir = Paths::storage() . '/acf-json';
-        BlockValues::register();
+        AcfValues::register();
 
         add_filter('acf/settings/save_json', fn(): string => $dir);
         add_filter('acf/settings/load_json', function (array $paths) use ($dir): array {

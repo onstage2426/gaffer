@@ -17,7 +17,10 @@ Gaffer theme.
   come with every response as `labels`: `opt.label` in option lists,
   `hit.labels.brand` on a hit, `label` on a facet-typeahead hit. Never show a
   slug. Only facet fields sort: alphabetical sorting needs `sortable: ['title']`
-  and sorts on `title_sort`. A locked filter (a token's, `fuzor_archive()`'s)
+  and sorts on `title_sort`; products also sort on `menu_order` (the shop's own
+  order) and `total_sales` (popularity). The order while browsing is the
+  token's `default_sort` (e.g. `['menu_order:asc', 'title_sort:asc']`), not
+  hidden `sort[]` inputs: a query still ranks by relevance. A locked filter (a token's, `fuzor_archive()`'s)
   names facet fields only: any other field fails the search.
 - **PHP prepares it, in one class** (`Theme\Search`): a searchbar's endpoint
   and token (`fuzor_generate_token()`), an archive's `fuzor_archive()` (token,
@@ -41,13 +44,25 @@ Gaffer theme.
   and add only their UI state (open/close, scrolling). Filters, pagination
   (`goToPage()`), back/forward and the request itself are Fuzor's: don't
   rebuild them. Prefer the `onBeforeRun`/`onSuccess` hooks over overriding
-  `run()`.
+  `run()`; write them as methods (`onSuccess(data) { this.… }`): an arrow
+  function gets the component as its last argument, not as `this`.
+  `createFilterForm()` fields have a `type` (`multi`, `single`, `range` for
+  min/max inputs, `toggle` for one checkbox like "on sale") and the component
+  keeps `sort`: no own URL seeding for them. Page sizes and grid/list are
+  token keys (`limits`, `views`), chosen with plain `limit`/`view` selects —
+  one token, not one per choice. A price slider takes its bounds from
+  `fuzor_archive()`'s `bounds` (`'bounds' => ['price']`), not the first
+  response.
 - **Hits are index documents, not Gaffer types:** every stored field is plain
   text (`{{ hit.title }}`, `x-text`); only `hit.formatted.*` is HTML (`|raw`,
   `x-html`).
-- **SEO (Yoast):** strip `token` from the canonical (`wpseo_canonical`), set
-  robots with `fuzor_archive_indexable($index)` (`wpseo_robots_array`), and on
-  an archive that pages with `?offset=`, redirect `/page/N/` with
-  `fuzor_redirect_archive_params($perPage)` on `template_redirect`. Which
-  facet values get an indexable page is the site's call
-  (`fuzor_archive_indexable_facets`).
+- **URLs in PHP** (page links, canonical, redirects) come from
+  `fuzor_archive_url($query)`, never `http_build_query()`/`add_query_arg()`:
+  those number lists (`filter[x][0]`), which the form doesn't read back.
+- **SEO (Yoast):** the canonical is `fuzor_archive_url()` on `wpseo_canonical`
+  at priority **20** (Yoast's WooCommerce integration overwrites 10 on the shop
+  page), robots from `fuzor_archive_indexable($index)` (`wpseo_robots_array`),
+  and `fuzor_redirect_archive_params($perPage, $index)` on `template_redirect`
+  (redirects `/page/N/` to `?offset=`, translates WooCommerce/YITH filter and
+  `orderby` params). Which facet values get an indexable page is the site's
+  call (`fuzor_archive_indexable_facets`).

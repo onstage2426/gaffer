@@ -63,6 +63,7 @@ Gaffer theme.
   at priority **20** (Yoast's WooCommerce integration overwrites 10 on the shop
   page), robots from `fuzor_archive_indexable($index)` (`wpseo_robots_array`),
   and `fuzor_redirect_archive_params($perPage, $index)` on `template_redirect`
-  (redirects `/page/N/` to `?offset=`, translates WooCommerce/YITH filter and
-  `orderby` params). Which facet values get an indexable page is the site's
+  (redirects `/page/N/` to `?offset=`, translates WooCommerce's own filter,
+  price and `orderby` params; another filter plugin's old URLs are the
+  theme's to redirect, with `fuzor_archive_url()`). Which facet values get an indexable page is the site's
   call (`fuzor_archive_indexable_facets`).

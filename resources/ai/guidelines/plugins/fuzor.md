@@ -52,7 +52,8 @@ Gaffer theme.
   token keys (`limits`, `views`), chosen with plain `limit`/`view` selects —
   one token, not one per choice. A price slider takes its bounds from
   `fuzor_archive()`'s `bounds` (`'bounds' => ['price']`), not the first
-  response.
+  response. A facet lists 100 values unless the token's `facet_values` says
+  more (`['size' => 400]`); a response's `truncatedFacets` names the fields cut.
 - **Hits are index documents, not Gaffer types:** every stored field is plain
   text (`{{ hit.title }}`, `x-text`); only `hit.formatted.*` is HTML (`|raw`,
   `x-html`).
@@ -66,4 +67,5 @@ Gaffer theme.
   (redirects `/page/N/` to `?offset=`, translates WooCommerce's own filter,
   price and `orderby` params; another filter plugin's old URLs are the
   theme's to redirect, with `fuzor_archive_url()`). Which facet values get an indexable page is the site's
-  call (`fuzor_archive_indexable_facets`).
+  call (`fuzor_archive_indexable_facets`); a search, `limit` or `view` is
+  never indexable, so no own `noindex` for them.

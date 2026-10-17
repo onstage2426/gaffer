@@ -50,6 +50,10 @@
 - **Templates get all content from PHP.** There are no lookup functions in
   Twig (`get_post()` etc. don't exist). Gaffer's Twig functions are `config(key)`
   and `ajax_url(action)`; the theme's are listed in the reference below.
+- **Theme strings:** `{{ 'Read more'|t }}` is gettext (`__()`) in the theme's
+  text domain (the `Text Domain` header in `style.css`), so WPML/Polylang
+  translate it. In PHP: `__('Read more', '<that domain>')`. Placeholders after
+  translating: `{{ '%d results'|t|format(count) }}`.
 - **Images:** write the `<img>` tag yourself and let the type fill in the
   inside, with no `|raw`:
   ```twig

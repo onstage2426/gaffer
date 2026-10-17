@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Gaffer\Tests;
 
+use Gaffer\Paths;
+use Gaffer\Twig\Extension;
 use Gaffer\View;
 use LogicException;
 use Twig\Environment;
+use Twig\Extension\AttributeExtension;
 use Twig\Loader\ArrayLoader;
 
 final class ViewTest extends TestCase
@@ -19,6 +22,28 @@ final class ViewTest extends TestCase
         self::reset(View::class, 'shared', []);
         self::reset(View::class, 'resolved', []);
         self::reset(View::class, 'use_shared', true);
+    }
+
+    public function test_t_translates_in_the_themes_text_domain(): void
+    {
+        $theme = sys_get_temp_dir() . '/gaffer-t-' . bin2hex(random_bytes(4));
+        mkdir($theme);
+        Paths::set_base($theme);
+        self::reset(Extension::class, 'text_domain', null);
+        $twig = new Environment(new ArrayLoader(['t.twig' => "{{ 'Read more'|t }}"]));
+        $twig->addExtension(new AttributeExtension(Extension::class));
+
+        try {
+            $twig->render('t.twig');
+            self::fail('No Text Domain header');
+        } catch (\Twig\Error\RuntimeError $e) {
+            self::assertStringContainsString('Text Domain header', $e->getMessage());
+        }
+
+        file_put_contents("{$theme}/style.css", "/*\nTheme Name: X\nText Domain: a4hydrauliek\n*/");
+        self::assertSame('a4hydrauliek:Read more', $twig->render('t.twig'));
+        unlink("{$theme}/style.css");
+        rmdir($theme);
     }
 
     public function test_env_throws_before_boot(): void

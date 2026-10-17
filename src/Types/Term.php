@@ -94,12 +94,20 @@ class Term
         return array_values(array_filter(array_map(self::from(...), \get_ancestors($this->wp->term_id, $this->wp->taxonomy, 'taxonomy'))));
     }
 
-    /** @return list<Term> */
+    /**
+     * Direct children (not grandchildren), empty ones included, in get_terms()'s
+     * order: by name, or the taxonomy's own order where a plugin sets one
+     * (WooCommerce's product categories).
+     *
+     * @return list<Term>
+     */
     public function children(): array
     {
-        $ids = \get_term_children($this->wp->term_id, $this->wp->taxonomy);
-
-        return is_array($ids) ? array_values(array_filter(array_map(self::from(...), $ids))) : [];
+        return self::query([
+            'taxonomy' => $this->wp->taxonomy,
+            'parent' => $this->wp->term_id,
+            'hide_empty' => false,
+        ]);
     }
 
     public function meta(string $key): mixed

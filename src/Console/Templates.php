@@ -31,6 +31,9 @@ use Twig\Node\SetNode;
 final class Templates
 {
     /** Twig's own variables, never passed in. */
+    /** View::render('name') / View::fetch('name') in PHP: the name is group 2. */
+    public const string PHP_RENDER = '/View::(?:render|fetch)\(\s*([\'"])([^\'"]+)\1\s*[,)]/';
+
     private const array BUILT_IN = ['loop', '_self', '_context', '_charset', '_key'];
 
     /**

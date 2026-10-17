@@ -17,6 +17,7 @@ use Gaffer\Console\Checks\MarkupCheck;
 use Gaffer\Console\Checks\SourceCheck;
 use Gaffer\Console\Checks\TemplateGlobalsCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
+use Gaffer\Console\Checks\TexturizeCheck;
 use Gaffer\Console\Checks\WordPressCheck;
 use Gaffer\Console\Env;
 use Gaffer\Console\Report;
@@ -105,6 +106,36 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString("include() loads components/gone.twig, which doesn't exist", $messages);
         self::assertSame(1, substr_count($messages, 'passes all of this template'));
         self::assertSame(1, substr_count($messages, 'Nothing renders or includes this template')); // old.twig, not the multi-line footer.twig
+    }
+
+    public function test_a_gt_inside_an_attribute(): void
+    {
+        $source = <<<'TWIG'
+            <div class="[&>svg]:size-8">
+            <p x-show="count > 0" class='a>b'>{{ a > b ? 'x' : 'y' }}</p>
+            {% if a > b %}<span class="{{ x > 1 ? 'a' : 'b' }}">{# > #}</span>{% endif %}
+            <!-- <i class="a>b"> -->
+            <script>if (a > b) { el.innerHTML = '<b class="c">x</b>' }</script>
+            <a href="/x">></a>
+            TWIG;
+
+        self::assertSame([1, 2], TexturizeCheck::lines($source));
+    }
+
+    public function test_texturize_checks_only_what_blocks_render(): void
+    {
+        mkdir("{$this->theme}/views/components", 0755, true);
+        file_put_contents("{$this->theme}/blocks/contentFaq/contentFaq.twig", "{{ include('components/icon.twig', {}, with_context = false) }}");
+        file_put_contents("{$this->theme}/blocks/contentFaq/functions.php", "<?php View::render('components/card.twig', []);\n");
+        file_put_contents("{$this->theme}/views/components/icon.twig", '<i class="[&>svg]:size-8"></i>');
+        file_put_contents("{$this->theme}/views/components/card.twig", "\n<p class=\"a>b\"></p>");
+        file_put_contents("{$this->theme}/views/footer.twig", '<i class="[&>svg]:size-8"></i>'); // not post content
+        self::reset(View::class, 'env', null);
+        self::reset(Gaffer::class, 'twig', false);
+
+        $findings = $this->findings(new TexturizeCheck());
+
+        self::assertSame([['card.twig', 2], ['icon.twig', 1]], array_map(static fn(array $f): array => [basename((string) $f['file']), $f['line']], $findings));
     }
 
     public function test_html_in_php_outside_the_shell(): void

@@ -70,6 +70,11 @@ return [
 - Fields several blocks share are static methods on `Theme\Fields`
   (`app/Fields.php`), spread into each block's list. It must not need
   WordPress (the CLI reads `fields.php` without it).
+- **No `>` inside an attribute in a block's markup** (its template and what
+  it includes): block output is post content, and wptexturize takes that `>`
+  for the end of the tag and curls the quotes after it (`[&>svg]:size-8"` →
+  `size-8″`), which silently breaks the HTML. Write `&gt;` or move it out of
+  the markup (a CSS rule, an `Alpine.data()` method). `doctor` reports it.
 - Block fields are never made in the ACF UI: `doctor` flags a UI/JSON field
   group that targets a block with a `fields.php`. The reference below lists
   each block's fields.

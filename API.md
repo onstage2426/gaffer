@@ -66,7 +66,7 @@ the questions below.
 **Forms**: extend `Forms\FormAction` (one `Form` action); `Forms\FormState`:
 `blank()`, `name`, `sent`, `message`, `failed`, `value()`, `checked()`, `error()`.
 
-**Twig**: the functions `config()` and `ajax_url()`; the namespaces `@block`
+**Twig**: the functions `config()` and `ajax_url()`; the filter `t`; the namespaces `@block`
 and `@ajax`; `strict_variables` with `WP_DEBUG`.
 
 ## Data and conventions

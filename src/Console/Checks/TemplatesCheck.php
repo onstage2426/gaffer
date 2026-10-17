@@ -18,8 +18,6 @@ use Gaffer\View;
  */
 final class TemplatesCheck implements Check
 {
-    private const string PHP_RENDER = '/View::(?:render|fetch)\(\s*([\'"])([^\'"]+)\1\s*[,)]/';
-
     #[\Override]
     public function run(Report $report): void
     {
@@ -31,7 +29,7 @@ final class TemplatesCheck implements Check
         // The whole file, not line by line: the name may be on the next line (a long call, PSR-12).
         foreach (ThemeFiles::find(['php']) as $file) {
             $code = (string) file_get_contents($file);
-            preg_match_all(self::PHP_RENDER, $code, $m, PREG_OFFSET_CAPTURE);
+            preg_match_all(Templates::PHP_RENDER, $code, $m, PREG_OFFSET_CAPTURE);
             foreach ($m[2] as [$name, $offset]) {
                 $used[$name] = true;
                 if (!$loader->exists($name)) {

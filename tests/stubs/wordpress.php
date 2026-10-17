@@ -69,3 +69,11 @@ if (!function_exists('get_template_directory_uri')) {
         return 'https://site.test/wp-content/themes/t';
     }
 }
+
+if (!function_exists('__')) {
+    // A "translation" that shows the domain it was asked for.
+    function __(string $text, string $domain = 'default'): string
+    {
+        return "{$domain}:{$text}";
+    }
+}

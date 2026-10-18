@@ -6,6 +6,7 @@ namespace Gaffer\Console\Checks;
 
 use Closure;
 use Gaffer\BlockFields;
+use Gaffer\FieldGroups;
 use Gaffer\Config;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
@@ -34,6 +35,7 @@ final class WordPressCheck implements Check
         $this->blocks($report);
         $this->acf_sync($report);
         $this->field_types($report);
+        $this->field_groups($report);
         $this->woocommerce_templates($report);
         $this->forms($report);
         $this->menus($report);
@@ -274,6 +276,64 @@ final class WordPressCheck implements Check
                 $check(BlockFields::group(basename(dirname($file)))['fields'], $file);
             } catch (\Throwable) {
                 continue; // BlocksCheck reports invalid fields.php
+            }
+        }
+        foreach (FieldGroups::targets() as $target => $file) {
+            try {
+                $check(FieldGroups::group($target)['fields'], $file);
+            } catch (\Throwable) {
+                continue; // FieldGroupsCheck reports it
+            }
+        }
+    }
+
+    /**
+     * Every fields/ file targets a registered post type, taxonomy or options page, and no
+     * stored reference points to a derived key its file no longer has (a field renamed or
+     * removed in code: ACF then returns that value unformatted).
+     */
+    private function field_groups(Report $report): void
+    {
+        global $wpdb;
+
+        $keys = [];
+        foreach (FieldGroups::targets() as $target => $file) {
+            [$param, $value] = explode('/', $target, 2);
+            $exists = match ($param) {
+                'post_type' => post_type_exists($value),
+                'taxonomy' => taxonomy_exists($value),
+                default => !function_exists('acf_get_options_page') || acf_get_options_page($value) !== false,
+            };
+            if (!$exists) {
+                $report->error('wp', 'Targets ' . str_replace('_', ' ', $param) . " \"{$value}\", which isn't registered", $file);
+            }
+            try {
+                $walk = static function (array $fields) use (&$walk, &$keys): void {
+                    foreach ($fields as $field) {
+                        $keys[$field['key']] = true;
+                        $walk(is_array($field['sub_fields'] ?? null) ? $field['sub_fields'] : []);
+                    }
+                };
+                $walk(FieldGroups::group($target)['fields']);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $like = $wpdb->esc_like(FieldGroups::prefix($target) . '__') . '%';
+            $stale = [];
+            foreach ([[$wpdb->postmeta, 'meta_key', 'meta_value'], [$wpdb->termmeta, 'meta_key', 'meta_value'], [$wpdb->options, 'option_name', 'option_value']] as [$table, $name, $column]) {
+                foreach ($wpdb->get_results($wpdb->prepare(
+                    "SELECT {$column} AS k, COUNT(*) AS n FROM {$table} WHERE {$name} LIKE '\\_%%' AND {$column} LIKE %s GROUP BY {$column}",
+                    $like,
+                )) as $row) {
+                    if (!isset($keys[$row->k])) {
+                        $stale[$row->k] = ($stale[$row->k] ?? 0) + (int) $row->n;
+                    }
+                }
+            }
+            foreach ($stale as $key => $count) {
+                $report->warning('wp', "Stored values point to {$key}, which fields/{$target}.php no longer has", $file, null,
+                    "{$count} stored value(s). Renamed or removed a field? Restore its name, or delete the old values.");
             }
         }
     }

@@ -42,3 +42,12 @@ function acf_validate_field_group(array $field_group = []) {}
  * @return array<string, mixed>
  */
 function acf_validate_field(array $field = []) {}
+
+/**
+ * @param array<string, mixed> $filter
+ * @return list<array<string, mixed>>
+ */
+function acf_get_field_groups(array $filter = []) {}
+
+/** @return array<string, mixed>|false */
+function acf_get_options_page(string $page) {}

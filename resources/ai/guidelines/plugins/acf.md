@@ -15,6 +15,14 @@
   never `html_entity_decode()` ACF values yourself. Other entities (`&lt;`)
   stay as stored. WordPress's own values are another matter: titles and term
   names are stored escaped, so read them through the types (`title()`).
-- Block fields are code (`blocks/{name}/fields.php`, see ACF blocks). Other
-  field groups (options pages, post types, taxonomies) are edited in the ACF
-  UI and saved as local JSON in `storage/acf-json/`; commit that JSON.
+- **Field groups are code, never made in the ACF UI.** Blocks:
+  `blocks/{name}/fields.php` (see ACF blocks). Everything else: one file per
+  target, named after ACF's location param, `fields/options_page/{slug}.php`,
+  `fields/post_type/{type}.php`, `fields/taxonomy/{taxonomy}.php`, returning
+  the same list of fields as a block's `fields.php` (no keys; sections are
+  tabs). Gaffer derives the keys (`field_post_type_review__score`). Follow the
+  `gaffer-fields` skill. All options pages share one stored namespace, so a
+  field name is used once across them (`doctor` reports it).
+- Registering a post type, taxonomy or options page is the theme's code
+  (`register_post_type()`, `acf_add_options_page()`); ones made in the ACF UI
+  stay in `storage/acf-json/` (commit that JSON).

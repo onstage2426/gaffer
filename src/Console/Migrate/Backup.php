@@ -74,7 +74,7 @@ final class Backup
 
         $locations = [];
         foreach ($data['locations'] as $location) {
-            if (!is_array($location) || !in_array($location['kind'] ?? null, ['post', 'widget'], true) || !is_int($location['id'] ?? null)
+            if (!is_array($location) || !in_array($location['kind'] ?? null, Location::KINDS, true) || !is_int($location['id'] ?? null)
                 || !is_string($location['label'] ?? null) || !is_string($location['before'] ?? null)
                 || !is_string($location['before_sha1'] ?? null) || !is_string($location['after_sha1'] ?? null)
                 || sha1($location['before']) !== $location['before_sha1']) {

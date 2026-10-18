@@ -13,6 +13,7 @@ use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\ConfigStubs;
 use Gaffer\Console\Templates;
 use Gaffer\Console\ThemeFiles;
+use Gaffer\FieldGroups;
 use Gaffer\Paths;
 use Gaffer\Twig\Extension;
 use Gaffer\View;
@@ -45,6 +46,7 @@ final class Reference
             self::types(),
             self::ajax(),
             self::blocks(),
+            self::field_groups(),
             self::views(),
             self::hooks(),
         ])) . "\n";
@@ -143,6 +145,41 @@ final class Reference
         }
 
         return count($lines) > 1 ? implode("\n", $lines) : '';
+    }
+
+    /**
+     * Fields of options pages, post types and taxonomies: fields/ (code), plus field groups
+     * made in the ACF UI for one such target (themes that haven't moved them yet).
+     */
+    private static function field_groups(): string
+    {
+        $lines = ["## Field groups (options pages, post types, taxonomies)\n"];
+
+        foreach (FieldGroups::targets() as $target => $file) {
+            try {
+                $fields = FieldGroups::group($target)['fields'];
+            } catch (Throwable) {
+                continue; // doctor reports it
+            }
+            $lines[] = "- `{$target}` (`fields/{$target}.php`): " . self::field_list($fields);
+        }
+        foreach (glob(Paths::storage() . '/acf-json/group_*.json') ?: [] as $file) {
+            $group = json_decode((string) file_get_contents($file), true);
+            $target = is_array($group) ? FieldGroups::target_of($group['location'] ?? null) : null;
+            if ($target !== null && !isset(FieldGroups::targets()[$target]) && is_array($group['fields'] ?? null)) {
+                $lines[] = "- `{$target}` (ACF UI, \"{$group['title']}\"): " . self::field_list($group['fields']);
+            }
+        }
+
+        return count($lines) > 1 ? implode("\n", $lines) : '';
+    }
+
+    /** @param list<array<string, mixed>> $fields */
+    private static function field_list(array $fields): string
+    {
+        $named = array_filter($fields, static fn(array $field): bool => ($field['name'] ?? '') !== ''); // tabs and messages are layout
+
+        return implode(', ', array_map(self::field(...), $named));
     }
 
     /**

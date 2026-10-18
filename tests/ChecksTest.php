@@ -9,7 +9,9 @@ use Gaffer\Console\Checks\AjaxCheck;
 use Gaffer\Console\Checks\AppCheck;
 use Gaffer\Console\Checks\AssetsCheck;
 use Gaffer\Console\Checks\BlocksCheck;
+use Gaffer\Console\Checks\AcfJsonCheck;
 use Gaffer\Console\Checks\Check;
+use Gaffer\Console\Checks\FieldGroupsCheck;
 use Gaffer\Console\Checks\ConfigCheck;
 use Gaffer\Console\Checks\GuidelinesCheck;
 use Gaffer\Console\Checks\IncCheck;
@@ -78,6 +80,41 @@ final class ChecksTest extends TestCase
         self::assertStringNotContainsString('"titel"', $messages);
         self::assertStringNotContainsString('"vraag"', $messages);
         self::assertStringNotContainsString('"vragen"', $messages);
+    }
+
+    public function test_field_groups_in_code(): void
+    {
+        mkdir("{$this->theme}/fields/options_page", 0755, true);
+        mkdir("{$this->theme}/fields/user", 0755, true);
+        mkdir("{$this->theme}/inc", 0755, true);
+        file_put_contents("{$this->theme}/fields/options_page/algemeen.php", "<?php return [['name' => 'team', 'type' => 'text'], ['name' => 'telefoon', 'type' => 'text']];");
+        file_put_contents("{$this->theme}/fields/options_page/footer.php", "<?php return [['name' => 'team', 'type' => 'text']];");
+        file_put_contents("{$this->theme}/inc/x.php", "<?php\nget_field('team', 'option');\n");
+
+        $messages = $this->messages(new FieldGroupsCheck());
+
+        self::assertStringContainsString("fields/user/ isn't an ACF location", $messages);
+        self::assertStringContainsString('Field "team" is on two options pages (options_page/algemeen, options_page/footer)', $messages);
+        self::assertStringContainsString('Field "telefoon" is never read', $messages);
+        self::assertStringNotContainsString('Field "team" is never read', $messages);
+    }
+
+    public function test_ui_field_groups_are_code_now(): void
+    {
+        mkdir("{$this->theme}/storage/acf-json", 0755, true);
+        mkdir("{$this->theme}/fields/post_type", 0755, true);
+        file_put_contents("{$this->theme}/fields/post_type/review.php", "<?php return [['name' => 'score', 'type' => 'number']];");
+        $group = static fn(string $title, string $param, string $value): string => (string) json_encode(['key' => 'group_' . md5($title), 'title' => $title, 'fields' => [],
+            'location' => [[['param' => $param, 'operator' => '==', 'value' => $value]]]]);
+        file_put_contents("{$this->theme}/storage/acf-json/group_a.json", $group('Review: Info', 'post_type', 'review'));
+        file_put_contents("{$this->theme}/storage/acf-json/group_b.json", $group('Tax: pa_kleur', 'taxonomy', 'pa_kleur'));
+        file_put_contents("{$this->theme}/storage/acf-json/post_type_c.json", '{"key": "post_type_c", "title": "Reviews", "post_type": "review"}');
+
+        $findings = $this->findings(new AcfJsonCheck());
+
+        self::assertSame(['error', 'warning'], array_column($findings, 'level'));
+        self::assertStringContainsString('targets post_type/review, which defines its fields in fields/post_type/review.php', $findings[0]['message']);
+        self::assertStringContainsString('"Tax: pa_kleur" is made in the ACF UI', $findings[1]['message']);
     }
 
     public function test_inner_blocks_are_reported(): void

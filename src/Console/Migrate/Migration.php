@@ -225,18 +225,27 @@ final class Migration
     private function caches(): string
     {
         $urls = [];
-        $widgets = false;
+        $everywhere = null;
         foreach ($this->plan as $change) {
-            if ($change['location']->kind === 'widget') {
-                $widgets = true;
-            } elseif (is_string($url = get_permalink($change['location']->id))) {
-                $urls[] = $url;
+            $location = $change['location'];
+            $url = match ($location->kind) {
+                'post' => get_permalink($location->id),
+                'postmeta' => get_permalink((int) ContentStore::owner($location)),
+                'termmeta' => get_term_link((int) ContentStore::owner($location)),
+                default => null,
+            };
+            if ($location->kind === 'widget') {
+                $everywhere = 'block widgets are on every page';
+            } elseif ($location->kind === 'option') {
+                $everywhere ??= 'options can be on every page';
+            } elseif (is_string($url)) {
+                $urls[$url] = true;
             }
         }
 
         return 'Check that page caches show the new content'
-            . ($widgets ? ' (block widgets are on every page: purge the whole cache)' : '')
-            . ($urls !== [] ? ': ' . implode(' ', $urls) : '.');
+            . ($everywhere !== null ? " ({$everywhere}: purge the whole cache)" : '')
+            . ($urls !== [] ? ': ' . implode(' ', array_keys($urls)) : '.');
     }
 
     private function log(OutputInterface $output, string $outcome, ?string $reason, ?string $backup): void

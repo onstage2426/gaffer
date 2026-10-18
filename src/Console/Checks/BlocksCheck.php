@@ -120,7 +120,7 @@ final class BlocksCheck implements Check
      * @param list<array<string, mixed>> $fields
      * @return list<string>
      */
-    private static function names_in(array $fields): array
+    public static function names_in(array $fields): array
     {
         $names = [];
         foreach ($fields as $field) {

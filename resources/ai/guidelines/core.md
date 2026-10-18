@@ -8,9 +8,10 @@ site-specific code.
 - **Never edit `vendor/`.** It is overwritten by `composer install`. Framework
   changes belong in Gaffer itself; theme behavior goes in the theme (config,
   `inc/`, subclasses in `app/`).
-- **The layout is fixed:** `views/` (Twig), `blocks/` (ACF blocks), `ajax/`
+- **The layout is fixed:** `views/` (Twig), `blocks/` (ACF blocks), `fields/`
+  (ACF field groups of options pages, post types and taxonomies), `ajax/`
   (ajax actions), `inc/` (hooks, auto-included), `app/` (the `Theme\`
-  namespace: `Theme\Types\`, `Theme\Twig\`, `Theme\Fields` for shared block
+  namespace: `Theme\Types\`, `Theme\Twig\`, `Theme\Fields` for shared
   fields; composer.json autoloads `"Theme\\": "app/"`), `config/` (PHP
   arrays), `public/` (Vite build output), `assets/` (sources), `storage/`
   (Twig cache, ACF JSON, logs, backups; can be moved by the server with

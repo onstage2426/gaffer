@@ -74,7 +74,7 @@ and `@ajax`; `strict_variables` with `WP_DEBUG`.
 These live in databases and theme folders, so a change breaks sites even
 without a code change:
 
-- **The theme layout:** `views/`, `blocks/`, `ajax/`, `inc/` (`*.php` then
+- **The theme layout:** `views/`, `blocks/`, `fields/`, `ajax/`, `inc/` (`*.php` then
   `*/*.php`), `app/` (`Theme\`), `config/`, `public/`, `assets/`, `storage/`;
   `GAFFER_STORAGE`; the `Theme\Ajax\{Name}\{Name}` namespace.
 - **Blocks:** `block.json` with `acf.renderTemplate`; `fields.php` (a list of ACF
@@ -82,6 +82,11 @@ without a code change:
   `group_{name}`, `field_{name}__{field}`, sub fields `…__{parent}__{field}`,
   layout fields `{type}-{label}`. Stored in post content: changing the
   formula orphans every site's block data.
+- **Field groups:** `fields/{param}/{value}.php` for the params
+  `options_page`, `post_type`, `taxonomy` (the same list of fields) and their
+  derived keys: `group_{param}_{value}`, `field_{param}_{value}__{field}`, sub
+  fields and layout fields as for blocks. Stored next to every value in
+  postmeta, termmeta and options.
 - **Config keys** in `config/*.php` stubs (`theme.*`, `turnstile.*`,
   `console.*`, `ai.*`) and the theme's `.env` (`SITE_URL`).
 - **Forms:** template `views/forms/{title slug}.twig`; fields by Admin Field

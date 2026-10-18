@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gaffer;
 
 /**
- * The theme's fixed layout: views/, inc/, blocks/, ajax/, public/, storage/.
+ * The theme's fixed layout: views/, inc/, blocks/, fields/, ajax/, public/, storage/.
  */
 final class Paths
 {
@@ -48,6 +48,12 @@ final class Paths
     public static function blocks(): string
     {
         return self::base('blocks');
+    }
+
+    /** @internal */
+    public static function fields(): string
+    {
+        return self::base('fields');
     }
 
     /** @internal */

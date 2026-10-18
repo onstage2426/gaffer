@@ -1,6 +1,6 @@
 ---
 name: gaffer-migrate
-description: Change what's stored in a Gaffer site's content (rename or remove an ACF block or field, change a field's type, move fields to fields.php) and compare rendered pages before and after a change or a move to new code (render:snapshot, render:diff, a staged theme copy). Use before any of those.
+description: Change what's stored in a Gaffer site's content (rename or remove an ACF block or field, change a field's type, move a field group from the ACF UI to fields.php or fields/) and compare rendered pages before and after a change or a move to new code (render:snapshot, render:diff, a staged theme copy). Use before any of those.
 ---
 
 # Gaffer content migrations and render comparison
@@ -27,12 +27,17 @@ php gaffer migrate:field acf/content-faq vragen.vraag vraag_tekst  # rename a su
 php gaffer migrate:block acf/content-faq acf/faq                   # rename a block (after its directory and block.json)
 php gaffer migrate:remove-field acf/content-faq vragen.bron        # delete a removed field's values
 php gaffer migrate:remove-block acf/content-team                   # delete a removed block from all content
-php gaffer migrate:fields [acf/content-faq]                        # after moving a block's fields from the ACF UI/JSON to fields.php
+php gaffer migrate:fields [acf/content-faq|post_type/review]       # after moving a field group from the ACF UI/JSON to fields.php or fields/
 php gaffer migrate:remove-leftovers [acf/content-faq]              # delete values of other blocks'/field groups' fields fields.php doesn't have
 php gaffer migrate:rollback [backup]                               # undo (no argument: list backups)
 ```
 
-- Moving fields out of the ACF UI/JSON: `migrate:fields` first. Renames and
+- Moving fields out of the ACF UI/JSON: `migrate:fields` first. For
+  `fields/` (options pages, post types, taxonomies) it rewrites the `_name`
+  rows next to the values (posts and their revisions, terms, options in every
+  language) from the UI group's keys to the derived ones, matching fields by
+  name; it refuses fields the file doesn't have or has with another type. The
+  other `migrate:*` commands are for blocks only. Renames and
   removals refuse while a block still stores data under its old field keys.
 - A block can keep values of fields that aren't its own (transformed or
   copied from another block, an old field group). The commands refuse them;

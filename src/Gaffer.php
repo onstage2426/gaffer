@@ -155,7 +155,7 @@ final class Gaffer
     }
 
     /**
-     * Every blocks/*\/block.json, and their fields.php as ACF field groups.
+     * Every blocks/*\/block.json, their fields.php and fields/*\/*.php as ACF field groups.
      */
     private static function blocks(): void
     {
@@ -169,5 +169,6 @@ final class Gaffer
         // Booted after init only by the CLI when the theme isn't the active one.
         did_action('init') ? $register() : add_action('init', $register);
         add_action('acf/include_fields', BlockFields::register(...));
+        add_action('acf/include_fields', FieldGroups::register(...));
     }
 }

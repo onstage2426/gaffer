@@ -73,11 +73,10 @@ Fix what they report (exit code 1 = errors), including Gaffer API that is
 deprecated (`doctor` names the replacement; PHP also raises a deprecation
 notice when it's called). The theme's own `.ai/guidelines/`
 and `.ai/skills/` are hand-written: keep them to conventions and decisions
-(the generated reference already lists what exists), and update them when
+(`gaffer-reference` already lists what exists), and update them when
 you rename or delete what they mention (`doctor` reports stale mentions). WordPress's `WP_DEBUG` turns on
 Twig debug and `strict_variables`, so undefined variables fail instead of
 rendering empty.
 
-Administrators see **Gaffer** in the admin bar: a status dot (red: debug on in
-production/staging; orange: debug on, or Twig cache off in production), the
-Gaffer/Twig versions, Twig and Vite state, and "Clear Twig cache".
+Administrators see **Gaffer** in the admin bar (versions, Twig/Vite state, a
+warning dot for debug settings, "Clear Twig cache").

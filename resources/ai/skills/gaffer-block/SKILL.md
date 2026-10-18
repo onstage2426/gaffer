@@ -21,9 +21,8 @@ description: Create or change an ACF block in a Gaffer theme (blocks/{name}/ wit
    block fields in the ACF UI or in `storage/acf-json/`.
 6. **Renaming or removing an existing block or field** changes what's stored
    in post content: change the code, then `php gaffer migrate:block` /
-   `migrate:field` / `migrate:remove-block` / `migrate:remove-field` (dry run
-   first, then `--run` once the user agrees; it writes site content). Ask
-   first. Tab labels can change freely.
+   `migrate:field` / `migrate:remove-block` / `migrate:remove-field` (the `gaffer-migrate` skill: dry run first, then `--run` once the user
+   agrees; it writes site content). Ask first. Tab labels can change freely.
 7. **Changing a field's type:** in place only when the stored value means the
    same (text → wysiwyg, select → radio); otherwise a new field name (see the
    guideline). No InnerBlocks, no flexible content.

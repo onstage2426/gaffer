@@ -54,4 +54,4 @@ returns that class. There is no constructor or `build()` to override: read
 WordPress data lazily in methods (cache in a private property) and pass extra
 context through an explicit method (e.g. `$product->select_variation($attributes)`),
 never through a factory argument. The theme's mapped classes and their
-methods are in the reference below.
+methods are in `gaffer-reference`.

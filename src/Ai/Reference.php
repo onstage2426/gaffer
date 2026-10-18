@@ -27,14 +27,19 @@ use Twig\TwigFilter;
 
 /**
  * The generated part of the guidelines: what this theme actually has, read
- * from its code and config, so it can't drift from the code.
+ * from its code and config, so it can't drift from the code. Written as the
+ * skill gaffer-reference (read when needed, not loaded on every turn).
  */
 final class Reference
 {
+    public const string SKILL = 'gaffer-reference';
+
+    /** The skill's SKILL.md. */
     public static function build(): string
     {
         return implode("\n\n", array_filter([
-            "## Reference (generated from this theme's code)",
+            "---\nname: " . self::SKILL . "\ndescription: This theme's own config keys, Twig functions and filters, type classes and their methods, ajax actions and their parameters, blocks and their fields, templates and the variables they read, and inc/ hooks; generated from the code. Read it before using, calling, rendering or changing any of them.\n---",
+            "# Reference (generated from this theme's code)",
             self::config(),
             self::twig(),
             self::types(),
@@ -48,7 +53,7 @@ final class Reference
     private static function config(): string
     {
         $descriptions = ConfigStubs::descriptions();
-        $lines = ["### Config\n"];
+        $lines = ["## Config\n"];
 
         foreach (Config::all() as $file => $values) {
             $lines[] = "- `config/{$file}.php`" . (isset($descriptions[$file]) ? '' : ' (theme-specific)');
@@ -66,7 +71,7 @@ final class Reference
     {
         $env = View::env();
         $ours = [Extension::class, ...(Config::get('theme.twig_extensions') ?? [])];
-        $lines = ["### Twig functions and filters\n", 'Besides Twig\'s built-ins (and `dump()` in debug mode):', ''];
+        $lines = ["## Twig functions and filters\n", 'Besides Twig\'s built-ins (and `dump()` in debug mode):', ''];
 
         foreach ([...$env->getFunctions(), ...$env->getFilters()] as $name => $callable) {
             $reflection = self::reflect($callable->getCallable());
@@ -83,7 +88,7 @@ final class Reference
     private static function types(): string
     {
         $maps = ['post type' => Config::get('theme.types') ?? [], 'taxonomy' => Config::get('theme.terms') ?? []];
-        $lines = ["### Theme types\n"];
+        $lines = ["## Theme types\n"];
 
         foreach ($maps as $kind => $map) {
             foreach ((array) $map as $object => $class) {
@@ -106,7 +111,7 @@ final class Reference
 
     private static function ajax(): string
     {
-        $lines = ["### Ajax actions\n"];
+        $lines = ["## Ajax actions\n"];
         foreach (Ajax::actions() as $name) {
             try {
                 $class = Ajax::action_class($name);
@@ -127,7 +132,7 @@ final class Reference
     private static function blocks(): string
     {
         $fields = self::block_fields();
-        $lines = ["### Blocks\n"];
+        $lines = ["## Blocks\n"];
 
         foreach (BlocksCheck::names() as $dir => $name) {
             $meta = json_decode((string) file_get_contents(Paths::blocks() . "/{$dir}/block.json"), true) ?: [];
@@ -148,7 +153,7 @@ final class Reference
     {
         $shared = View::shared_keys();
         $ignore = [...$shared, ...array_keys(View::env()->getGlobals())];
-        $lines = ["### Views\n"];
+        $lines = ["## Views\n"];
         if ($shared !== []) {
             $lines[] = 'Shared with the page templates (`View::share()`, not ajax): `' . implode('`, `', $shared) . '`.';
             $lines[] = '';
@@ -175,7 +180,7 @@ final class Reference
      */
     private static function hooks(): string
     {
-        $lines = ["### Hooks (`inc/`)\n"];
+        $lines = ["## Hooks (`inc/`)\n"];
 
         foreach (is_dir(Paths::includes()) ? ThemeFiles::find(['php'], Paths::includes()) : [] as $file) {
             $groups = self::file_hooks((string) file_get_contents($file));

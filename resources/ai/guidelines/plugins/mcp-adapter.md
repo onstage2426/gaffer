@@ -1,31 +1,11 @@
 ## MCP server (`gaffer`)
 
 The MCP Adapter plugin is active, so Gaffer serves read-only development tools
-as the MCP server `gaffer` (abilities `gaffer/*`). `php gaffer ai:update` adds it
-to each selected agent's MCP config (`.mcp.json`, `.codex/config.toml`,
-`.grok/config.toml`; gitignored, other servers in them are kept): `wp
-mcp-adapter serve --server=gaffer` (plus `--url=` from `SITE_URL`, which picks
-the site on a multisite), started from the theme directory, over STDIO only.
-When `wp` is a PHP file, the config runs it with the PHP that ran `ai:update`.
-Not served on production unless `ai.mcp_production` is `true` (for a theme
-migration on a live site; turn it off afterwards).
-
-Prefer these tools over ad-hoc scripts:
-
-- `gaffer-block-usage`: where a block is used (posts, widgets, URLs), with
-  `values` the stored field data. Before renaming or removing a block or field,
-  and to find a page to test a block on.
-- `gaffer-doctor`: `doctor --wp` as structured findings.
-- `gaffer-render`: one URL in a fresh WordPress with strict variables: status,
-  HTTP code, redirect, error with file and line, theme notices, `time_ms`,
-  `queries`, `twig_ms`, and the HTML (pass a CSS `selector`; whole pages are
-  large). `user` renders logged in, `cart` (WooCommerce) fills the cart
-  first: check cart, checkout and account pages that way. Nothing is written.
-  `theme` renders a staged full copy of the theme next to it instead.
-- `gaffer-last-errors`: the recent PHP error log (repeats merged) and the
-  theme's `storage/logs/`. Look here before guessing why something broke.
-- `gaffer-forms` (with Gravity Forms): forms and their fields, as
-  `forms:show`.
-
-`render` and `doctor` render as a logged-out visitor without cookies: test a
-cart or a logged-in page through the web server instead.
+as the MCP server `gaffer` (STDIO, written to each agent's MCP config by
+`ai:update`; not on production unless `ai.mcp_production` is `true`). Prefer
+its tools over ad-hoc scripts: `gaffer-block-usage` (where a block is used,
+with its stored values: before renaming or removing a block or field),
+`gaffer-doctor`, `gaffer-render` (one URL with strict variables: errors,
+timing, the HTML of a CSS `selector`; `user`/`cart` for logged-in and cart
+pages, `theme` for a staged copy), `gaffer-last-errors` (look here before
+guessing why something broke) and `gaffer-forms`.

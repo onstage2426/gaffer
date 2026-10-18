@@ -26,8 +26,7 @@
   ```twig
   {{ include('components/button/primary.twig', { link: primary }, with_context = false) }}
   ```
-  Always the `include()` function, never the `{% include %}` tag. The
-  reference below lists each template's variables (`(optional)`: read behind
+  Always the `include()` function, never the `{% include %}` tag. `gaffer-reference` lists each template's variables (`(optional)`: read behind
   `??`, `|default` or `is defined`).
 - `doctor` reports templates that are rendered or included but don't exist,
   templates nothing uses, includes without `with_context = false`, and HTML
@@ -49,7 +48,7 @@
   `View::share('nav_mega', fn() => is_checkout() ? null : Menu::location('mega'));`
 - **Templates get all content from PHP.** There are no lookup functions in
   Twig (`get_post()` etc. don't exist). Gaffer's Twig functions are `config(key)`
-  and `ajax_url(action)`; the theme's are listed in the reference below.
+  and `ajax_url(action)`; the theme's are listed in `gaffer-reference`.
 - **Theme strings:** `{{ 'Read more'|t }}` is gettext (`__()`) in the theme's
   text domain (the `Text Domain` header in `style.css`), so WPML/Polylang
   translate it. In PHP: `__('Read more', '<that domain>')`. Placeholders after

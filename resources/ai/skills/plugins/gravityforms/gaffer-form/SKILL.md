@@ -19,6 +19,22 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
    the theme's meta partial (form name, honeypot, Turnstile), and per field
    `name="fields[label]"`, `value="{{ form.value('label') }}"` and
    `form.error('label')`. Show `form.error('')` and `form.failed` too.
+   ```twig
+   <div id="form-contact" hx-target="this" hx-swap="outerHTML">
+       {% if form.sent %}{{ form.message|raw }}{% else %}
+       <form hx-post="{{ ajax_url('Form') }}" hx-disabled-elt="find button" novalidate>
+           {{ include('components/form/meta.twig', { form: form }, with_context = false) }}
+           ...fields: name="fields[naam]", value="{{ form.value('naam') }}", error: form.error('naam')
+       </form>
+       {% endif %}
+   </div>
+   ```
+   `form` (`Gaffer\Forms\FormState`): `value(field)`, `checked(field, choice)`,
+   `error(field)` (`error('')`: about the whole form), `sent`, `message`
+   (HTML: `|raw`), `failed` (the Gravity Forms form wasn't found). Checkboxes
+   send `fields[x][]`. Spam fields: the honeypot `website` (hidden) and
+   Turnstile (`data-response-field-name="turnstile"`, rendered with
+   `render=explicit`; widgets in swapped-in content need rendering again).
 4. Render it from PHP with `FormState::blank('{name}')` passed in (a block's
    `functions.php`, `footer.php`, ...) and include it with
    `with_context = false`.
@@ -26,7 +42,7 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
    \Gaffer\Forms\FormAction {}`) for every form; create it only if it's
    missing.
 6. Run `php gaffer doctor --wp` (form exists, only known fields, every
-   required one sent), then submit it for real through the web server: a
-   valid entry (use an e-mail address on a real domain), one with errors,
+   required one sent, fields without an Admin Field Label), then submit it
+   for real through the web server: a valid entry (use an e-mail address on a real domain), one with errors,
    and check the confirmation and the notification. Delete your test entries
    by ID afterwards.

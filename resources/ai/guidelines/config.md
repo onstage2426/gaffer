@@ -4,11 +4,11 @@ Each `config/{file}.php` returns an array; the file name is the top-level key:
 `Gaffer\Config::get('theme.cache')`, `{{ config('turnstile.site_key') }}` in Twig.
 
 - **Values only.** The keys Gaffer reads are documented once, in its stubs
-  (`vendor/onstage2426/gaffer/config/`); `php gaffer config:show` and the
-  reference below show those descriptions. Don't copy the stub comments into
+  (`vendor/onstage2426/gaffer/config/`); `php gaffer config:show` and
+  `gaffer-reference` show those descriptions. Don't copy the stub comments into
   the theme: copies go stale.
 - **The theme's own keys** (its own files, e.g. company details) get a one-line
-  `// comment` above each top-level key; the reference below shows it.
+  `// comment` above each top-level key; `gaffer-reference` shows it.
 - **Nothing that differs per server or checkout.** Theme config is committed
   and the same everywhere:
   - server settings are constants in `wp-config.php`: `WP_DEBUG` (also turns

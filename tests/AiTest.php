@@ -77,7 +77,10 @@ final class AiTest extends TestCase
         self::assertStringNotContainsString('## Views (Twig)', $agents);
         self::assertStringContainsString('## Shop rules', $agents);             // extra theme file
         self::assertStringNotContainsString('## WooCommerce', $agents);         // plugin not active
-        self::assertStringContainsString("`theme.colour`", $agents);            // generated reference
+        self::assertStringNotContainsString("`theme.colour`", $agents);         // the reference is a skill
+        $reference = (string) file_get_contents("{$this->theme}/.claude/skills/gaffer-reference/SKILL.md");
+        self::assertStringStartsWith("---\nname: gaffer-reference\ndescription: ", $reference);
+        self::assertStringContainsString("`theme.colour`", $reference);
     }
 
     public function test_plugin_guidelines_only_when_active(): void

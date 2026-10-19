@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gaffer;
 
 /**
- * Base class for ajax actions (ajax/{Name}/{Name}.php).
+ * Base class for ajax actions (app/Ajax/{Name}/{Name}.php).
  *
  * Each action declares its own run() with typed parameters; request input is
  * mapped onto them by name (see AjaxArguments):

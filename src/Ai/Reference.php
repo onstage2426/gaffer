@@ -199,7 +199,7 @@ final class Reference
         foreach (Templates::all() as $name => $file) {
             $module = str_starts_with($name, '@') ? null : Templates::parse($name);
             if ($module === null) {
-                continue; // block and ajax templates are covered by their own sections
+                continue; // block templates are covered by their own section
             }
             $variables = array_map(
                 static fn(string $variable, bool $optional): string => "`{$variable}`" . ($optional ? ' (optional)' : ''),

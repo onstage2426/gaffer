@@ -12,7 +12,7 @@ use Gaffer\Paths;
 use Throwable;
 
 /**
- * Each ajax/{Name}/{Name}.php defines Theme\Ajax\{Name}\{Name} extending AjaxAction,
+ * Each app/Ajax/{Name}/{Name}.php defines Theme\Ajax\{Name}\{Name} extending AjaxAction,
  * with a GET or POST METHOD and a run() Gaffer can fill, and warns about SHORTINIT
  * actions using things SHORTINIT doesn't load. Loads them the way the dispatcher
  * does (Ajax::action_class()).
@@ -22,6 +22,11 @@ final class AjaxCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
+        if (is_dir(Paths::base('ajax'))) {
+            $report->error('ajax', 'ajax/ is no longer read: actions are app/Ajax/{Name}/{Name}.php', Paths::base('ajax'), null,
+                'Move each ajax/{Name}/ to app/Ajax/{Name}/ (same namespace), its templates to views/ (no more @ajax/), then composer dump-autoload.');
+        }
+
         foreach (Ajax::actions() as $action) {
             $file = Paths::ajax() . "/{$action}/{$action}.php";
             try {

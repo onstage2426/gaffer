@@ -10,14 +10,12 @@ use LogicException;
 final class Ajax
 {
     /**
-     * Actions are {NAMESPACE}\{Name}\{Name} in ajax/{Name}/{Name}.php; other
-     * classes and traits in an action's directory are autoloaded the same way.
+     * Actions are {NAMESPACE}\{Name}\{Name} in app/Ajax/{Name}/{Name}.php, loaded by
+     * the theme's Composer autoloader (Theme\ → app/) like its other classes.
      *
      * @internal
      */
     public const string NAMESPACE = 'Theme\\Ajax';
-
-    private static bool $autoload = false;
 
     public static function boot(string $dir): void
     {
@@ -35,7 +33,7 @@ final class Ajax
     }
 
     /**
-     * The actions in ajax/: every ajax/{Name}/{Name}.php.
+     * The actions: every app/Ajax/{Name}/{Name}.php.
      *
      * @return list<string>
      *
@@ -54,7 +52,7 @@ final class Ajax
     }
 
     /**
-     * The class of an action, autoloaded: null when its file doesn't define
+     * The class of an action: null when its file doesn't define
      * {NAMESPACE}\{Name}\{Name} extending AjaxAction.
      *
      * @return class-string<AjaxAction>|null
@@ -63,7 +61,6 @@ final class Ajax
      */
     public static function action_class(string $name): ?string
     {
-        self::autoload();
         $class = self::NAMESPACE . "\\{$name}\\{$name}";
 
         return is_subclass_of($class, AjaxAction::class) ? $class : null;
@@ -94,7 +91,7 @@ final class Ajax
         $class = self::action_class($action);
 
         if ($class === null) {
-            error_log("Gaffer Ajax: ajax/{$action}/{$action}.php doesn't define " . self::NAMESPACE . "\\{$action}\\{$action} extending " . AjaxAction::class);
+            error_log("Gaffer Ajax: app/Ajax/{$action}/{$action}.php doesn't define " . self::NAMESPACE . "\\{$action}\\{$action} extending " . AjaxAction::class);
             http_response_code(500);
             exit();
         }
@@ -144,27 +141,5 @@ final class Ajax
         }
 
         AjaxArguments::run_method($instance)->invokeArgs($instance, $args);
-    }
-
-    /**
-     * Theme\Ajax\{Dir}\{Class} → ajax/{Dir}/{Class}.php, loaded when first used.
-     */
-    private static function autoload(): void
-    {
-        if (self::$autoload) {
-            return;
-        }
-        self::$autoload = true;
-
-        spl_autoload_register(static function (string $class): void {
-            $prefix = self::NAMESPACE . '\\';
-            $parts = str_starts_with($class, $prefix) ? explode('\\', substr($class, strlen($prefix))) : [];
-            if (count($parts) === 2 && preg_match('/^[A-Za-z][A-Za-z0-9]*$/', $parts[0] . $parts[1]) === 1) {
-                $file = Paths::ajax() . "/{$parts[0]}/{$parts[1]}.php";
-                if (is_file($file)) {
-                    require_once $file;
-                }
-            }
-        });
     }
 }

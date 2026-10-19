@@ -19,8 +19,8 @@
   list. `views/components/`: parts used across the site (header, footer,
   buttons, `modals/`, `icons/`).
 - Block templates are `@block/{name}/{name}.twig` (`blocks/`) and belong to
-  their block; ajax templates `@ajax/{Action}/x.twig` (`ajax/`). When a page
-  needs the same markup as a block, move it to `components/` and include it
+  their block. Ajax actions render templates in `views/` like pages do.
+  When a page needs the same markup as a block, move it to `components/` and include it
   from both, so changing the block can't break the page.
 - **Partials get exactly what they need**, never the caller's variables:
   ```twig

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gaffer;
 
 /**
- * The theme's fixed layout: views/, inc/, blocks/, fields/, ajax/, public/, storage/.
+ * The theme's fixed layout: views/, inc/, blocks/, fields/, app/Ajax/, public/, storage/.
  */
 final class Paths
 {
@@ -59,7 +59,7 @@ final class Paths
     /** @internal */
     public static function ajax(): string
     {
-        return self::base('ajax');
+        return self::base('app/Ajax');
     }
 
     /** @internal */
@@ -69,7 +69,7 @@ final class Paths
     }
 
     /**
-     * Twig namespaces next to views/: `@block/x/x.twig` and `@ajax/X/x.twig`.
+     * Twig namespaces next to views/: `@block/x/x.twig`.
      *
      * @return array<string, string>
      *
@@ -77,7 +77,7 @@ final class Paths
      */
     public static function view_namespaces(): array
     {
-        return ['block' => self::blocks(), 'ajax' => self::ajax()];
+        return ['block' => self::blocks()];
     }
 
     /**

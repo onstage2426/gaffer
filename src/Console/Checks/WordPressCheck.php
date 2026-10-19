@@ -390,7 +390,7 @@ final class WordPressCheck implements Check
             return;
         }
         if (!is_file(Paths::ajax() . '/Form/Form.php')) {
-            $report->error('forms', 'No ajax/Form/Form.php: forms post to it', null, null,
+            $report->error('forms', 'No app/Ajax/Form/Form.php: forms post to it', null, null,
                 'class Form extends \\Gaffer\\Forms\\FormAction {} in namespace Theme\\Ajax\\Form.');
         }
 

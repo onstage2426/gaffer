@@ -34,11 +34,11 @@ final class PathsTest extends TestCase
         self::assertSame(self::THEME . '/views', Paths::views());
         self::assertSame(self::THEME . '/inc', Paths::includes());
         self::assertSame(self::THEME . '/blocks', Paths::blocks());
-        self::assertSame(self::THEME . '/ajax', Paths::ajax());
+        self::assertSame(self::THEME . '/app/Ajax', Paths::ajax());
         self::assertSame(self::THEME . '/public', Paths::public());
         self::assertSame(self::THEME . '/storage', Paths::storage());
         self::assertSame(self::THEME . '/storage/cache/views', Paths::twig_cache());
-        self::assertSame(['block' => self::THEME . '/blocks', 'ajax' => self::THEME . '/ajax'], Paths::view_namespaces());
+        self::assertSame(['block' => self::THEME . '/blocks'], Paths::view_namespaces());
     }
 
     #[RunInSeparateProcess]

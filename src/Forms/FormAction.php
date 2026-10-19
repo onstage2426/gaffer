@@ -9,7 +9,7 @@ use Gaffer\Turnstile;
 use Gaffer\View;
 
 /**
- * The one ajax action every form posts to (the theme's ajax/Form/Form.php
+ * The one ajax action every form posts to (the theme's app/Ajax/Form/Form.php
  * extends it). Checks the honeypot and Turnstile, submits to the Gravity Forms
  * form named like the template, and answers with views/forms/{form}.twig
  * re-rendered (errors, or sent), or an HX-Redirect for a confirmation page.

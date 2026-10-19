@@ -66,17 +66,17 @@ the questions below.
 **Forms**: extend `Forms\FormAction` (one `Form` action); `Forms\FormState`:
 `blank()`, `name`, `sent`, `message`, `failed`, `value()`, `checked()`, `error()`.
 
-**Twig**: the functions `config()` and `ajax_url()`; the filter `t`; the namespaces `@block`
-and `@ajax`; `strict_variables` with `WP_DEBUG`.
+**Twig**: the functions `config()` and `ajax_url()`; the filter `t`; the namespace `@block`;
+`strict_variables` with `WP_DEBUG`.
 
 ## Data and conventions
 
 These live in databases and theme folders, so a change breaks sites even
 without a code change:
 
-- **The theme layout:** `views/`, `blocks/`, `fields/`, `ajax/`, `inc/` (`*.php` then
+- **The theme layout:** `views/`, `blocks/`, `fields/`, `inc/` (`*.php` then
   `*/*.php`), `app/` (`Theme\`), `config/`, `public/`, `assets/`, `storage/`;
-  `GAFFER_STORAGE`; the `Theme\Ajax\{Name}\{Name}` namespace.
+  `GAFFER_STORAGE`; ajax actions as `app/Ajax/{Name}/{Name}.php` (`Theme\Ajax\{Name}\{Name}`).
 - **Blocks:** `block.json` with `acf.renderTemplate`; `fields.php` (a list of ACF
   field arrays without keys) and **the derived keys**:
   `group_{name}`, `field_{name}__{field}`, sub fields `…__{parent}__{field}`,

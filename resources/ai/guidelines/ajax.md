@@ -1,12 +1,13 @@
-## Ajax actions (`ajax/`)
+## Ajax actions (`app/Ajax/`)
 
-One directory per action: `ajax/{Name}/{Name}.php` with class
-`Theme\Ajax\{Name}\{Name}` (the namespace is fixed). Other classes and traits
-in an action's directory are autoloaded by the same rule
-(`Theme\Ajax\CartDrawer\CartDrawerRenderer` → `ajax/CartDrawer/CartDrawerRenderer.php`);
-shared code lives in the directory of the action that owns it. Actions answer
-with a fragment, so their templates don't get `View::share()` data: pass what
-they show.
+One directory per action: `app/Ajax/{Name}/{Name}.php` with class
+`Theme\Ajax\{Name}\{Name}` (the namespace is fixed), loaded by Composer like
+every `Theme\` class. Other classes and traits an action needs go in its
+directory (`Theme\Ajax\CartDrawer\CartDrawerRenderer`); code several actions
+share lives in the directory of the action that owns it. Templates are in
+`views/` like all templates, by concept (`views/cart/drawer.twig`), not next
+to the class. Actions answer with a fragment, so their renders don't get
+`View::share()` data: pass what they show.
 
 ```php
 namespace Theme\Ajax\CartAdd;
@@ -19,7 +20,7 @@ class CartAdd extends AjaxAction
 
     public function run(Product $product, int $quantity = 1, string $note = ''): void
     {
-        // output HTML (usually View::render('@ajax/CartAdd/x.twig', ...))
+        // output HTML (usually View::render('cart/added.twig', ...))
     }
 }
 ```

@@ -64,14 +64,15 @@ final class FieldGroupsCheck implements Check
     }
 
     /**
-     * Every quoted string in the theme's PHP and Twig, and every .name in Twig, outside fields/.
+     * Every quoted string in the theme's PHP and Twig (outside fields/) and in Gaffer's own code
+     * (Term::thumbnail() reads thumbnail_id), and every .name in Twig.
      *
      * @return array<string, true>
      */
     private static function mentioned(): array
     {
         $mentioned = [];
-        foreach (ThemeFiles::find(['php', 'twig']) as $file) {
+        foreach ([...ThemeFiles::find(['php', 'twig']), ...ThemeFiles::find(['php'], dirname(__DIR__, 2))] as $file) {
             if (str_starts_with($file, Paths::fields() . '/')) {
                 continue;
             }

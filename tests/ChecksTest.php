@@ -97,6 +97,9 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString('Field "team" is on two options pages (options_page/algemeen, options_page/footer)', $messages);
         self::assertStringContainsString('Field "telefoon" is never read', $messages);
         self::assertStringNotContainsString('Field "team" is never read', $messages);
+
+        file_put_contents("{$this->theme}/fields/options_page/footer.php", "<?php return [['name' => 'thumbnail_id', 'type' => 'image']];");
+        self::assertStringNotContainsString('"thumbnail_id" is never read', $this->messages(new FieldGroupsCheck())); // Term::thumbnail() reads it
     }
 
     public function test_ui_field_groups_are_code_now(): void

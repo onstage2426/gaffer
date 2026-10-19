@@ -304,7 +304,11 @@ final class WordPressCheck implements Check
                 'taxonomy' => taxonomy_exists($value),
                 default => !function_exists('acf_get_options_page') || acf_get_options_page($value) !== false,
             };
-            if (!$exists) {
+            if (!$exists && is_multisite()) {
+                // One theme, several sites: a WooCommerce attribute or post type may exist on only some of them.
+                $report->warning('wp', 'Targets ' . str_replace('_', ' ', $param) . " \"{$value}\", which isn't registered on this site", $file, null,
+                    'Fine when another site of the network has it; check the site that should.');
+            } elseif (!$exists) {
                 $report->error('wp', 'Targets ' . str_replace('_', ' ', $param) . " \"{$value}\", which isn't registered", $file);
             }
             try {

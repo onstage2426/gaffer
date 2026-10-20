@@ -196,16 +196,28 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   the caller of a `_doing_it_wrong` notice with a `doing_it_wrong_run` hook
   that prints `debug_backtrace()` (`wp --require=<file>`).
 
-## Current state (2026-10-11)
+## Current state (2026-10-20)
 
-- **Sites:** blueprint, thenewbride (`~/docker/appdata/websites/thenewbride`,
-  theme `wp-content/themes/thenewbride`, dev site, its own `.ai/guidelines/`)
-  and a live site on another server (no WooCommerce, forms or Fuzor; WP
-  Rocket). A large WooCommerce site (multisite, WP Rocket, Redis, YITH filters,
-  Gravity Forms shortcodes) is being converted from PHP templates to Gaffer by
-  its own Claude Code, on the live server (no staging): its feedback drives
-  the render/doctor/migrate tooling. Blueprint and thenewbride keep WordPress's
-  1536/2048 image sizes (re-added 2026-10-11, thumbnails not regenerated).
+- **Sites** (all in `~/docker/appdata/websites/{site}/wp-content/themes/{theme}`):
+  - blueprint (the integration site and starter; commit and push it with each
+    Gaffer cycle);
+  - thenewbride (dev site, its own `.ai/guidelines/`; its 16 UI field groups are
+    in `fields/` since 2026-10-20; usually has the user's uncommitted work: don't
+    commit there);
+  - a4hydrauliek (theme a4hydrauliek, WPML, built from Figma by its own Claude
+    Code: uncommitted work in progress, don't commit there; Gravity Forms by
+    shortcode, no headless forms; `doctor-baseline.json` holds its config
+    strings translated with `|t`);
+  - blueprint-base (theme blueprint: multisite + WPML test network, free to
+    change, not a git repository; still has 11 stale block field groups only in
+    its database);
+  - a live site on another server (no WooCommerce, forms or Fuzor; WP Rocket);
+  - Bestratingsmarkt, a large live WooCommerce multisite (WP Rocket, Redis,
+    YITH filters, Gravity Forms shortcodes) converted to Gaffer by its own
+    Claude Code without staging: its feedback drives the render/doctor/migrate
+    tooling (it moved 34 UI field groups, ~173,000 references, to `fields/`).
+  Blueprint and thenewbride keep WordPress's 1536/2048 image sizes (re-added
+  2026-10-11, thumbnails not regenerated).
 - **Before 1.0, done:** public API (`API.md`, `api.txt` snapshot, `@internal`
   on the rest), deprecations (`#[\Deprecated]` + `doctor`), `symfony/console`
   a runtime requirement, CI (`.github/workflows/ci.yml`), supported versions

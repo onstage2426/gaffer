@@ -66,6 +66,23 @@ final class HtmlDiffTest extends TestCase
         self::assertLessThan(20, count($diff));
     }
 
+    public function test_reorder_only(): void
+    {
+        self::assertTrue(HtmlDiff::reorder_only(['  <ul>', '- <li>b', '- <li>a', '+ <li>a', '+ <li>b', '  </ul>']));
+        self::assertFalse(HtmlDiff::reorder_only(['- <li>b', '+ <li>a']));
+        self::assertFalse(HtmlDiff::reorder_only(['- <li>a', '- <li>a', '+ <li>a'])); // a line gone, not moved
+        self::assertFalse(HtmlDiff::reorder_only(['  x']));
+    }
+
+    public function test_a_changed_long_line_shows_the_part_that_differs(): void
+    {
+        $config = str_repeat('x', 300);
+        $hunk = HtmlDiff::shorten(['  <div>', "- <div data-config='{$config}\"ms\":32,{$config}'>", "+ <div data-config='{$config}\"ms\":41,{$config}'>"], 200, 5);
+
+        self::assertSame(['  <div>', '- …"ms":32,xxxx…', '+ …"ms":41,xxxx…'], $hunk);
+        self::assertSame(['- short', '+ other'], HtmlDiff::shorten(['- short', '+ other']));
+    }
+
     public function test_hunks_split_at_gaps(): void
     {
         self::assertSame([['  b', '- c', '+ C'], ['+ j']], HtmlDiff::hunks(['  b', '- c', '+ C', '…', '+ j', '…']));

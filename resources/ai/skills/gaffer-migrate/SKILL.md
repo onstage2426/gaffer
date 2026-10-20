@@ -131,7 +131,14 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
     `--ignore='/name=\x27(?:gform_currency|state_\d+)\x27[^>]*value=\x27[^\x27]*\x27|gfield--type-honeypot.*?<\/label>/s'`.
     WPML's cookie script has a timestamp: `--ignore='/"expires":"[^"]*"/'`.
   - What changes on every request on this site goes in `console.render_ignore`
-    (config), not on every command line.
+    (config), not on every command line. Typical candidates: signed CDN or
+    social image URLs (Instagram's `?…&oh=…&oe=…`), timings (`"ms":\d+`),
+    dates and times (delivery dates around midnight, `data-time`), plugin
+    version strings (`banner_version`), per-request tokens and nonces.
+  - Changes that only reorder lines (random suggestions, items with equal
+    counts) are marked "(reorder only)"; `--hide-reorders` leaves them out (a
+    page with nothing else counts as the same). A long line that changed is
+    shown as the part that differs; `--json` has the full lines.
 - Renders leave out the page cache and WP Rocket optimization; a `--from`
   snapshot of a live WP Rocket site still has Rocket's markup, so compare a
   content region with `--select`.

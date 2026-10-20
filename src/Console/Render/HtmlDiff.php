@@ -131,6 +131,62 @@ final class HtmlDiff
     }
 
     /**
+     * Whether a hunk only moves lines around: the removed lines are the added ones in another
+     * order (random suggestions, items with equal counts, a sitemap sorted differently).
+     *
+     * @param list<string> $hunk
+     */
+    public static function reorder_only(array $hunk): bool
+    {
+        $side = static function (string $op) use ($hunk): array {
+            $lines = array_map(static fn(string $line): string => substr($line, 2), array_values(array_filter($hunk, static fn(string $line): bool => str_starts_with($line, $op))));
+            sort($lines);
+            return $lines;
+        };
+        $removed = $side('- ');
+
+        return $removed !== [] && $removed === $side('+ ');
+    }
+
+    /**
+     * A long line that changed into another long line (a config attribute, an Instagram
+     * feed), shown as the part that differs with $context characters around it:
+     * "- …data-config="{…"ms":32,…}"…".
+     *
+     * @param list<string> $hunk
+     * @return list<string>
+     */
+    public static function shorten(array $hunk, int $width = 200, int $context = 40): array
+    {
+        foreach ($hunk as $i => $line) {
+            $next = $hunk[$i + 1] ?? '';
+            if (!str_starts_with($line, '- ') || !str_starts_with($next, '+ ') || (mb_strlen($line) <= $width && mb_strlen($next) <= $width)) {
+                continue;
+            }
+            // Characters once, not mb_substr() per character: these lines run to kilobytes.
+            [$old, $new] = [mb_str_split(mb_substr($line, 2)), mb_str_split(mb_substr($next, 2))];
+            $max = min(count($old), count($new));
+            $prefix = 0;
+            while ($prefix < $max && $old[$prefix] === $new[$prefix]) {
+                $prefix++;
+            }
+            $suffix = 0;
+            while ($suffix < $max - $prefix && $old[count($old) - 1 - $suffix] === $new[count($new) - 1 - $suffix]) {
+                $suffix++;
+            }
+            $cut = static function (array $chars) use ($prefix, $suffix, $context): string {
+                $from = max(0, $prefix - $context);
+                $to = count($chars) - max(0, $suffix - $context);
+                return ($from > 0 ? '…' : '') . implode('', array_slice($chars, $from, $to - $from)) . ($to < count($chars) ? '…' : '');
+            };
+            $hunk[$i] = '- ' . $cut($old);
+            $hunk[$i + 1] = '+ ' . $cut($new);
+        }
+
+        return $hunk;
+    }
+
+    /**
      * A diff() split at its "…" lines: each change with its context.
      *
      * @param list<string> $diff

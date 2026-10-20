@@ -36,6 +36,7 @@ final class RenderDiff extends Command
         $this->addOption('ignore', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Remove matches of this regular expression first (repeatable), e.g. \'/data-delay="\d+"/\'. It matches the page as rendered (before --select and normalizing): mind single and double quotes');
         $this->addOption('theme', null, InputOption::VALUE_REQUIRED, 'Render with a full copy of this theme next to it (e.g. blueprint-stage: cp -r, vendor/ included): staged code against live, before switching');
         $this->addOption('lines', null, InputOption::VALUE_REQUIRED, 'Lines shown per change', '40');
+        $this->addOption('hide-reorders', null, InputOption::VALUE_NONE, 'Hide changes that only reorder lines (random suggestions, equal counts); a page with nothing else counts as the same');
         $this->addOption('json', null, InputOption::VALUE_NONE, 'Output as JSON: the counts and each change with its pages and lines (all of them)');
     }
 
@@ -71,8 +72,10 @@ final class RenderDiff extends Command
         $now = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $snapshot->visitor, $entry)->render(array_keys($snapshot->pages), true);
 
         // The same change on many pages (a header, a footer) is shown once, with its pages.
+        $hide = (bool) $input->getOption('hide-reorders');
         $same = 0;
         $differ = 0;
+        $hidden = 0;
         $groups = [];
         foreach ($snapshot->pages as $path => $before) {
             $after = Snapshot::page($now[$path]);
@@ -82,16 +85,19 @@ final class RenderDiff extends Command
                 $output->writeln("<error>{$e->getMessage()}</error>");
                 return self::FAILURE;
             }
-            if ($changes === []) {
-                $same++;
-                continue;
-            }
-            $differ++;
+            $shown = 0;
             foreach (HtmlDiff::hunks($changes) as $hunk) {
+                $reorder = HtmlDiff::reorder_only($hunk);
+                if ($reorder && $hide) {
+                    $hidden++;
+                    continue;
+                }
                 $key = implode("\n", array_filter($hunk, static fn(string $line): bool => !str_starts_with($line, '  ')));
-                $groups[$key] ??= ['hunk' => $hunk, 'paths' => []];
+                $groups[$key] ??= ['hunk' => $hunk, 'paths' => [], 'reorder' => $reorder];
                 $groups[$key]['paths'][$path] = true;
+                $shown++;
             }
+            $shown > 0 ? $differ++ : $same++;
         }
 
         uasort($groups, static fn(array $a, array $b): int => count($b['paths']) <=> count($a['paths']));
@@ -100,15 +106,18 @@ final class RenderDiff extends Command
                 'snapshot' => $snapshot->name,
                 'same' => $same,
                 'different' => $differ,
-                'changes' => array_values(array_map(static fn(array $group): array => ['pages' => array_keys($group['paths']), 'lines' => $group['hunk']], $groups)),
+                'hidden_reorders' => $hidden,
+                'changes' => array_values(array_map(static fn(array $group): array => ['pages' => array_keys($group['paths']), 'reorder_only' => $group['reorder'], 'lines' => $group['hunk']], $groups)),
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
             return $differ === 0 ? self::SUCCESS : self::FAILURE;
         }
-        foreach ($groups as ['hunk' => $hunk, 'paths' => $paths]) {
+        foreach ($groups as ['hunk' => $hunk, 'paths' => $paths, 'reorder' => $reorder]) {
             $paths = array_keys($paths);
             $shown = array_slice($paths, 0, 3);
             $more = count($paths) - count($shown);
-            $output->writeln('<info>' . implode(', ', $shown) . ($more > 0 ? " and {$more} more" : '') . '</info>' . (count($paths) > 1 ? ' (' . count($paths) . ' pages)' : ''));
+            $output->writeln('<info>' . implode(', ', $shown) . ($more > 0 ? " and {$more} more" : '') . '</info>' . (count($paths) > 1 ? ' (' . count($paths) . ' pages)' : '')
+                . ($reorder ? ' <comment>(reorder only)</comment>' : ''));
+            $hunk = HtmlDiff::shorten($hunk);
             if (count($hunk) > $max) {
                 $hunk = [...array_slice($hunk, 0, $max), '… ' . (count($hunk) - $max) . ' more lines'];
             }
@@ -124,7 +133,9 @@ final class RenderDiff extends Command
             }
         }
 
-        $output->writeln("{$same} the same, {$differ} different" . ($groups !== [] ? ', ' . count($groups) . ' distinct changes' : '') . '.');
+        $reorders = count(array_filter($groups, static fn(array $group): bool => $group['reorder']));
+        $output->writeln("{$same} the same, {$differ} different" . ($groups !== [] ? ', ' . count($groups) . ' distinct changes' : '')
+            . ($reorders > 0 ? " ({$reorders} only reorder lines: --hide-reorders)" : '') . ($hidden > 0 ? ", {$hidden} reorders hidden" : '') . '.');
 
         return $differ === 0 ? self::SUCCESS : self::FAILURE;
     }

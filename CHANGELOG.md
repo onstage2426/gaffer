@@ -9,6 +9,14 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-10-20
 
+### `render:diff`: reorders and long lines
+
+Changes that only reorder lines are marked "(reorder only)" and
+`--hide-reorders` leaves them out (`--json`: `reorder_only` per change); a
+changed long line shows only the part that differs. The `gaffer-migrate` skill
+lists typical `console.render_ignore` candidates. Nothing to change in sites;
+consider moving recurring `--ignore` patterns into `console.render_ignore`.
+
 ### Field groups: conditional logic by name, titles from WordPress, more checks
 
 - Conditional logic in `fields.php` and `fields/` can name the field:

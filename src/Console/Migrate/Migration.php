@@ -23,6 +23,9 @@ final class Migration
     /** @var list<array{location: Location, before: string, after: string, summary: string}> */
     private array $plan = [];
 
+    /** @var array<string, true> the plan's locations, by "{kind}:{id}" */
+    private array $planned = [];
+
     /** @var list<string> */
     private array $problems = [];
 
@@ -56,17 +59,17 @@ final class Migration
 
     public function change(Location $location, string $before, string $after, string $summary): void
     {
-        foreach ($this->plan as $planned) {
-            if ($planned['location']->kind === $location->kind && $planned['location']->id === $location->id) {
-                // The second change was planned from content the first one replaces: the run would abort.
-                throw new LogicException("{$location->label} is changed twice in one run: rewrite it once");
-            }
+        $key = "{$location->kind}:{$location->id}";
+        if (isset($this->planned[$key])) {
+            // The second change was planned from content the first one replaces: the run would abort.
+            throw new LogicException("{$location->label} is changed twice in one run: rewrite it once");
         }
         if ($user = ContentStore::locked_by($location)) {
             $this->problem("{$location->label}: open in the editor by user {$user}; try again when they're done");
             return;
         }
         $this->plan[] = ['location' => $location, 'before' => $before, 'after' => $after, 'summary' => $summary];
+        $this->planned[$key] = true;
     }
 
     /**

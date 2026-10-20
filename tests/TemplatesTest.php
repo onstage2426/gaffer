@@ -8,6 +8,7 @@ use Gaffer\Console\Templates;
 use Gaffer\View;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
+use Twig\TwigFilter;
 
 final class TemplatesTest extends TestCase
 {
@@ -72,6 +73,14 @@ final class TemplatesTest extends TestCase
         self::env(['t.twig' => "{{ post.title() }}\n{{ product.get_title() }}\n{{ product.get_meta('label') }} {{ post.wp.post_name }}"]);
 
         self::assertSame([['get_title', 2], ['get_meta', 3]], Templates::getter_calls(Templates::parse('t.twig')));
+    }
+
+    public function test_t_on_anything_but_a_literal(): void
+    {
+        self::env(['t.twig' => "{{ 'Lees meer'|t }} {{ '%d resultaten'|t|format(n) }}\n{{ (open ? 'Sluit' : 'Open')|t }}\n{{ label|t }} {{ ('a' ~ b)|t }}"]);
+        View::env()->addFilter(new TwigFilter('t', static fn(string $s): string => $s));
+
+        self::assertSame([2, 3, 3], Templates::non_literal_translations(Templates::parse('t.twig')));
     }
 
     public function test_a_template_that_does_not_compile_is_null(): void

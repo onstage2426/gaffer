@@ -52,7 +52,10 @@
 - **Theme strings:** `{{ 'Read more'|t }}` is gettext (`__()`) in the theme's
   text domain (the `Text Domain` header in `style.css`), so WPML/Polylang
   translate it. In PHP: `__('Read more', '<that domain>')`. Placeholders after
-  translating: `{{ '%d results'|t|format(count) }}`.
+  translating: `{{ '%d results'|t|format(count) }}`. Only on a literal string
+  (string scanners find nothing else; `doctor` warns): `{{ open ? 'Close'|t :
+  'Open'|t }}`, not `(open ? 'Close' : 'Open')|t`. Content (ACF values, post
+  titles) is translated as content in WPML/Polylang, never with `|t`.
 - **Images:** write the `<img>` tag yourself and let the type fill in the
   inside, with no `|raw`:
   ```twig

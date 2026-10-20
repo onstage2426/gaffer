@@ -75,6 +75,25 @@ final class Image extends Attachment
         return is_array($img) ? $img[0] : null;
     }
 
+    /**
+     * The file on disk that src($size) serves (for PDFs, image processing): the size's own
+     * file, or the full image when WordPress didn't make that size (an image smaller than
+     * it). Null when the file isn't there (offloaded uploads, a deleted file).
+     */
+    public function path(string $size = 'full'): ?string
+    {
+        $file = \get_attached_file($this->wp->ID);
+        if (!is_string($file) || $file === '') {
+            return null;
+        }
+        $intermediate = $size !== 'full' ? \image_get_intermediate_size($this->wp->ID, $size) : false;
+        if (is_array($intermediate)) {
+            $file = dirname($file) . '/' . $intermediate['file'];
+        }
+
+        return is_file($file) ? $file : null;
+    }
+
     /** The full image's width, null when its metadata doesn't have one. */
     public function width(): ?int
     {

@@ -402,9 +402,27 @@ final class ChecksTest extends TestCase
             PHP;
 
         self::assertSame(
-            [['post', 3], ['wp_query', 5], ['posts', 6], ['product', 7]],
-            TemplateGlobalsCheck::assignments($code),
+            [['post', 3], ['page', 4], ['wp_query', 5], ['posts', 6], ['product', 7]],
+            TemplateGlobalsCheck::assignments($code, ['post', 'posts', 'wp_query', 'page']),
         );
+    }
+
+    public function test_wordpress_declares_the_template_globals(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            class WP_Query {
+                public function the_post() { global $post; }
+                public function setup_postdata($post) {
+                    global $id, $authordata, $page, $pages;
+                    if ($x) { $page = 1; }
+                    $unrelated = 2;
+                }
+            }
+            PHP;
+
+        self::assertSame(['id', 'authordata', 'page', 'pages'], TemplateGlobalsCheck::declared_globals($code, 'setup_postdata'));
+        self::assertSame([], TemplateGlobalsCheck::declared_globals($code, 'missing'));
     }
 
     public function test_only_template_files_are_checked(): void
@@ -413,6 +431,12 @@ final class ChecksTest extends TestCase
         file_put_contents("{$this->theme}/page.php", "<?php\n\$post = 1;\n");
         file_put_contents("{$this->theme}/functions.php", "<?php\n\$post = 1;\n");
         file_put_contents("{$this->theme}/woocommerce/single-product.php", "<?php\nglobal \$product;\n\$product = 1;\n");
+        // A WordPress around the theme: its root has wp-load.php and the files declaring the globals.
+        mkdir("{$this->theme}/wp-includes");
+        file_put_contents("{$this->theme}/wp-load.php", '<?php');
+        file_put_contents("{$this->theme}/wp-includes/template.php", "<?php\nfunction load_template() { global \$posts, \$post; }\n");
+        file_put_contents("{$this->theme}/wp-includes/class-wp-query.php", "<?php\nclass WP_Query { function setup_postdata() { global \$page; } }\n");
+        Paths::set_base($this->theme);
 
         $messages = $this->messages(new TemplateGlobalsCheck());
 

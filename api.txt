@@ -43,6 +43,7 @@ final class Gaffer\Types\Image extends Gaffer\Types\Attachment
   alt(): string
   attrs(string $size = 'full', ?string $sizes = NULL): Twig\Markup
   height(): ?int
+  path(string $size = 'full'): ?string
   src(string $size = 'full'): ?string
   width(): ?int
 final class Gaffer\Types\Menu

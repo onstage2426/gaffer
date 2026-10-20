@@ -48,7 +48,7 @@ the questions below.
   `children`, `terms`, `blocks`, `meta`, `thumbnail`, `is_current`
 - `Term`: `from`, `current`, `query`; `wp`; `id`, `title`, `link`,
   `description`, `parent`, `ancestors`, `children`, `meta`, `thumbnail`
-- `Attachment`: `url`, `mime`; `Image`: `attrs`, `src`, `alt`, `width`, `height`
+- `Attachment`: `url`, `mime`; `Image`: `attrs`, `src`, `path`, `alt`, `width`, `height`
 - `Menu`: `location`, `items`; `MenuItem`: `wp`, `id`, `title`, `link`,
   `target`, `classes`, `is_current`, `is_current_ancestor`, `is_external`,
   `children`, `has_children`

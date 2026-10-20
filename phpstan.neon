@@ -9,6 +9,7 @@ parameters:
     level: 6
     paths:
         - src
+        - bin
         - tests
     excludePaths:
         - tests/stubs

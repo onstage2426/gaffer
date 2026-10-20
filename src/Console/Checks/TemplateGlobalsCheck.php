@@ -10,16 +10,19 @@ use Gaffer\Paths;
 use PhpToken;
 
 /**
- * WordPress template files (the theme root, woocommerce/) run with WordPress's
- * globals in scope: load_template() declares $post, $wp_query, ... global, and
- * WooCommerce's templates declare `global $product`. Assigning one there
- * replaces WordPress's own (a fatal error further down the page, or the wrong
- * post for every plugin after it).
+ * WordPress template files (the theme root, woocommerce/) run in the global
+ * scope, next to WordPress's globals: the ones load_template() declares ($post,
+ * $wp_query, ...), the ones setup_postdata() sets for every post a loop or
+ * get_header() sets up ($page, $pages, $more, $id, ...), and WooCommerce's
+ * `global $product`. Assigning one there replaces WordPress's own, or WordPress
+ * replaces the template's value further down (a fatal error, or the wrong post
+ * for every plugin after it). The names are read from WordPress's own source,
+ * so they follow its version.
  */
 final class TemplateGlobalsCheck implements Check
 {
-    /** The globals load_template() brings into a template file. */
-    private const array GLOBALS = ['posts', 'post', 'wp_did_header', 'wp_query', 'wp_rewrite', 'wpdb', 'wp_version', 'wp', 'id', 'comment', 'user_ID'];
+    /** Where WordPress declares the globals a template file shares: file => function. */
+    private const array DECLARED_IN = ['wp-includes/template.php' => 'load_template', 'wp-includes/class-wp-query.php' => 'setup_postdata'];
 
     /** Theme root files WordPress doesn't load as templates. */
     private const array NOT_TEMPLATES = ['functions.php', 'ajax.php'];
@@ -32,25 +35,84 @@ final class TemplateGlobalsCheck implements Check
             ...(is_dir(Paths::base('woocommerce')) ? ThemeFiles::find(['php'], Paths::base('woocommerce')) : []),
         ];
 
+        $globals = [];
+        foreach (self::DECLARED_IN as $relative => $function) {
+            $source = self::wordpress_file($relative);
+            $declared = $source !== null ? self::declared_globals((string) file_get_contents($source), $function) : [];
+            if ($declared === []) {
+                $report->warning('globals', "Can't read the globals {$function}() declares from WordPress's {$relative}", null, null,
+                    'Template files are still checked for globals they declare themselves.');
+            }
+            array_push($globals, ...$declared);
+        }
+
         foreach ($files as $file) {
-            foreach (self::assignments((string) file_get_contents($file)) as [$name, $line]) {
+            foreach (self::assignments((string) file_get_contents($file), $globals) as [$name, $line]) {
                 $report->warning('globals', "Assigns \${$name}, a WordPress global in template files", $file, $line,
-                    "Use another name (e.g. \$page, \$item): this replaces WordPress's own \${$name} for the rest of the request.");
+                    "Use another name (e.g. \$current, \$item): it shares WordPress's own \${$name} for the rest of the request.");
             }
         }
     }
 
     /**
-     * Assignments (`=`, `??=`, `foreach (... as $x)`) to WordPress's template
-     * globals or a variable the file declares `global`, outside functions and
-     * closures (their variables are local).
+     * The variables in the `global` statements of this function's body (the first function
+     * with that name: a method or a function).
      *
-     * @return list<array{string, int}> name and line
+     * @return list<string>
      */
-    public static function assignments(string $code): array
+    public static function declared_globals(string $code, string $function): array
     {
         $tokens = array_values(array_filter(PhpToken::tokenize($code), static fn(PhpToken $t): bool => !$t->isIgnorable()));
-        $globals = self::GLOBALS;
+        foreach ($tokens as $i => $token) {
+            if (!$token->is(T_FUNCTION) || ($tokens[$i + 1] ?? null)?->text !== $function) {
+                continue;
+            }
+            $names = [];
+            $depth = 0;
+            $in_global = false;
+            for ($j = $i + 2; isset($tokens[$j]); $j++) {
+                $text = $tokens[$j]->text;
+                if ($text === '{' || $tokens[$j]->is([T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES])) {
+                    $depth++;
+                } elseif ($text === '}' && --$depth === 0) {
+                    break;
+                } elseif ($tokens[$j]->is(T_GLOBAL)) {
+                    $in_global = true;
+                } elseif ($text === ';') {
+                    $in_global = false;
+                } elseif ($in_global && $tokens[$j]->is(T_VARIABLE)) {
+                    $names[] = substr($text, 1);
+                }
+            }
+
+            return $names;
+        }
+
+        return [];
+    }
+
+    private static function wordpress_file(string $relative): ?string
+    {
+        try {
+            $file = Paths::wordpress() . "/{$relative}";
+        } catch (\RuntimeException) {
+            return null;
+        }
+
+        return is_file($file) ? $file : null;
+    }
+
+    /**
+     * Assignments (`=`, `??=`, `foreach (... as $x)`) to these WordPress globals
+     * or a variable the file declares `global`, outside functions and closures
+     * (their variables are local).
+     *
+     * @param list<string> $globals
+     * @return list<array{string, int}> name and line
+     */
+    public static function assignments(string $code, array $globals): array
+    {
+        $tokens = array_values(array_filter(PhpToken::tokenize($code), static fn(PhpToken $t): bool => !$t->isIgnorable()));
         $found = [];
         $depth = 0;
         $function_depths = []; // brace depth at which each enclosing function body started

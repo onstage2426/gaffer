@@ -14,6 +14,7 @@ use Twig\Node\Expression\Binary\ConcatBinary;
 use Twig\Node\Expression\Binary\NullCoalesceBinary;
 use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Expression\Filter\DefaultFilter;
+use Twig\Node\Expression\FilterExpression;
 use Twig\Node\Expression\FunctionExpression;
 use Twig\Node\Expression\GetAttrExpression;
 use Twig\Node\Expression\TestExpression;
@@ -159,6 +160,29 @@ final class Templates
         }
         foreach ($node as $child) {
             array_push($found, ...self::getter_calls($child));
+        }
+
+        return $found;
+    }
+
+    /**
+     * Lines where |t gets something other than a literal string (`(a ? 'x' : 'y')|t`,
+     * a variable): it translates at runtime, but string scanners (WPML, Poedit) only
+     * find literals, so translators never see those strings.
+     *
+     * @return list<int>
+     */
+    public static function non_literal_translations(Node $node): array
+    {
+        $found = [];
+        if ($node instanceof FilterExpression && $node->getAttribute('name') === 't') {
+            $subject = $node->getNode('node');
+            if (!$subject instanceof ConstantExpression || !is_string($subject->getAttribute('value'))) {
+                $found[] = $node->getTemplateLine();
+            }
+        }
+        foreach ($node as $child) {
+            array_push($found, ...self::non_literal_translations($child));
         }
 
         return $found;

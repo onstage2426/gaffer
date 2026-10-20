@@ -41,7 +41,10 @@ class Post
     }
 
     /**
-     * Posts from get_posts($args). On a subclass, only posts of that class.
+     * Posts from get_posts($args), with query filters on like any WP_Query (get_posts()
+     * turns them off): WPML and Polylang return the current language, and other plugins'
+     * pre_get_posts hooks apply. Pass 'suppress_filters' => true to turn them off. On a
+     * subclass, only posts of that class.
      *
      * @param array<string, mixed> $args
      * @return list<static>
@@ -50,7 +53,7 @@ class Post
     {
         unset($args['fields']);
 
-        return self::wrap_all(\get_posts($args));
+        return self::wrap_all(\get_posts(['suppress_filters' => false, ...$args]));
     }
 
     /**

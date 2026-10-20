@@ -57,9 +57,12 @@ site-specific code.
 - `wp_redirect()`'s third parameter is the redirect source label, not a boolean.
 - `get_post(0)` returns the current post; Gaffer's factories return `null` for `0`.
 - Template files (`page.php`, `woocommerce/*.php`, ...) run with WordPress's
-  globals in scope: never assign `$post`, `$posts`, `$wp_query` or `$wp` there
-  (nor `$product` in WooCommerce templates). Use another name (`$page`);
-  `doctor` warns.
+  globals in scope (they run in the global scope): never assign `$post`,
+  `$posts`, `$wp_query`, `$wp`, `$page`, `$pages`, `$more`, `$id` or another
+  WordPress global there (nor `$product` in WooCommerce templates). WordPress
+  sets `$page` and the like for every post it sets up, also inside
+  `get_header()`, so the template's value is gone further down. Use another
+  name (`$current`, `$item`); `doctor` warns.
 
 ### Check your work
 

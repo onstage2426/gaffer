@@ -20,7 +20,24 @@ final class WordPress
             return;
         }
         self::$loaded = true;
+        self::prepare($url);
 
+        // wp-config.php runs inside this method, so its variables would be local here.
+        // WordPress reads $table_prefix as a global, so bind it before loading. (A render
+        // loads WordPress at the top level of bin/render.php instead, like a web request.)
+        global $table_prefix;
+
+        require_once Paths::wordpress() . '/wp-load.php';
+
+        self::booted();
+    }
+
+    /**
+     * Everything before wp-load.php: the fake request, no page cache drop-in, a clear error
+     * for an unknown multisite site, fatal errors on the terminal.
+     */
+    public static function prepare(?string $url): void
+    {
         self::fake_request($url ?? Env::get('SITE_URL'));
         self::skip_page_cache();
         self::fail_on_unknown_site();
@@ -29,15 +46,14 @@ final class WordPress
         if (!defined('WP_DISABLE_FATAL_ERROR_HANDLER')) {
             define('WP_DISABLE_FATAL_ERROR_HANDLER', true);
         }
+    }
 
-        // wp-config.php runs inside this method, so its variables would be local here.
-        // WordPress reads $table_prefix as a global, so bind it before loading.
-        global $table_prefix;
-
-        require_once Paths::wordpress() . '/wp-load.php';
-
-        // functions.php boots Gaffer when this theme is active; this covers the case
-        // where it isn't (and is a no-op otherwise).
+    /**
+     * After wp-load.php: functions.php boots Gaffer when this theme is active; this
+     * covers the case where it isn't (and is a no-op otherwise).
+     */
+    public static function booted(): void
+    {
         Gaffer::boot(Paths::base());
     }
 

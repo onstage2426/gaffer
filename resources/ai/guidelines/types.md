@@ -22,7 +22,7 @@ missing, `0` or the wrong type → `null`. Cast ACF values: `(int) get_field('x'
 |---|---|
 | `Post::from(int $id)` | The post as its mapped class (a theme subclass for mapped post types, `Image`/`Attachment` for media). On a subclass, `null` unless it is one: `Product::from($id)`. |
 | `Post::current()` | The current post (loop / singular). |
-| `Post::query(array $args)` | `get_posts($args)` as types. |
+| `Post::query(array $args)` | `get_posts($args)` as types, with query filters on (`suppress_filters` is `false` unless you pass `true`): WPML/Polylang return the current language. |
 | `Post::main_query()` | The main query's posts (archives, search). |
 | `Term::from(int $id)`, `Term::current()`, `Term::query(array $args)` | The same for terms (`current()` = queried term). |
 | `Image::from(int $id)`, `Attachment::from(int $id)` | Media. `Image::from()` is `null` for non-images. |
@@ -36,7 +36,7 @@ Main methods:
   `blocks()`, `meta($key)`, `thumbnail()`, `is_current()`.
 - `Term`: `description()`, `parent()`, `ancestors()`, `children()` (direct
   children, empty ones too, by name or WooCommerce's category order), `meta($key)`, `thumbnail()`.
-- `Image`: `attrs(size, sizes)` (`sizes` optional, see Views), `src(size)`, `alt()`, `width()`, `height()` (the
+- `Image`: `attrs(size, sizes)` (`sizes` optional, see Views), `src(size)`, `path(size)` (the file on disk `src()` serves, for PDFs and image processing; never turn a URL into a path yourself), `alt()`, `width()`, `height()` (the
   full image's; `null` when WordPress doesn't know). `Attachment`: `url()`, `mime()`.
 - `MenuItem`: `title()`, `link()`, `target()` (`null` unless set), `classes()`, `is_current()`,
   `is_current_ancestor()`, `children()`, `has_children()`, `is_external()`,

@@ -35,6 +35,7 @@ final class WordPressCheck implements Check
         $this->blocks($report);
         $this->acf_sync($report);
         $this->acf_orphans($report);
+        $this->acf_database_only($report);
         $this->field_types($report);
         $this->field_groups($report);
         $this->woocommerce_templates($report);
@@ -286,6 +287,67 @@ final class WordPressCheck implements Check
                 continue; // FieldGroupsCheck reports it
             }
         }
+    }
+
+    /**
+     * What's made in the ACF UI but only in the database, not in storage/acf-json/ (ACF names
+     * each file after its key, the post's post_name): not in git, so another checkout or a
+     * fresh site doesn't have it.
+     */
+    private function acf_database_only(Report $report): void
+    {
+        global $wpdb;
+
+        $kinds = ['acf-field-group' => 'field group', 'acf-post-type' => 'post type', 'acf-taxonomy' => 'taxonomy', 'acf-ui-options-page' => 'options page'];
+        $rows = $wpdb->get_results(
+            "SELECT post_type, post_name, post_title FROM {$wpdb->posts}
+             WHERE post_type IN ('" . implode("', '", array_keys($kinds)) . "') AND post_status IN ('publish', 'acf-disabled') ORDER BY post_type, post_title",
+        );
+        foreach ($rows as $row) {
+            if (is_file(Paths::storage() . "/acf-json/{$row->post_name}.json")) {
+                continue;
+            }
+            $kind = $kinds[$row->post_type] ?? $row->post_type;
+            $code = $row->post_type === 'acf-field-group' ? self::code_target((string) $row->post_name) : null;
+            $report->warning('wp', "ACF {$kind} \"{$row->post_title}\" is only in the database, not in storage/acf-json/", null, null, match (true) {
+                $code !== null => "Its target defines its fields in code ({$code}): php gaffer migrate:fields " . (str_starts_with($code, 'blocks/') ? self::block_of($code) : substr($code, strlen('fields/'), -4)) . ', then delete this group in ACF.',
+                $row->post_type === 'acf-field-group' => "Move its fields to code (fields/ or a block's fields.php, gaffer-fields skill); until then save it once in ACF so it writes storage/acf-json/{$row->post_name}.json, and commit that.",
+                default => "Open it in ACF and save it once: ACF writes storage/acf-json/{$row->post_name}.json; commit that.",
+            });
+        }
+    }
+
+    /**
+     * The code file that already defines the fields of this field group's target, if any:
+     * "blocks/contentFaq/fields.php" or "fields/post_type/product.php".
+     */
+    private static function code_target(string $key): ?string
+    {
+        $group = function_exists('acf_get_field_group') ? acf_get_field_group($key) : false;
+        if (!is_array($group)) {
+            return null;
+        }
+        $target = FieldGroups::target_of($group['location'] ?? null);
+        if ($target !== null && isset(FieldGroups::targets()[$target])) {
+            return "fields/{$target}.php";
+        }
+        $blocks = array_flip(BlocksCheck::names());
+        foreach (is_array($group['location'] ?? null) ? $group['location'] : [] as $and) {
+            foreach (is_array($and) ? $and : [] as $rule) {
+                $dir = is_array($rule) && ($rule['param'] ?? null) === 'block' ? ($blocks[$rule['value'] ?? ''] ?? null) : null;
+                if ($dir !== null && is_file(Paths::blocks() . "/{$dir}/fields.php")) {
+                    return "blocks/{$dir}/fields.php";
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** blocks/contentFaq/fields.php → acf/content-faq */
+    private static function block_of(string $file): string
+    {
+        return (string) (BlocksCheck::names()[basename(dirname($file))] ?? basename(dirname($file)));
     }
 
     /**

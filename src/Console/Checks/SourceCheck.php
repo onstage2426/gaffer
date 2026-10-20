@@ -7,6 +7,7 @@ namespace Gaffer\Console\Checks;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
 use Gaffer\Config;
+use Gaffer\FieldGroups;
 use Gaffer\Paths;
 
 /**
@@ -34,7 +35,7 @@ final class SourceCheck implements Check
                     $report->warning('source', 'Hardcoded ID: ' . trim($m[0], ' ,)') . ')', $file, $i + 1,
                         'IDs differ per site/database. Use a menu location, config value or option.');
                 }
-                if (str_contains($line, 'wp-content/uploads/')) {
+                if (str_contains($line, 'wp-content/uploads/') && !FieldGroups::is_definition($file)) {
                     $report->warning('source', 'Hardcoded uploads path', $file, $i + 1,
                         'Theme graphics belong in the theme (e.g. views/components/icons/).');
                 }

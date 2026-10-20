@@ -9,6 +9,27 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-10-20
 
+### Field groups: conditional logic by name, titles from WordPress, more checks
+
+- Conditional logic in `fields.php` and `fields/` can name the field:
+  `'field' => 'is_hoofdcategorie'` (a sub field `'vragen.vraag'`, or a
+  sibling's name inside a repeater); Gaffer resolves it to the derived key. A
+  name or written-out key the file doesn't have is now an error. Find:
+  `grep -rn "'field' => 'field_" fields blocks` (written-out keys still work;
+  names survive renames of the file).
+- The meta box of a `fields/` group is titled with the target's own name
+  ("Product", "Productcategorie", the options page's title) instead of
+  "Post type: product". Editors see the new title.
+- `doctor`: field definitions (`fields/`, `blocks/*/fields.php`) no longer
+  count as HTML in PHP or a hardcoded uploads path (a wysiwyg default);
+  UI groups with conditional logic on a field that doesn't exist (a
+  switched-off field) get a warning; groups `fields/` can't express are
+  listed once as info.
+- `doctor --wp`: ACF UI field groups, post types, taxonomies and options pages
+  that are only in the database (no JSON in `storage/acf-json/`) get a
+  warning. Open each in ACF and save it once (or, for a group whose target is
+  already code, `migrate:fields` and delete it).
+
 ### Removing fields of `fields/` targets; deleting the moved UI groups
 
 New for `fields/` targets (with the same dry run, backup, log and rollback as

@@ -6,12 +6,14 @@ namespace Gaffer\Console\Checks;
 
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
+use Gaffer\FieldGroups;
 use Gaffer\Paths;
 use PhpToken;
 
 /**
  * HTML in the theme's PHP (inline HTML, strings, heredocs) outside the
- * header.php/footer.php document shell: markup belongs in Twig.
+ * header.php/footer.php document shell: markup belongs in Twig. Field definitions
+ * (fields/, blocks/*\/fields.php) are data: a wysiwyg default may hold markup.
  */
 final class MarkupCheck implements Check
 {
@@ -24,7 +26,7 @@ final class MarkupCheck implements Check
     {
         foreach (ThemeFiles::find(['php']) as $file) {
             $relative = substr($file, strlen(Paths::base()) + 1);
-            if (in_array($relative, self::SHELL, true)) {
+            if (in_array($relative, self::SHELL, true) || FieldGroups::is_definition($file)) {
                 continue;
             }
 

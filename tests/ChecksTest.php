@@ -102,6 +102,20 @@ final class ChecksTest extends TestCase
         self::assertStringNotContainsString('"thumbnail_id" is never read', $this->messages(new FieldGroupsCheck())); // Term::thumbnail() reads it
     }
 
+    public function test_conditional_logic_on_a_field_that_does_not_exist(): void
+    {
+        $fields = [
+            ['key' => 'field_a', 'name' => 'aan', 'type' => 'true_false'],
+            ['key' => 'field_b', 'name' => 'tekst', 'type' => 'text', 'conditional_logic' => [[['field' => 'field_a', 'operator' => '==', 'value' => '1']]]],
+            ['key' => 'field_c', 'name' => 'uit', 'type' => 'text', 'conditional_logic' => [[['field' => 'field_weg', 'operator' => '==', 'value' => 'dit veld is uit geschakeld']]]],
+            ['key' => 'field_d', 'name' => 'rijen', 'type' => 'repeater', 'conditional_logic' => 0, 'sub_fields' => [
+                ['key' => 'field_e', 'name' => 'x', 'type' => 'text', 'conditional_logic' => [[['field' => 'field_zzz', 'operator' => '!=empty']]]],
+            ]],
+        ];
+
+        self::assertSame(['uit', 'x'], AcfJsonCheck::dead_conditions($fields));
+    }
+
     public function test_ui_field_groups_are_code_now(): void
     {
         mkdir("{$this->theme}/storage/acf-json", 0755, true);
@@ -114,6 +128,12 @@ final class ChecksTest extends TestCase
         file_put_contents("{$this->theme}/storage/acf-json/post_type_c.json", '{"key": "post_type_c", "title": "Reviews", "post_type": "review"}');
 
         $findings = $this->findings(new AcfJsonCheck());
+
+        file_put_contents("{$this->theme}/storage/acf-json/group_d.json", (string) json_encode(['key' => 'group_d', 'title' => 'Merk en categorie', 'fields' => [],
+            'location' => [[['param' => 'taxonomy', 'operator' => '==', 'value' => 'product_cat']], [['param' => 'taxonomy', 'operator' => '==', 'value' => 'pa_merk']]]]));
+        $findings = $this->findings(new AcfJsonCheck());
+        self::assertStringContainsString('"Merk en categorie" (taxonomy == product_cat or taxonomy == pa_merk)', (string) end($findings)['hint']);
+        array_pop($findings);
 
         self::assertSame(['error', 'warning'], array_column($findings, 'level'));
         self::assertStringContainsString('targets post_type/review, which defines its fields in fields/post_type/review.php', $findings[0]['message']);

@@ -10,9 +10,17 @@ description: Add or change ACF fields of an options page, a post type or a taxon
    per target: sections are tabs (`['label' => 'Footer', 'type' => 'tab']`),
    not separate groups. The post type, taxonomy or options page itself is
    registered in the theme's code (`doctor --wp` checks it exists).
+   Editors see one box, titled with the post type's, taxonomy's or options
+   page's own name ("Product", "Productcategorie"); the first tab's
+   `'placement' => 'left'` puts the tabs on the left. Moving several UI groups
+   into one file merges their boxes into tabs: show the user the tab layout
+   before moving anything.
 2. Return a list of ACF field arrays, like a block's `fields.php`: no `key`,
    only non-default settings, always `return_format`; shared fields via
-   `...Fields::name()`. No flexible content.
+   `...Fields::name()`. No flexible content. Conditional logic names the field
+   (`'field' => 'is_hoofdcategorie'`, a sub field `'vragen.vraag'`, or a
+   sibling's name inside a repeater): Gaffer resolves it to the derived key and
+   refuses a name the file doesn't have. Leave out defaults with markup.
 3. Options pages share one stored namespace (`options_{name}`): a name is used
    once across all of them.
 4. Read the values where they're shown, in PHP: `get_field('x', 'option')`,

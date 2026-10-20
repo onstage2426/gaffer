@@ -44,6 +44,30 @@ final class FieldGroupsTest extends TestCase
         self::assertSame('field_post_type_review__punten__punt', $group['fields'][2]['sub_fields'][0]['key']);
     }
 
+    public function test_conditional_logic_by_field_name(): void
+    {
+        file_put_contents("{$this->theme}/fields/post_type/review.php", "<?php\n\nreturn [\n"
+            . "['name' => 'is_hoofd', 'type' => 'true_false'],\n"
+            . "['name' => 'tekst', 'type' => 'text', 'conditional_logic' => [[['field' => 'is_hoofd', 'operator' => '==', 'value' => '1']]]],\n"
+            . "['name' => 'kort', 'type' => 'text', 'conditional_logic' => [[['field' => 'field_post_type_review__is_hoofd', 'operator' => '!=', 'value' => '1']]]],\n"
+            . "['name' => 'punten', 'type' => 'repeater', 'sub_fields' => [\n"
+            . "    ['name' => 'soort', 'type' => 'select'],\n"
+            . "    ['name' => 'link', 'type' => 'url', 'conditional_logic' => [[['field' => 'soort', 'operator' => '==', 'value' => 'link']], [['field' => 'is_hoofd', 'operator' => '==', 'value' => '1']]]],\n"
+            . "]],\n];\n");
+
+        $fields = FieldGroups::group('post_type/review')['fields'];
+
+        self::assertSame('field_post_type_review__is_hoofd', $fields[1]['conditional_logic'][0][0]['field']);
+        self::assertSame('field_post_type_review__is_hoofd', $fields[2]['conditional_logic'][0][0]['field']); // a key written out stays
+        self::assertSame('field_post_type_review__punten__soort', $fields[3]['sub_fields'][1]['conditional_logic'][0][0]['field']); // a sibling
+        self::assertSame('field_post_type_review__is_hoofd', $fields[3]['sub_fields'][1]['conditional_logic'][1][0]['field']);
+
+        file_put_contents("{$this->theme}/fields/post_type/review.php", "<?php\n\nreturn [['name' => 'tekst', 'type' => 'text', 'conditional_logic' => [[['field' => 'weg', 'operator' => '==', 'value' => '1']]]]];\n");
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage("refers to 'weg', which isn't a field of this file");
+        FieldGroups::group('post_type/review');
+    }
+
     public function test_only_known_params_are_targets(): void
     {
         mkdir("{$this->theme}/fields/user", 0755, true);

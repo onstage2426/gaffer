@@ -30,9 +30,41 @@ final class FieldGroups
         if (!function_exists('acf_add_local_field_group')) {
             return;
         }
+        $titles = [];
         foreach (array_keys(self::targets()) as $target) {
-            acf_add_local_field_group(self::group($target));
+            $group = self::group($target);
+            acf_add_local_field_group($group);
+            $titles[$group['key']] = $target;
         }
+
+        // The meta box title editors see: the post type's, taxonomy's or options page's own
+        // name, asked for when the group is loaded (they're registered after ACF's init).
+        $title = static function (array $group) use ($titles): array {
+            $target = $titles[$group['key'] ?? ''] ?? null;
+            if ($target !== null) {
+                $group['title'] = self::title($target) ?? $group['title'];
+            }
+            return $group;
+        };
+        add_filter('acf/load_field_group', $title);
+        add_filter('acf/load_field_groups', static fn(array $groups): array => array_map($title, $groups), 30);
+    }
+
+    /**
+     * What WordPress calls the target: "Product", "Productcategorie", the options page's
+     * title. Null when it isn't registered (yet).
+     */
+    public static function title(string $target): ?string
+    {
+        [$param, $value] = self::split($target);
+        $name = match ($param) {
+            'post_type' => \get_post_type_object($value)?->labels->singular_name ?? null,
+            'taxonomy' => \get_taxonomy($value) ? \get_taxonomy($value)->labels->singular_name : null,
+            default => function_exists('acf_get_options_page') && is_array($page = acf_get_options_page($value)) ? ($page['page_title'] ?? null) : null,
+        };
+
+        // Plain text: ACF escapes the title when it prints it (an options page's is stored as "B&amp;S").
+        return is_string($name) && $name !== '' ? html_entity_decode($name, ENT_QUOTES | ENT_HTML5, 'UTF-8') : null;
     }
 
     /**
@@ -51,6 +83,16 @@ final class FieldGroups
         ksort($targets);
 
         return $targets;
+    }
+
+    /**
+     * Whether a theme file defines ACF fields (fields/, a block's fields.php): data, so a
+     * default value with markup or an uploads URL isn't markup in PHP.
+     */
+    public static function is_definition(string $file): bool
+    {
+        return str_starts_with($file, Paths::fields() . '/')
+            || (basename($file) === 'fields.php' && dirname($file, 2) === Paths::blocks());
     }
 
     /**
@@ -116,13 +158,29 @@ final class FieldGroups
     }
 
     /**
-     * Adds the derived keys: {parent key}__{name}, or {type}-{label} for layout fields (tabs, messages).
-     * Shared with BlockFields.
+     * Adds the derived keys: {parent key}__{name}, or {type}-{label} for layout fields (tabs, messages),
+     * and resolves conditional logic by field name. Shared with BlockFields.
+     *
+     * A conditional_logic rule's 'field' is a field of the same file: a name path from the
+     * top ("is_hoofdcategorie", "vragen.vraag") or a sibling's name inside a repeater or
+     * group; it becomes the derived key. A key written out must be one of the file's.
      *
      * @param list<mixed> $fields
      * @return list<array<string, mixed>>
      */
     public static function keyed(array $fields, string $parent, string $file): array
+    {
+        $keyed = self::key_fields($fields, $parent, $file);
+        $paths = self::key_paths($keyed);
+
+        return self::resolve_conditions($keyed, $paths, '', $file);
+    }
+
+    /**
+     * @param list<mixed> $fields
+     * @return list<array<string, mixed>>
+     */
+    private static function key_fields(array $fields, string $parent, string $file): array
     {
         $keyed = [];
 
@@ -150,13 +208,66 @@ final class FieldGroups
                 throw new LogicException("{$file}: two fields get the key {$key} (same name, or two layout fields with the same label).");
             }
             if (isset($field['sub_fields']) && is_array($field['sub_fields'])) {
-                $field['sub_fields'] = self::keyed(array_values($field['sub_fields']), $key, $file);
+                $field['sub_fields'] = self::key_fields(array_values($field['sub_fields']), $key, $file);
             }
 
             $keyed[$key] = ['key' => $key, ...$field];
         }
 
         return array_values($keyed);
+    }
+
+    /**
+     * Every data field's key by name path ("vragen.vraag").
+     *
+     * @param list<array<string, mixed>> $fields
+     * @return array<string, string>
+     */
+    private static function key_paths(array $fields, string $path = ''): array
+    {
+        $paths = [];
+        foreach ($fields as $field) {
+            if (is_string($field['name'] ?? null) && $field['name'] !== '') {
+                $paths[$path . $field['name']] = (string) $field['key'];
+                if (is_array($field['sub_fields'] ?? null)) {
+                    $paths += self::key_paths($field['sub_fields'], "{$path}{$field['name']}.");
+                }
+            }
+        }
+
+        return $paths;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $fields
+     * @param array<string, string> $paths
+     * @return list<array<string, mixed>>
+     */
+    private static function resolve_conditions(array $fields, array $paths, string $path, string $file): array
+    {
+        foreach ($fields as $i => $field) {
+            $name = (string) ($field['name'] ?? $field['label'] ?? '?');
+            if (is_array($field['conditional_logic'] ?? null)) {
+                foreach ($field['conditional_logic'] as $g => $rules) {
+                    foreach (is_array($rules) ? $rules : [] as $r => $rule) {
+                        $target = is_array($rule) && is_string($rule['field'] ?? null) ? $rule['field'] : throw new LogicException("{$file}: a conditional_logic rule of '{$name}' has no 'field'.");
+                        $key = match (true) {
+                            str_starts_with($target, 'field_') => in_array($target, $paths, true) ? $target : null,
+                            default => $paths[$target] ?? $paths[$path . $target] ?? null,
+                        };
+                        if ($key === null) {
+                            throw new LogicException("{$file}: the conditional logic of '{$name}' refers to '{$target}', which isn't a field of this file (use its name, e.g. 'is_hoofdcategorie' or 'vragen.vraag').");
+                        }
+                        $fields[$i]['conditional_logic'][$g][$r]['field'] = $key;
+                    }
+                }
+            }
+            if (is_array($field['sub_fields'] ?? null) && is_string($field['name'] ?? null)) {
+                $fields[$i]['sub_fields'] = self::resolve_conditions($field['sub_fields'], $paths, "{$path}{$field['name']}.", $file);
+            }
+        }
+
+        return $fields;
     }
 
     /** @return array{string, string} */

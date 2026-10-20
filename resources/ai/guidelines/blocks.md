@@ -38,7 +38,8 @@ View::render('@block/heroContent/heroContent.twig', [
 - Read every field once, straight into the `View::render()` array (no
   single-use variables).
 
-`fields.php` returns the block's ACF fields as a list; Gaffer registers them as
+`fields.php` returns the block's ACF fields as a list (conditional logic by
+field name: `'field' => 'type'`, resolved to the derived key); Gaffer registers them as
 a field group for this block only. Leave out `key` (Gaffer derives it from the
 names: `field_hero-content__titel`, sub fields `field_..__vragen__vraag`) and
 any setting that's ACF's default, except `return_format` (always set it: the

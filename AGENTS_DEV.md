@@ -155,8 +155,10 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   it off with `enable_loading_advanced_cache_dropin` (pre-set in
   `$wp_filter`, read by `plugin.php` before `wp-settings.php` decides).
 - Loading WordPress inside a function: `wp-config.php` variables become
-  local (and so do a template file's: the render loads WordPress at a script's
-  top level for that reason, see Render compare); `Console\WordPress` binds `global $table_prefix`. It also needs
+  local (and so do a template file's and plugins' top-level variables: the
+  render loads WordPress at a script's top level for that reason, see Render
+  compare; before that, WPML sites rendered as `lang="en-US"` instead of their
+  language); `Console\WordPress` binds `global $table_prefix`. It also needs
   `HTTP_HOST`/`REQUEST_URI`, `WP_USE_THEMES` for rendering and
   `WP_DISABLE_FATAL_ERROR_HANDLER` to see errors.
 - WooCommerce's term ordering keeps array keys: use `reset($terms)`, not `$terms[0]`.
@@ -172,7 +174,9 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   use a global `$theme`: WordPress overwrites it while loading.
 - Testing a content migration: compare rendered pages before/after (blueprint
   has a time-based marquee delay and best-seller ties in random order:
-  normalize/sort lines), compare `sha1(post_content)` per post with the
+  normalize/sort lines; WPML's cookie expiry and Gravity Forms' tokens and
+  honeypot label change per request: the ignore patterns are in the
+  `gaffer-migrate` skill), compare `sha1(post_content)` per post with the
   original after rollback, and dump the database first (`mariadb-dump`
   inside the `mariadb` container, password from its secret file, never
   through your hands).
@@ -182,6 +186,9 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   submission in its own process. Its e-mail validation checks the domain
   (`example.com` fails: use a real domain in tests). Clean up test entries by
   ID (entries with an ID above the highest before the test), never by count.
+- Right after a push, the first `composer update onstage2426/gaffer` on a site
+  can still get the previous commit (GitHub briefly serves the old ref): run it
+  again until `composer.lock` has the new reference.
 - Register blocks (and anything that runs other plugins' filters) on `init`,
   not while `functions.php` loads: WooCommerce's block filters call `__()`,
   and translations before `init` log `_load_textdomain_just_in_time`. Find

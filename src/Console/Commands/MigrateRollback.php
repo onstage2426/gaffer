@@ -61,22 +61,21 @@ final class MigrateRollback extends MigrateCommand
 
         $name = basename((string) $input->getArgument('backup'), '.json') . '.json';
         $migration->undoes($name);
+        $migration->summarize();
         $migration->note("Restores the content from before `{$backup['command']}` ({$backup['created']}). Revert the code change too (fields.php, block directory).");
         if (str_starts_with(self::status()[$name] ?? '', 'aborted')) {
             $migration->note('The log says this run was aborted: it wrote nothing, so there is nothing to undo.');
         }
         foreach ($backup['locations'] as $saved) {
-            $location = new Location($saved['kind'], $saved['id'], $saved['label']);
-            try {
-                $current = ContentStore::read($location);
-            } catch (RuntimeException $e) {
-                $migration->problem($e->getMessage());
-                continue;
-            }
+            $location = new Location($saved['kind'], $saved['id'], $saved['label'], $saved['owner'] ?? null, $saved['name'] ?? null);
+            // null: the row doesn't exist (deleted by the run, or what a restore inserts again).
+            $current = ContentStore::read_row($location);
+            $hash = $current !== null ? sha1($current) : null;
 
-            match (sha1($current)) {
-                $saved['after_sha1'] => $migration->change($location, $current, $saved['before'], 'restore'),
-                $saved['before_sha1'] => $migration->note("{$location->label}: already restored"),
+            match (true) {
+                $hash === $saved['after_sha1'] => $migration->change($location, $current, $saved['before'], $saved['before'] === null ? 'restore (delete again)' : ($current === null ? 'restore (insert)' : 'restore')),
+                $hash === $saved['before_sha1'] => $migration->note("{$location->label}: already restored"),
+                $current === null => $migration->problem("{$location->label} no longer exists (deleted since the migration?); its old content is in the backup"),
                 default => $migration->problem("{$location->label}: changed since the migration (edited?), not restoring over it; its old content is in the backup"),
             };
         }

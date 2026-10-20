@@ -74,7 +74,35 @@ final class FieldReferencesTest extends TestCase
             new Reference(new Location('termmeta', 2, 'product_cat term 5 _iets_anders'), '_iets_anders', 'field_zzz', 'product_cat', 5),
         ]);
 
-        self::assertSame([1], array_map(static fn(Reference $r): int => $r->location->id, $broken));
+        self::assertSame([[1, 'field_taxonomy_product_cat__formaten']], array_map(static fn(array $found): array => [$found[0]->location->id, $found[1]['key']], $broken));
+    }
+
+    public function test_leftovers_are_target_keys_under_another_name(): void
+    {
+        $sorter = self::sorter('post_type/product');
+        $leftovers = $sorter->leftovers([
+            self::meta(1, '_categorieen', 'field_aaa', 'product', 10),                          // an old name, UI key
+            self::meta(2, '_', 'field_product_derived', 'product', 10),                          // unknown key, no field name: not ours
+            self::meta(3, '_formaten', 'field_aaa', 'product', 10),                              // fine (migrate:fields moves it)
+            self::meta(4, '_oud_naam', 'field_post_type_product__formaten', 'product', 10),      // derived key, another name
+            self::meta(5, '_formaten', 'field_other_group', 'product', 10),                      // another group's field: not ours
+            self::meta(6, '_categorieen', 'field_aaa', 'post', 12),                              // outside the target
+        ]);
+
+        self::assertSame([[1, 'under another name than its field "formaten"'], [4, 'under another name than its field "formaten"']],
+            array_map(static fn(array $found): array => [$found[0]->location->id, $found[1]], $leftovers));
+    }
+
+    public function test_removed_fields_are_found_by_name(): void
+    {
+        $products = self::sorter('post_type/product');
+        self::assertSame('^_?excluton_3d_sku$', $products->name_regex((string) $products->child_pattern(['excluton_3d_sku'])));
+        self::assertSame('^_?vragen_[0-9]+_bron$', $products->name_regex((string) $products->child_pattern(['vragen', 'bron'])));
+        self::assertNull($products->child_pattern(['formaten', 'x'])); // not a repeater or group
+        self::assertTrue($products->has('vragen.vraag'));
+
+        $options = self::sorter('options_page/theme', ['options', 'options_nl']);
+        self::assertSame('^_?(options|options_nl)_titel$', $options->name_regex((string) $options->child_pattern(['titel'])));
     }
 
     /** @param list<string> $prefixes */

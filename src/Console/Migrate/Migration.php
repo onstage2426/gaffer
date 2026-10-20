@@ -20,7 +20,7 @@ use Throwable;
  */
 final class Migration
 {
-    /** @var list<array{location: Location, before: string, after: string, summary: string}> */
+    /** @var list<array{location: Location, before: ?string, after: ?string, summary: string}> null: the row doesn't exist (deleted, or restored by inserting it) */
     private array $plan = [];
 
     /** @var array<string, true> the plan's locations, by "{kind}:{id}" */
@@ -43,6 +43,9 @@ final class Migration
 
     /** @var (Closure(): array<string, string>)|null what ACF reads for the changed data, by owner and field */
     private ?Closure $values = null;
+
+    /** @var (Closure(): list<string>)|null runs after a successful --run (or one with nothing to change); returns what it did */
+    private ?Closure $after = null;
 
     /** @param OutputInterface|null $progress where to say what the plan is doing (stderr), while it builds */
     public function __construct(private readonly string $command, private readonly ?OutputInterface $progress = null) {}
@@ -73,6 +76,24 @@ final class Migration
         $this->values = $read;
     }
 
+    /**
+     * Something to do once the run succeeded: written, read back and values checked, or
+     * nothing left to change (deleting the field groups a migration moved to code).
+     *
+     * @param Closure(): list<string> $then what it did, one line each
+     */
+    public function after_success(Closure $then): void
+    {
+        $this->after = $then;
+    }
+
+    private function run_after(OutputInterface $output): void
+    {
+        foreach ($this->after !== null ? ($this->after)() : [] as $line) {
+            $output->writeln("  {$line}");
+        }
+    }
+
     public function problem(string $message): void
     {
         $this->problems[] = $message;
@@ -93,7 +114,7 @@ final class Migration
         $this->notes[] = $message;
     }
 
-    public function change(Location $location, string $before, string $after, string $summary): void
+    public function change(Location $location, ?string $before, ?string $after, string $summary): void
     {
         $key = "{$location->kind}:{$location->id}";
         if (isset($this->planned[$key])) {
@@ -198,6 +219,9 @@ final class Migration
         }
         if ($this->plan === []) {
             $output->writeln('Nothing to change.');
+            if ($run) {
+                $this->run_after($output);
+            }
             return 0;
         }
         if (!$run) {
@@ -255,7 +279,7 @@ final class Migration
                 throw new RuntimeException("Could not start a transaction: {$wpdb->last_error}");
             }
             foreach ($this->plan as $change) {
-                if (ContentStore::read($change['location'], true) !== $change['before']) {
+                if (ContentStore::read_row($change['location'], true) !== $change['before']) {
                     throw new RuntimeException("{$change['location']->label} changed since it was read (edited meanwhile?)");
                 }
                 ContentStore::write($change['location'], $change['after']);
@@ -275,7 +299,7 @@ final class Migration
         foreach ($this->plan as $change) {
             try {
                 ContentStore::flush($change['location']);
-                if (ContentStore::read($change['location']) !== $change['after']) {
+                if (ContentStore::read_row($change['location']) !== $change['after']) {
                     $failed[] = $change['location']->label;
                 }
             } catch (Throwable $e) {
@@ -303,6 +327,7 @@ final class Migration
         $this->log($output, 'written', null, $backup);
         $output->writeln('Wrote ' . count($this->plan) . ' location(s) and read them back' . ($values !== null ? ', and ACF reads the same ' . count($values) . ' values as before' : '') . '. Undo with: php gaffer migrate:rollback ' . basename($backup));
         $output->writeln('<comment>' . $this->caches() . '</comment>');
+        $this->run_after($output);
 
         return 0;
     }
@@ -349,8 +374,8 @@ final class Migration
             ...(count($this->plan) <= self::LOGGED_LOCATIONS
                 ? ['locations' => array_map(static fn(array $change): array => [
                     ...$change['location']->to_array(),
-                    'before_sha1' => sha1($change['before']),
-                    'after_sha1' => sha1($change['after']),
+                        'before_sha1' => $change['before'] !== null ? sha1($change['before']) : null,
+                    'after_sha1' => $change['after'] !== null ? sha1($change['after']) : null,
                 ], $this->plan)]
                 : ['location_counts' => array_count_values(array_map(static fn(array $change): string => $change['location']->kind, $this->plan))]),
         ]);

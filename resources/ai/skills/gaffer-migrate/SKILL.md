@@ -29,6 +29,9 @@ php gaffer migrate:remove-field acf/content-faq vragen.bron        # delete a re
 php gaffer migrate:remove-block acf/content-team                   # delete a removed block from all content
 php gaffer migrate:fields [acf/content-faq|post_type/review]       # after moving a field group from the ACF UI/JSON to fields.php or fields/
 php gaffer migrate:remove-leftovers [acf/content-faq]              # delete values of other blocks'/field groups' fields fields.php doesn't have
+php gaffer migrate:fields post_type/product --run --delete-groups  # a fields/ target: move, check values, then delete the UI groups
+php gaffer migrate:remove-leftovers post_type/product              # a fields/ target: references under an old name, with their values
+php gaffer migrate:remove-field post_type/product excluton_3d_sku  # a fields/ target: every value and reference of a removed field
 php gaffer migrate:rollback [backup]                               # undo (no argument: list backups)
 ```
 
@@ -41,16 +44,29 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
   language), stored under the name of the field the key belongs to
   (`vragen_0_vraag` for a repeater's sub field). It stops on fields the file
   doesn't have or has with another type, naming where the values are. It
-  reports and leaves alone: references outside the target (a post type the
-  group once also targeted), references under another name (an old field
-  name), and references in the target to keys no field has (a broken import).
+  repairs references under a field's name whose key no field has (a broken
+  import) to that field's key, and reports and leaves alone references
+  outside the target (a post type the group once also targeted) and
+  references under another name (an old field name).
+- The order for a `fields/` target: `migrate:fields` (dry run, `--run`), then
+  `migrate:remove-leftovers {target}` for the old names it reported (it knows
+  them by the UI groups' keys), then `migrate:fields {target} --run
+  --delete-groups` deletes the UI groups (refused while old-name references
+  remain). `migrate:rollback` restores references and values, not deleted
+  groups: their JSON is in git.
+- `migrate:remove-field {target} {field}` deletes every row stored under the
+  field's name in the target (values and references, posts and their
+  revisions, terms, options in every language), by row ID, once the field is
+  gone from the file and from the target's UI groups. A sub field:
+  `vragen.bron`. Never delete meta by hand (`delete_post_meta()` on a
+  revision deletes the parent's).
 - The dry run prints one line per field (old key → new key, how many, which
   kinds); `-v` lists every location. `--run` also reads every changed field
   through ACF (`get_field()`, formatted) before writing and after the
   read-back: any difference (a missed sub field, another return format) ends
   the run as `verify_failed` with the rollback command.
-- The other `migrate:*` commands are for blocks only (removing fields of a
-  `fields/` target: not yet).
+- `migrate:field`, `migrate:block` and `migrate:remove-block` are for blocks
+  only (renaming a field of a `fields/` target: not yet).
 - A block can keep values of fields that aren't its own (transformed or
   copied from another block, an old field group). The commands refuse them;
   `migrate:remove-leftovers` deletes the ones fields.php has no field for

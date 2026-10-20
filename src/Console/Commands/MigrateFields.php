@@ -7,6 +7,7 @@ namespace Gaffer\Console\Commands;
 use Gaffer\BlockFields;
 use Gaffer\Console\Migrate\ContentStore;
 use Gaffer\Console\Migrate\FieldReferences;
+use Gaffer\Console\Migrate\FieldTarget;
 use Gaffer\Console\Migrate\Reference;
 use Gaffer\FieldGroups;
 use Gaffer\Console\Checks\BlocksCheck;
@@ -16,6 +17,7 @@ use Gaffer\Paths;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Throwable;
 
 /**
@@ -32,6 +34,7 @@ final class MigrateFields extends MigrateCommand
     protected function configure(): void
     {
         parent::configure();
+        $this->addOption('delete-groups', null, InputOption::VALUE_NONE, 'With --run: delete the moved ACF UI field groups once everything is written and checked');
         $this->addArgument('target', InputArgument::OPTIONAL, 'A block (acf/content-faq) or a fields/ target (post_type/review) (default: every block with a fields.php and every file in fields/)');
     }
 
@@ -43,10 +46,35 @@ final class MigrateFields extends MigrateCommand
             $this->plan_blocks($migration, is_string($only) ? $only : null);
         }
         if (!is_string($only) || !str_starts_with($only, 'acf/')) {
-            $this->plan_groups($migration, is_string($only) ? $only : null);
+            $this->plan_groups($migration, is_string($only) ? $only : null, (bool) $input->getOption('delete-groups'));
         }
 
-        $migration->note('Afterwards: delete the old field groups in ACF (php gaffer doctor lists them).');
+        if (!$input->getOption('delete-groups')) {
+            $migration->note('Afterwards: delete the old field groups in ACF (php gaffer doctor lists them), or run again with --delete-groups.');
+            return;
+        }
+        $groups = [];
+        foreach (is_string($only) ? [$only] : array_keys(FieldGroups::targets()) as $target) {
+            if (!str_starts_with($target, 'acf/')) {
+                array_push($groups, ...FieldTarget::ui_groups($target));
+            }
+        }
+        $migration->note(count($groups) . ' ACF UI field group(s) are deleted after a successful --run: ' . implode(', ', array_map(static fn(array $g): string => "\"{$g['title']}\"", $groups))
+            . '. migrate:rollback doesn\'t bring them back (their JSON is in git: restore it and sync in ACF).');
+        $migration->after_success(static function () use ($groups): array {
+            $done = [];
+            foreach ($groups as $group) {
+                $post = acf_get_field_group_post((string) $group['key']);
+                $json = Paths::storage() . "/acf-json/{$group['key']}.json";
+                if ($post !== false) {
+                    // ACF deletes the group's fields and its local JSON with it.
+                    $done[] = (acf_delete_field_group($post->ID) ? 'Deleted' : 'Could not delete') . " the field group \"{$group['title']}\"";
+                } elseif (is_file($json)) {
+                    $done[] = (unlink($json) ? 'Deleted' : 'Could not delete') . " the field group \"{$group['title']}\" (only in JSON: storage/acf-json/{$group['key']}.json)";
+                }
+            }
+            return $done;
+        });
     }
 
     private function plan_blocks(Migration $migration, ?string $only): void
@@ -113,7 +141,7 @@ final class MigrateFields extends MigrateCommand
      * alone. A field the file doesn't have, or has with another type, stops the run. With
      * --run, what ACF reads for every changed field is compared before and after.
      */
-    private function plan_groups(Migration $migration, ?string $only): void
+    private function plan_groups(Migration $migration, ?string $only, bool $delete_groups = false): void
     {
         $targets = FieldGroups::targets();
         if ($only !== null && !isset($targets[$only])) {
@@ -125,24 +153,14 @@ final class MigrateFields extends MigrateCommand
         $checked = [];
         foreach ($only !== null ? [$only] : array_keys($targets) as $target) {
             try {
-                $group = FieldGroups::group($target);
-            } catch (Throwable $e) {
+                $sorter = FieldTarget::sorter($target);
+            } catch (\RuntimeException $e) {
                 $migration->problem($e->getMessage());
                 continue;
             }
             [$param, $value] = explode('/', $target, 2);
-            $new = FieldReferences::paths($group['fields']);
-
-            $old = [];
-            foreach (acf_get_field_groups() as $candidate) {
-                if (($candidate['key'] ?? null) === $group['key'] || FieldGroups::target_of($candidate['location'] ?? null) !== $target) {
-                    continue;
-                }
-                foreach (FieldReferences::paths(self::fields_of($candidate)) as $field) {
-                    $old[$field['key']] = [...$field, 'title' => (string) $candidate['title']];
-                }
-            }
-            $sorter = new FieldReferences($target, $old, $new, $param === 'options_page' ? self::option_prefixes($value) : []);
+            $old = FieldTarget::old_fields($target);
+            $new = FieldReferences::paths(FieldGroups::group($target)['fields']);
 
             if ($old !== []) {
                 $migration->progress("{$target}: finding the references to " . count($old) . (count($old) === 1 ? ' field' : ' fields') . ' of its UI groups…');
@@ -161,19 +179,33 @@ final class MigrateFields extends MigrateCommand
                     $migration->problem("{$problem} (" . self::listed($references) . ')');
                 }
                 if ($sorted['outside'] !== []) {
-                    $migration->note(count($sorted['outside']) . " references to these fields are stored outside {$target}, left alone: " . self::listed($sorted['outside']));
+                    $migration->note(self::references($sorted['outside']) . " to these fields stored outside {$target}, left alone: " . self::listed($sorted['outside']));
+                }
+                if ($sorted['other_names'] !== [] && $delete_groups) {
+                    // remove-leftovers knows them by the UI groups' keys: deleting the groups first hides them for good.
+                    $migration->problem("{$target} has references under another name than their field's: run php gaffer migrate:remove-leftovers {$target} before --delete-groups (it recognizes them by the old groups' keys)");
                 }
                 if ($sorted['other_names'] !== []) {
-                    $migration->note(count($sorted['other_names']) . ' references in ' . $target . ' are stored under another name than their field\'s (an old name?), left alone: '
-                        . self::listed(array_map(static fn(array $found): string => "{$found[0]->label()} → key of \"{$found[1]}\"", $sorted['other_names'])));
+                    $migration->note(self::references($sorted['other_names']) . " in {$target} stored under another name than their field's (an old name?), left alone: "
+                        . self::listed(array_map(static fn(array $found): string => "{$found[0]->label()} → key of \"{$found[1]}\"", $sorted['other_names']))
+                        . ". php gaffer migrate:remove-leftovers {$target} deletes them with their values (after this run).");
                 }
             }
 
             $known = array_map('strval', [...array_keys($old), ...array_column($new, 'key')]);
-            $broken = $sorter->broken(ContentStore::target_references($param, $value, $known, $param === 'options_page' ? self::option_prefixes($value) : []));
+            // Broken: no ACF field has the key (a key of another group that stays in the UI isn't).
+            // The stored name says which field it is: repaired to its derived key, outside the
+            // value check (ACF read it unformatted before, through no field).
+            $broken = array_values(array_filter(
+                $sorter->broken(ContentStore::target_references($param, $value, $known, $param === 'options_page' ? FieldTarget::option_prefixes($value) : [])),
+                static fn(array $found): bool => !acf_get_field($found[0]->key),
+            ));
+            foreach ($broken as [$reference, $field]) {
+                $migration->change($reference->location, $reference->key, $field['key'], "repair \"{$field['path']}\": a key no field has → {$field['key']}");
+            }
             if ($broken !== []) {
-                $migration->note(count($broken) . " references in {$target} point to keys no field has, left alone: "
-                    . self::listed(array_map(static fn(Reference $reference): string => "{$reference->label()} → {$reference->key}", $broken)));
+                $migration->note(self::references($broken) . " in {$target} with a key no field has (an import?), repaired to the field their name says: "
+                    . self::listed(array_map(static fn(array $found): string => "{$found[0]->label()} → {$found[0]->key}", $broken)));
             }
         }
 
@@ -196,23 +228,10 @@ final class MigrateFields extends MigrateCommand
         }
     }
 
-    /**
-     * The option name prefixes of an options page: its post_id ("options"), and per language
-     * when WPML or Polylang translate options ("options_nl").
-     *
-     * @return list<string>
-     */
-    private static function option_prefixes(string $page): array
+    /** @param list<mixed> $items "1 reference", "3 references" */
+    private static function references(array $items): string
     {
-        $settings = function_exists('acf_get_options_page') ? acf_get_options_page($page) : false;
-        $base = is_array($settings) && is_string($settings['post_id'] ?? null) ? $settings['post_id'] : 'options';
-        $base = $base === 'option' ? 'options' : $base;
-        $languages = array_keys((array) apply_filters('wpml_active_languages', null, ['skip_missing' => 0]));
-        if (function_exists('pll_languages_list')) {
-            array_push($languages, ...(array) pll_languages_list());
-        }
-
-        return [$base, ...array_map(static fn(mixed $language): string => "{$base}_{$language}", array_unique($languages))];
+        return count($items) . (count($items) === 1 ? ' reference' : ' references');
     }
 
     /**
@@ -225,27 +244,5 @@ final class MigrateFields extends MigrateCommand
         $labels = array_map(static fn(Reference|string $item): string => $item instanceof Reference ? $item->label() : $item, $items);
 
         return implode(', ', array_slice($labels, 0, 3)) . (count($labels) > 3 ? ' and ' . (count($labels) - 3) . ' more' : '');
-    }
-
-    /**
-     * A field group's fields with their sub fields, as ACF loads them (a JSON or database group).
-     *
-     * @param array<string, mixed> $group
-     * @return list<array<string, mixed>>
-     */
-    private static function fields_of(array $group): array
-    {
-        $load = static function (array $parent) use (&$load): array {
-            $fields = [];
-            foreach (acf_get_fields($parent) ?: [] as $field) {
-                if (in_array($field['type'] ?? null, ['repeater', 'group'], true)) {
-                    $field['sub_fields'] = $load($field);
-                }
-                $fields[] = $field;
-            }
-            return $fields;
-        };
-
-        return $load($group);
     }
 }

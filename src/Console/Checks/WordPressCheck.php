@@ -34,6 +34,7 @@ final class WordPressCheck implements Check
         $this->theme($report);
         $this->blocks($report);
         $this->acf_sync($report);
+        $this->acf_orphans($report);
         $this->field_types($report);
         $this->field_groups($report);
         $this->woocommerce_templates($report);
@@ -284,6 +285,24 @@ final class WordPressCheck implements Check
             } catch (\Throwable) {
                 continue; // FieldGroupsCheck reports it
             }
+        }
+    }
+
+    /**
+     * acf-field posts whose group or parent field no longer exists (left behind when a group
+     * was deleted outside ACF): invisible in the ACF UI, never loaded, only clutter.
+     */
+    private function acf_orphans(Report $report): void
+    {
+        global $wpdb;
+
+        $ids = $wpdb->get_col(
+            "SELECT f.ID FROM {$wpdb->posts} f LEFT JOIN {$wpdb->posts} p ON p.ID = f.post_parent
+             WHERE f.post_type = 'acf-field' AND (p.ID IS NULL OR p.post_type NOT IN ('acf-field-group', 'acf-field')) ORDER BY f.ID",
+        );
+        if ($ids !== []) {
+            $report->warning('wp', 'ACF field posts belong to a field group or field that no longer exists', null, null,
+                count($ids) . ' post(s): ' . implode(', ', $ids) . ". Delete them (wp post delete --force) after checking they're not a group you still need.");
         }
     }
 

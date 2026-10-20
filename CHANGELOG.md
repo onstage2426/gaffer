@@ -9,6 +9,26 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-10-20
 
+### Removing fields of `fields/` targets; deleting the moved UI groups
+
+New for `fields/` targets (with the same dry run, backup, log and rollback as
+for blocks; rollback re-inserts deleted rows with their own IDs):
+- `migrate:remove-field post_type/product excluton_3d_sku`: every value and
+  reference stored under that name (revisions included), once the field is
+  gone from the file and the target's UI groups.
+- `migrate:remove-leftovers post_type/product`: references under another name
+  than their field's (old names, a bare `_`) with their values.
+- `migrate:fields {target} --run --delete-groups`: deletes the moved UI groups
+  once everything is written and checked (refused while old-name references
+  remain: run `remove-leftovers` first).
+- `migrate:fields` now repairs references under a field's name whose key no
+  field has (an import) instead of only listing them.
+- `doctor --wp` warns about `acf-field` posts whose group no longer exists.
+
+Find: sites that deleted meta by hand (`wp eval` with `delete_post_meta()`):
+revisions' meta may have gone to the parent post; nothing to do now, but use
+the commands from here on.
+
 ### `migrate:fields` for `fields/` targets: only the target's own references
 
 `migrate:fields` rewrote every reference holding an old key, wherever it was

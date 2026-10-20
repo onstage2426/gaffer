@@ -104,14 +104,33 @@ final class ContentStore
     }
 
     /**
+     * Every row stored in this target (posts of the type and their revisions, terms of the
+     * taxonomy, options) whose meta_key or option_name matches $regex (MySQL REGEXP, the
+     * whole name), values and references alike: what removing a field deletes.
+     *
+     * @return list<Reference> the value in Reference::$key
+     */
+    public static function target_rows(string $param, string $value, string $regex): array
+    {
+        return match ($param) {
+            'post_type' => self::reference_rows('COALESCE(pp.post_type, p.post_type) = %s', null, [$regex, $value], 'postmeta', false),
+            'taxonomy' => self::reference_rows('t.taxonomy = %s', null, [$regex, $value], 'termmeta', false),
+            default => self::reference_rows(null, '1 = 1', [$regex], 'option', false),
+        };
+    }
+
+    /**
      * Reference rows ("_" names) matching these conditions, from the tables that have one
      * ($only: just that kind). $args fill the placeholders of each condition.
      *
      * @param list<string> $args
      * @return list<Reference>
      */
-    private static function reference_rows(?string $meta_where, ?string $option_where, array $args, ?string $only): array
+    private static function reference_rows(?string $meta_where, ?string $option_where, array $args, ?string $only, bool $references = true): array
     {
+        // References: "_" names. Otherwise the name matches the REGEXP that is the first argument.
+        $meta_name = $references ? "m.meta_key LIKE '\\\\_%%'" : 'm.meta_key REGEXP %s';
+        $option_name = $references ? "option_name LIKE '\\\\_%%'" : 'option_name REGEXP %s';
         global $wpdb;
 
         $found = [];
@@ -122,11 +141,11 @@ final class ContentStore
                  FROM {$wpdb->postmeta} m
                  LEFT JOIN {$wpdb->posts} p ON p.ID = m.post_id
                  LEFT JOIN {$wpdb->posts} pp ON pp.ID = p.post_parent AND p.post_type = 'revision'
-                 WHERE m.meta_key LIKE '\\_%%' AND {$meta_where} ORDER BY m.meta_id",
+                 WHERE {$meta_name} AND {$meta_where} ORDER BY m.meta_id",
                 ...$args,
             ));
             foreach ($rows as $row) {
-                $location = new Location('postmeta', (int) $row->meta_id, "{$row->post_type} {$row->post_id} {$row->meta_key}");
+                $location = new Location('postmeta', (int) $row->meta_id, "{$row->post_type} {$row->post_id} {$row->meta_key}", (int) $row->post_id, (string) $row->meta_key);
                 self::$owners["postmeta:{$row->meta_id}"] = (int) $row->post_id;
                 $found[] = new Reference($location, (string) $row->meta_key, (string) $row->meta_value, (string) ($row->parent_type ?? $row->post_type), (int) $row->post_id);
             }
@@ -135,22 +154,22 @@ final class ContentStore
             $rows = $wpdb->get_results($wpdb->prepare(
                 "SELECT m.meta_id, m.term_id, m.meta_key, m.meta_value, t.taxonomy
                  FROM {$wpdb->termmeta} m LEFT JOIN {$wpdb->term_taxonomy} t ON t.term_id = m.term_id
-                 WHERE m.meta_key LIKE '\\_%%' AND {$meta_where} ORDER BY m.meta_id",
+                 WHERE {$meta_name} AND {$meta_where} ORDER BY m.meta_id",
                 ...$args,
             ));
             foreach ($rows as $row) {
-                $location = new Location('termmeta', (int) $row->meta_id, "{$row->taxonomy} term {$row->term_id} {$row->meta_key}");
+                $location = new Location('termmeta', (int) $row->meta_id, "{$row->taxonomy} term {$row->term_id} {$row->meta_key}", (int) $row->term_id, (string) $row->meta_key);
                 self::$owners["termmeta:{$row->meta_id}"] = (int) $row->term_id;
                 $found[] = new Reference($location, (string) $row->meta_key, (string) $row->meta_value, (string) $row->taxonomy, (int) $row->term_id);
             }
         }
         if ($option_where !== null && $only !== 'postmeta' && $only !== 'termmeta') {
             $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT option_id, option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE '\\_%%' AND {$option_where} ORDER BY option_id",
+                "SELECT option_id, option_name, option_value FROM {$wpdb->options} WHERE {$option_name} AND {$option_where} ORDER BY option_id",
                 ...$args,
             ));
             foreach ($rows as $row) {
-                $location = new Location('option', (int) $row->option_id, "option {$row->option_name}");
+                $location = new Location('option', (int) $row->option_id, "option {$row->option_name}", null, (string) $row->option_name);
                 $found[] = new Reference($location, (string) $row->option_name, (string) $row->option_value, 'option', null);
             }
         }
@@ -163,6 +182,15 @@ final class ContentStore
      */
     public static function read(Location $location, bool $lock = false): string
     {
+        return self::read_row($location, $lock) ?? throw new RuntimeException("{$location->label} no longer exists");
+    }
+
+    /**
+     * The stored content, or null when the row doesn't exist (deleted by a removal, or not yet
+     * restored by its rollback); with $lock inside a transaction, the row stays locked.
+     */
+    public static function read_row(Location $location, bool $lock = false): ?string
+    {
         global $wpdb;
 
         if ($location->kind === 'post') {
@@ -171,7 +199,7 @@ final class ContentStore
                 "SELECT post_content FROM {$wpdb->posts} WHERE ID = %d" . ($lock ? ' FOR UPDATE' : ''),
                 $location->id,
             ), ARRAY_A);
-            return is_string($row['post_content'] ?? null) ? $row['post_content'] : throw new RuntimeException("{$location->label} no longer exists");
+            return is_string($row['post_content'] ?? null) ? $row['post_content'] : null;
         }
         if (isset(self::ROWS[$location->kind])) {
             [$table, $id, , $column] = self::ROWS[$location->kind];
@@ -179,19 +207,33 @@ final class ContentStore
                 "SELECT {$column} FROM {$wpdb->$table} WHERE {$id} = %d" . ($lock ? ' FOR UPDATE' : ''),
                 $location->id,
             ), ARRAY_A);
-            return is_string($row[$column] ?? null) ? $row[$column] : throw new RuntimeException("{$location->label} no longer exists");
+            return is_string($row[$column] ?? null) ? $row[$column] : null;
         }
 
         $content = self::widgets($lock)[$location->id]['content'] ?? null;
 
-        return is_string($content) ? $content : throw new RuntimeException("{$location->label} no longer exists");
+        return is_string($content) ? $content : null;
     }
 
-    public static function write(Location $location, string $content): void
+    /**
+     * Writes the content; null deletes a meta or option row, and content for a row that
+     * doesn't exist inserts it again with its own ID, owner and name (a rollback).
+     */
+    public static function write(Location $location, ?string $content): void
     {
         global $wpdb;
 
-        if ($location->kind === 'post') {
+        if ($content === null || (isset(self::ROWS[$location->kind]) && self::read_row($location) === null)) {
+            [$table, $id, $owner, $column] = self::ROWS[$location->kind] ?? throw new RuntimeException("{$location->label} can't be deleted or inserted (only meta and option rows)");
+            if ($content === null) {
+                $result = $wpdb->delete($wpdb->$table, [$id => $location->id]);
+            } elseif ($location->name === null || ($owner !== null && $location->owner === null)) {
+                throw new RuntimeException("{$location->label} doesn't exist and its backup doesn't say where it belongs");
+            } else {
+                $name = $location->kind === 'option' ? 'option_name' : 'meta_key';
+                $result = $wpdb->insert($wpdb->$table, [$id => $location->id, ...($owner !== null ? [$owner => $location->owner] : ['autoload' => 'auto']), $name => $location->name, $column => $content]);
+            }
+        } elseif ($location->kind === 'post') {
             $result = $wpdb->update($wpdb->posts, ['post_content' => $content], ['ID' => $location->id]);
         } elseif (isset(self::ROWS[$location->kind])) {
             [$table, $id, , $column] = self::ROWS[$location->kind];
@@ -216,7 +258,7 @@ final class ContentStore
             'post' => clean_post_cache($location->id),
             'postmeta' => wp_cache_delete((int) self::owner($location), 'post_meta'),
             'termmeta' => wp_cache_delete((int) self::owner($location), 'term_meta'),
-            'option' => self::flush_option((string) self::option_name($location)),
+            'option' => self::flush_option((string) ($location->name ?? self::option_name($location))),
             default => self::flush_option('widget_block'),
         };
     }
@@ -231,6 +273,9 @@ final class ContentStore
         $row = self::ROWS[$location->kind] ?? null;
         if ($row === null || $row[2] === null) {
             return null;
+        }
+        if ($location->owner !== null) {
+            return $location->owner; // a row that may be deleted carries its owner
         }
         $cached = "{$location->kind}:{$location->id}";
         if (isset(self::$owners[$cached])) {

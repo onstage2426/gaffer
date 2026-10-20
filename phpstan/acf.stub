@@ -62,3 +62,5 @@ class ACF_Data
 }
 
 function get_field(string $selector, int|string|false $post_id = false, bool $format_value = true, bool $escape_html = false): mixed {}
+
+function acf_delete_field_group(int|string $id = 0): bool {}

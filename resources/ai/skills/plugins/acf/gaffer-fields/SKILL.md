@@ -18,16 +18,20 @@ description: Add or change ACF fields of an options page, a post type or a taxon
 4. Read the values where they're shown, in PHP: `get_field('x', 'option')`,
    `Acf::option_array()`, `Acf::term_array()`, `$post->meta()` or a type method;
    pass them to the template. `doctor` warns about fields nothing mentions.
-5. **Renaming or removing a field** leaves its stored values under the old
-   name and key (`doctor --wp` warns about values pointing to a key the file
-   no longer has). Ask before renaming fields that already have content.
+5. **Removing a field:** take it out of the file, then `php gaffer
+   migrate:remove-field {param}/{value} {field}` (dry run, then `--run` once
+   the user agrees) deletes its values. **Renaming** has no command yet: it
+   leaves the values under the old name and key (`doctor --wp` warns about
+   values pointing to a key the file no longer has). Ask before renaming
+   fields that already have content.
 6. **Moving a group made in the ACF UI to code:** write the file with the same
    field names and types (`gaffer-reference` lists the UI group's fields),
    then `php gaffer migrate:fields {param}/{value}` (dry run, then `--run`
    once the user agrees; it rewrites the stored field references, with a
    backup, and checks ACF reads the same values afterwards). Read the dry
-   run's notes: references it leaves alone (other post types, old names,
-   broken keys) are yours to judge. Then delete the old group in ACF (that
-   removes its JSON too). Until then `doctor` reports the overlap and the
-   edit screen shows both.
+   run's notes: references it leaves alone (other post types, old names) are
+   yours to judge; `migrate:remove-leftovers {param}/{value}` deletes the
+   old-name ones. Then `migrate:fields {param}/{value} --run --delete-groups`
+   deletes the old UI groups (with their JSON). Until then `doctor` reports
+   the overlap and the edit screen shows both.
 7. Run `php gaffer doctor --wp`.

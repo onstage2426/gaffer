@@ -12,6 +12,7 @@ use Gaffer\Console\Migrate\Migration;
 use RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -36,7 +37,7 @@ abstract class MigrateCommand extends Command
         }
 
         $arguments = array_filter($input->getArguments(), static fn(mixed $value, string $name): bool => $name !== 'command' && is_string($value), ARRAY_FILTER_USE_BOTH);
-        $migration = new Migration(trim($this->getName() . ' ' . implode(' ', $arguments)));
+        $migration = new Migration(trim($this->getName() . ' ' . implode(' ', $arguments)), $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : null);
         try {
             $this->plan($migration, $input);
         } catch (RuntimeException $e) {

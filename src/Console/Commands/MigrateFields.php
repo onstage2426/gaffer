@@ -6,6 +6,8 @@ namespace Gaffer\Console\Commands;
 
 use Gaffer\BlockFields;
 use Gaffer\Console\Migrate\ContentStore;
+use Gaffer\Console\Migrate\FieldReferences;
+use Gaffer\Console\Migrate\Reference;
 use Gaffer\FieldGroups;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Migrate\BlockData;
@@ -105,10 +107,11 @@ final class MigrateFields extends MigrateCommand
     }
 
     /**
-     * Rewrites every reference row (postmeta, termmeta, options) that points to a field of a
-     * UI/JSON group with the same target as a fields/ file, to the key of the field with the
-     * same name (path) there. A field the file doesn't have, or has with another type, stops
-     * the run when values reference it.
+     * Rewrites the references a fields/ target's UI groups left (postmeta, termmeta, options)
+     * to the derived keys of the file's fields with the same name path. Only the target's
+     * own (FieldReferences): references elsewhere or under another name are reported and left
+     * alone. A field the file doesn't have, or has with another type, stops the run. With
+     * --run, what ACF reads for every changed field is compared before and after.
      */
     private function plan_groups(Migration $migration, ?string $only): void
     {
@@ -117,7 +120,9 @@ final class MigrateFields extends MigrateCommand
             $migration->problem("{$only} has no file in fields/ (expected fields/{$only}.php)");
             return;
         }
+        $migration->summarize();
 
+        $checked = [];
         foreach ($only !== null ? [$only] : array_keys($targets) as $target) {
             try {
                 $group = FieldGroups::group($target);
@@ -125,41 +130,101 @@ final class MigrateFields extends MigrateCommand
                 $migration->problem($e->getMessage());
                 continue;
             }
-            $new = self::by_path($group['fields']);
+            [$param, $value] = explode('/', $target, 2);
+            $new = FieldReferences::paths($group['fields']);
 
-            // Old key => [group title, path, type, new key or null].
             $old = [];
             foreach (acf_get_field_groups() as $candidate) {
                 if (($candidate['key'] ?? null) === $group['key'] || FieldGroups::target_of($candidate['location'] ?? null) !== $target) {
                     continue;
                 }
-                foreach (self::by_path(self::fields_of($candidate)) as $path => $field) {
-                    $old[$field['key']] = [(string) $candidate['title'], $path, (string) $field['type'], $new[$path] ?? null];
+                foreach (FieldReferences::paths(self::fields_of($candidate)) as $field) {
+                    $old[$field['key']] = [...$field, 'title' => (string) $candidate['title']];
                 }
             }
-            if ($old === []) {
-                continue;
+            $sorter = new FieldReferences($target, $old, $new, $param === 'options_page' ? self::option_prefixes($value) : []);
+
+            if ($old !== []) {
+                $migration->progress("{$target}: finding the references to " . count($old) . (count($old) === 1 ? ' field' : ' fields') . ' of its UI groups…');
+                $sorted = $sorter->classify(ContentStore::references(array_map('strval', array_keys($old))));
+                $migration->progress("{$target}: " . count($sorted['rewrite']) . ' to rewrite; planning…');
+                foreach ($sorted['rewrite'] as $rewrite) {
+                    $migration->change($rewrite['reference']->location, $rewrite['reference']->key, $rewrite['to'], "\"{$rewrite['path']}\" {$rewrite['reference']->key} → {$rewrite['to']}");
+                    $owner = match (true) {
+                        is_int($rewrite['post_id']) => "post {$rewrite['post_id']}",
+                        str_starts_with($rewrite['post_id'], 'term_') => 'term ' . substr($rewrite['post_id'], 5),
+                        default => $rewrite['post_id'],
+                    };
+                    $checked["{$owner} \"{$rewrite['field']}\""] = [$rewrite['post_id'], $rewrite['field']];
+                }
+                foreach ($sorted['problems'] as $problem => $references) {
+                    $migration->problem("{$problem} (" . self::listed($references) . ')');
+                }
+                if ($sorted['outside'] !== []) {
+                    $migration->note(count($sorted['outside']) . " references to these fields are stored outside {$target}, left alone: " . self::listed($sorted['outside']));
+                }
+                if ($sorted['other_names'] !== []) {
+                    $migration->note(count($sorted['other_names']) . ' references in ' . $target . ' are stored under another name than their field\'s (an old name?), left alone: '
+                        . self::listed(array_map(static fn(array $found): string => "{$found[0]->label()} → key of \"{$found[1]}\"", $sorted['other_names'])));
+                }
             }
 
-            $stuck = [];
-            foreach (ContentStore::references(array_map('strval', array_keys($old))) as $location) {
-                $key = ContentStore::read($location);
-                [$title, $path, $type, $field] = $old[$key];
-                $problem = match (true) {
-                    $field === null => "\"{$path}\" of \"{$title}\" isn't in fields/{$target}.php: add it, or delete its values",
-                    $field['type'] !== $type => "\"{$path}\" of \"{$title}\" is a {$type} field, fields/{$target}.php makes it a {$field['type']}",
-                    default => null,
-                };
-                if ($problem !== null) {
-                    $stuck[$problem] = ($stuck[$problem] ?? 0) + 1;
-                    continue;
-                }
-                $migration->change($location, $key, (string) $field['key'], "{$key} → {$field['key']}");
-            }
-            foreach ($stuck as $problem => $count) {
-                $migration->problem("{$problem} ({$count} stored " . ($count === 1 ? 'value' : 'values') . ')');
+            $known = array_map('strval', [...array_keys($old), ...array_column($new, 'key')]);
+            $broken = $sorter->broken(ContentStore::target_references($param, $value, $known, $param === 'options_page' ? self::option_prefixes($value) : []));
+            if ($broken !== []) {
+                $migration->note(count($broken) . " references in {$target} point to keys no field has, left alone: "
+                    . self::listed(array_map(static fn(Reference $reference): string => "{$reference->label()} → {$reference->key}", $broken)));
             }
         }
+
+        if ($checked !== []) {
+            $migration->check_values(static function () use ($checked): array {
+                // ACF keeps loaded values for the request; read them from the database again.
+                if (function_exists('acf_get_store')) {
+                    acf_get_store('values')->reset();
+                }
+                $hashes = [];
+                foreach ($checked as $id => [$post_id, $field]) {
+                    try {
+                        $hashes[$id] = md5(serialize(get_field($field, $post_id)));
+                    } catch (Throwable $e) {
+                        $hashes[$id] = 'unreadable: ' . $e->getMessage();
+                    }
+                }
+                return $hashes;
+            });
+        }
+    }
+
+    /**
+     * The option name prefixes of an options page: its post_id ("options"), and per language
+     * when WPML or Polylang translate options ("options_nl").
+     *
+     * @return list<string>
+     */
+    private static function option_prefixes(string $page): array
+    {
+        $settings = function_exists('acf_get_options_page') ? acf_get_options_page($page) : false;
+        $base = is_array($settings) && is_string($settings['post_id'] ?? null) ? $settings['post_id'] : 'options';
+        $base = $base === 'option' ? 'options' : $base;
+        $languages = array_keys((array) apply_filters('wpml_active_languages', null, ['skip_missing' => 0]));
+        if (function_exists('pll_languages_list')) {
+            array_push($languages, ...(array) pll_languages_list());
+        }
+
+        return [$base, ...array_map(static fn(mixed $language): string => "{$base}_{$language}", array_unique($languages))];
+    }
+
+    /**
+     * A few of these, with how many there are: "product 1 _x, product 2 _x and 4 more".
+     *
+     * @param list<Reference|string> $items
+     */
+    private static function listed(array $items): string
+    {
+        $labels = array_map(static fn(Reference|string $item): string => $item instanceof Reference ? $item->label() : $item, $items);
+
+        return implode(', ', array_slice($labels, 0, 3)) . (count($labels) > 3 ? ' and ' . (count($labels) - 3) . ' more' : '');
     }
 
     /**
@@ -182,28 +247,5 @@ final class MigrateFields extends MigrateCommand
         };
 
         return $load($group);
-    }
-
-    /**
-     * Data fields by name path ("vragen.vraag"); tabs and messages have no name.
-     *
-     * @param list<array<string, mixed>> $fields
-     * @return array<string, array<string, mixed>>
-     */
-    private static function by_path(array $fields, string $parent = ''): array
-    {
-        $paths = [];
-        foreach ($fields as $field) {
-            if (!is_string($field['name'] ?? null) || $field['name'] === '') {
-                continue;
-            }
-            $path = $parent . $field['name'];
-            $paths[$path] = $field;
-            if (is_array($field['sub_fields'] ?? null)) {
-                $paths += self::by_path($field['sub_fields'], "{$path}.");
-            }
-        }
-
-        return $paths;
     }
 }

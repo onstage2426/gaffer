@@ -25,6 +25,9 @@ description: Add or change ACF fields of an options page, a post type or a taxon
    field names and types (`gaffer-reference` lists the UI group's fields),
    then `php gaffer migrate:fields {param}/{value}` (dry run, then `--run`
    once the user agrees; it rewrites the stored field references, with a
-   backup). Then delete the old group in ACF (that removes its JSON too).
-   Until then `doctor` reports the overlap and the edit screen shows both.
+   backup, and checks ACF reads the same values afterwards). Read the dry
+   run's notes: references it leaves alone (other post types, old names,
+   broken keys) are yours to judge. Then delete the old group in ACF (that
+   removes its JSON too). Until then `doctor` reports the overlap and the
+   edit screen shows both.
 7. Run `php gaffer doctor --wp`.

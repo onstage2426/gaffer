@@ -32,13 +32,25 @@ php gaffer migrate:remove-leftovers [acf/content-faq]              # delete valu
 php gaffer migrate:rollback [backup]                               # undo (no argument: list backups)
 ```
 
-- Moving fields out of the ACF UI/JSON: `migrate:fields` first. For
-  `fields/` (options pages, post types, taxonomies) it rewrites the `_name`
-  rows next to the values (posts and their revisions, terms, options in every
-  language) from the UI group's keys to the derived ones, matching fields by
-  name; it refuses fields the file doesn't have or has with another type. The
-  other `migrate:*` commands are for blocks only. Renames and
+- Moving fields out of the ACF UI/JSON: `migrate:fields` first. Renames and
   removals refuse while a block still stores data under its old field keys.
+- For `fields/` (options pages, post types, taxonomies), `migrate:fields`
+  rewrites the `_name` rows next to the values from the UI group's keys to the
+  derived ones, only where they're the target's own: on that post type (and
+  its revisions), that taxonomy, or that options page (its `post_id`, per
+  language), stored under the name of the field the key belongs to
+  (`vragen_0_vraag` for a repeater's sub field). It stops on fields the file
+  doesn't have or has with another type, naming where the values are. It
+  reports and leaves alone: references outside the target (a post type the
+  group once also targeted), references under another name (an old field
+  name), and references in the target to keys no field has (a broken import).
+- The dry run prints one line per field (old key → new key, how many, which
+  kinds); `-v` lists every location. `--run` also reads every changed field
+  through ACF (`get_field()`, formatted) before writing and after the
+  read-back: any difference (a missed sub field, another return format) ends
+  the run as `verify_failed` with the rollback command.
+- The other `migrate:*` commands are for blocks only (removing fields of a
+  `fields/` target: not yet).
 - A block can keep values of fields that aren't its own (transformed or
   copied from another block, an old field group). The commands refuse them;
   `migrate:remove-leftovers` deletes the ones fields.php has no field for
@@ -56,7 +68,8 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
   Rollback only restores content nobody has edited since.
 - Every `--run` is logged in `storage/logs/migrate.log` (one JSON line:
   outcome `written`/`aborted`/`verify_failed`, reason, backup, the backup it
-  `undoes`, user, theme commit, locations with checksums). Check it before
+  `undoes`, user, theme commit, locations with checksums, or their count per kind
+  above 200: the backup lists each one). Check it before
   assuming what state the content is in; `migrate:rollback` without an
   argument lists the backups with their outcome.
 - Check the result the same way every time: `php gaffer render:snapshot`

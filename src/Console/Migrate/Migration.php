@@ -32,10 +32,46 @@ final class Migration
     /** @var list<string> */
     private array $notes = [];
 
+    /** Above this many locations the log line counts them per kind; the backup has each one. */
+    private const int LOGGED_LOCATIONS = 200;
+
     /** The backup this run restores (migrate:rollback). */
     private ?string $undoes = null;
 
-    public function __construct(private readonly string $command) {}
+    /** Print one line per change summary (with counts) instead of one per location. */
+    private bool $summarize = false;
+
+    /** @var (Closure(): array<string, string>)|null what ACF reads for the changed data, by owner and field */
+    private ?Closure $values = null;
+
+    /** @param OutputInterface|null $progress where to say what the plan is doing (stderr), while it builds */
+    public function __construct(private readonly string $command, private readonly ?OutputInterface $progress = null) {}
+
+    public function progress(string $message): void
+    {
+        $this->progress?->writeln("<comment>{$message}</comment>");
+    }
+
+    /**
+     * Print the plan as one line per distinct summary with its count and location kinds
+     * (field references: thousands of locations with a few distinct rewrites); -v lists all.
+     */
+    public function summarize(): void
+    {
+        $this->summarize = true;
+    }
+
+    /**
+     * Compare what ACF reads before writing and after the read-back: $read returns a hash per
+     * owner and field (formatted get_field()). Any difference fails the run as verify_failed,
+     * with the rollback command.
+     *
+     * @param Closure(): array<string, string> $read
+     */
+    public function check_values(Closure $read): void
+    {
+        $this->values = $read;
+    }
 
     public function problem(string $message): void
     {
@@ -64,8 +100,12 @@ final class Migration
             // The second change was planned from content the first one replaces: the run would abort.
             throw new LogicException("{$location->label} is changed twice in one run: rewrite it once");
         }
-        if ($user = ContentStore::locked_by($location)) {
-            $this->problem("{$location->label}: open in the editor by user {$user}; try again when they're done");
+        $post = ContentStore::post_of($location);
+        $lock = $post !== null ? ContentStore::lock($post) : null;
+        if ($lock !== null) {
+            // One line per post, however many of its rows change (problems are printed once each).
+            $minutes = (int) round((time() - $lock['since']) / 60);
+            $this->problem("post {$post} \"" . get_the_title($post) . "\": open in the editor by user {$lock['user']} (lock {$minutes} min old); try again when they're done");
             return;
         }
         $this->plan[] = ['location' => $location, 'before' => $before, 'after' => $after, 'summary' => $summary];
@@ -132,18 +172,28 @@ final class Migration
      */
     public function finish(OutputInterface $output, bool $run): int
     {
-        foreach ($this->plan as $change) {
-            $output->writeln("  {$change['location']->label}: {$change['summary']}");
+        // Problems first: they decide whether anything is written.
+        $problems = array_values(array_unique($this->problems));
+        foreach ($problems as $problem) {
+            $output->writeln("  <error>{$problem}</error>");
         }
         foreach ($this->notes as $note) {
             $output->writeln("  <comment>{$note}</comment>");
         }
-        foreach ($this->problems as $problem) {
-            $output->writeln("  <error>{$problem}</error>");
+        if ($this->summarize && !$output->isVerbose()) {
+            foreach ($this->summary() as $summary => [$count, $kinds, $label]) {
+                $output->writeln($count === 1
+                    ? "  {$label}: {$summary}"
+                    : "  {$summary}: {$count} (" . implode(', ', array_map(static fn(string $kind, int $n): string => "{$n} {$kind}", array_keys($kinds), $kinds)) . ')');
+            }
+        } else {
+            foreach ($this->plan as $change) {
+                $output->writeln("  {$change['location']->label}: {$change['summary']}");
+            }
         }
 
-        if ($this->problems !== []) {
-            $output->writeln(count($this->problems) . ' problem(s): nothing was written. Fix them and run again.');
+        if ($problems !== []) {
+            $output->writeln(count($problems) . ' problem(s): nothing was written. Fix them and run again.');
             return 1;
         }
         if ($this->plan === []) {
@@ -158,6 +208,25 @@ final class Migration
         return $this->write($output);
     }
 
+    /**
+     * The plan by summary: [count, locations per kind ("product", "revision", "option"), the
+     * first location's label (printed instead when it's the only one)].
+     *
+     * @return array<string, array{int, array<string, int>, string}>
+     */
+    private function summary(): array
+    {
+        $summary = [];
+        foreach ($this->plan as $change) {
+            $kind = strtok($change['location']->label, ' ') ?: $change['location']->kind;
+            $summary[$change['summary']] ??= [0, [], $change['location']->label];
+            $summary[$change['summary']][0]++;
+            $summary[$change['summary']][1][$kind] = ($summary[$change['summary']][1][$kind] ?? 0) + 1;
+        }
+
+        return $summary;
+    }
+
     private function write(OutputInterface $output): int
     {
         global $wpdb;
@@ -166,6 +235,11 @@ final class Migration
             $output->writeln('<error>The posts/options tables are not InnoDB (no transactions): nothing was written.</error>');
             return 1;
         }
+
+        if ($this->values !== null) {
+            $this->progress('Reading the current values through ACF…');
+        }
+        $values = $this->values !== null ? ($this->values)() : null;
 
         try {
             $backup = Backup::save($this->command, $this->plan);
@@ -214,8 +288,20 @@ final class Migration
             return 1;
         }
 
+        if ($this->values !== null && $values !== null) {
+            $this->progress('Reading the values through ACF again…');
+            $after = ($this->values)();
+            $differ = array_keys(array_filter($values, static fn(string $hash, string $id): bool => ($after[$id] ?? null) !== $hash, ARRAY_FILTER_USE_BOTH));
+            if ($differ !== []) {
+                $listed = implode(', ', array_slice($differ, 0, 10)) . (count($differ) > 10 ? ' and ' . (count($differ) - 10) . ' more' : '');
+                $this->log($output, 'verify_failed', 'ACF reads other values than before for ' . count($differ) . ": {$listed}", $backup);
+                $output->writeln('<error>ACF reads other values than before for ' . count($differ) . " field(s): {$listed}. Restore with: php gaffer migrate:rollback " . basename($backup) . ' --run</error>');
+                return 1;
+            }
+        }
+
         $this->log($output, 'written', null, $backup);
-        $output->writeln('Wrote ' . count($this->plan) . ' location(s) and read them back. Undo with: php gaffer migrate:rollback ' . basename($backup));
+        $output->writeln('Wrote ' . count($this->plan) . ' location(s) and read them back' . ($values !== null ? ', and ACF reads the same ' . count($values) . ' values as before' : '') . '. Undo with: php gaffer migrate:rollback ' . basename($backup));
         $output->writeln('<comment>' . $this->caches() . '</comment>');
 
         return 0;
@@ -227,21 +313,22 @@ final class Migration
      */
     private function caches(): string
     {
-        $urls = [];
+        $posts = [];
+        $terms = [];
         $everywhere = null;
         foreach ($this->plan as $change) {
             $location = $change['location'];
-            $url = match ($location->kind) {
-                'post' => get_permalink($location->id),
-                'postmeta' => get_permalink((int) ContentStore::owner($location)),
-                'termmeta' => get_term_link((int) ContentStore::owner($location)),
-                default => null,
+            match ($location->kind) {
+                'widget' => $everywhere = 'block widgets are on every page',
+                'option' => $everywhere ??= 'options can be on every page',
+                'termmeta' => $terms[(int) ContentStore::owner($location)] = true,
+                default => $posts[(int) ContentStore::post_of($location)] = true,
             };
-            if ($location->kind === 'widget') {
-                $everywhere = 'block widgets are on every page';
-            } elseif ($location->kind === 'option') {
-                $everywhere ??= 'options can be on every page';
-            } elseif (is_string($url)) {
+        }
+        // Each post or term once: a field migration changes many rows of the same ones.
+        $urls = [];
+        foreach ([...array_map(get_permalink(...), array_keys($posts)), ...array_map(get_term_link(...), array_keys($terms))] as $url) {
+            if (is_string($url)) {
                 $urls[$url] = true;
             }
         }
@@ -259,11 +346,13 @@ final class Migration
             'reason' => $reason,
             'backup' => $backup !== null ? basename($backup) : null,
             'undoes' => $this->undoes,
-            'locations' => array_map(static fn(array $change): array => [
-                ...$change['location']->to_array(),
-                'before_sha1' => sha1($change['before']),
-                'after_sha1' => sha1($change['after']),
-            ], $this->plan),
+            ...(count($this->plan) <= self::LOGGED_LOCATIONS
+                ? ['locations' => array_map(static fn(array $change): array => [
+                    ...$change['location']->to_array(),
+                    'before_sha1' => sha1($change['before']),
+                    'after_sha1' => sha1($change['after']),
+                ], $this->plan)]
+                : ['location_counts' => array_count_values(array_map(static fn(array $change): string => $change['location']->kind, $this->plan))]),
         ]);
         if (!$logged) {
             $output->writeln('<comment>Could not write ' . Log::file() . '.</comment>');

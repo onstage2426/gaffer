@@ -22,8 +22,9 @@ description: Ship a Gaffer change end to end - implement, test, migration book e
 
 4. **Migration book.** If a site has to change anything (renamed/removed
    API, new required config, behavior change), append an entry to
-   `MIGRATION.md`: what changed, a `grep` to find affected code, before/after,
-   what to check. `MIGRATION.md` is never committed.
+   `CHANGELOG.md` (newest first, under today's date): what changed, a `grep` to
+   find affected code, before/after, what to check. It's committed and ships
+   with the package: sites read it after updating.
 
 5. **Commit** with the message `general` (no attribution lines). Tell the
    user what's unpushed and what blueprint will need. If the change breaks

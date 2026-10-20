@@ -51,3 +51,14 @@ function acf_get_field_groups(array $filter = []) {}
 
 /** @return array<string, mixed>|false */
 function acf_get_options_page(string $page) {}
+
+/** @return ACF_Data */
+function acf_get_store(string $name = '', array $data = []) {}
+
+/** ACF's key-value store. */
+class ACF_Data
+{
+    public function reset(): void {}
+}
+
+function get_field(string $selector, int|string|false $post_id = false, bool $format_value = true, bool $escape_html = false): mixed {}

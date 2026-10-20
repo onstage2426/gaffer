@@ -14,6 +14,12 @@ use RuntimeException;
  */
 final class ContentStore
 {
+    /** @var array<string, int> the post or term of a reference row, "kind:id" => ID (filled by the queries) */
+    private static array $owners = [];
+
+    /** @var array<int, array{user: int, since: int}|null> editor locks by post, once looked up */
+    private static array $locks = [];
+
     /** Reference rows: table property on $wpdb, row ID column, owner column, value column. */
     private const array ROWS = [
         'postmeta' => ['postmeta', 'meta_id', 'post_id', 'meta_value'],
@@ -52,49 +58,104 @@ final class ContentStore
 
     /**
      * Every ACF field reference ("_name" postmeta, termmeta or option row, any language
-     * prefix, revisions included) whose value is one of these field keys. Field keys are
-     * unique, so the value alone says which field a row belongs to.
+     * prefix, revisions included) whose value is one of these field keys, anywhere.
+     * FieldReferences decides which are a target's own.
      *
      * @param list<string> $keys
-     * @return list<Location>
+     * @return list<Reference>
      */
     public static function references(array $keys): array
     {
-        global $wpdb;
-
         if ($keys === []) {
             return [];
         }
         $in = implode(', ', array_fill(0, count($keys), '%s'));
-        $locations = [];
 
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT m.meta_id, m.post_id, m.meta_key, p.post_type FROM {$wpdb->postmeta} m LEFT JOIN {$wpdb->posts} p ON p.ID = m.post_id
-             WHERE m.meta_key LIKE '\\_%%' AND m.meta_value IN ({$in}) ORDER BY m.meta_id",
-            ...$keys,
-        ));
-        foreach ($rows as $row) {
-            $locations[] = new Location('postmeta', (int) $row->meta_id, "{$row->post_type} {$row->post_id} {$row->meta_key}");
+        return self::reference_rows("meta_value IN ({$in})", "option_value IN ({$in})", $keys, null);
+    }
+
+    /**
+     * References stored in this target (posts of the type and their revisions, terms of the
+     * taxonomy, options with one of these name prefixes) holding a field key that isn't one
+     * of $known: candidates for a broken key.
+     *
+     * @param list<string> $known
+     * @param list<string> $prefixes option name prefixes, for options_page targets
+     * @return list<Reference>
+     */
+    public static function target_references(string $param, string $value, array $known, array $prefixes): array
+    {
+        global $wpdb;
+
+        $not_in = $known === [] ? '' : ' AND %VALUE% NOT IN (' . implode(', ', array_fill(0, count($known), '%s')) . ')';
+        $like = "%VALUE% LIKE 'field\\_%%'" . $not_in;
+        $meta = str_replace('%VALUE%', 'm.meta_value', $like);
+
+        return match ($param) {
+            'post_type' => self::reference_rows("{$meta} AND COALESCE(pp.post_type, p.post_type) = %s", null, [...$known, $value], 'postmeta'),
+            'taxonomy' => self::reference_rows("{$meta} AND t.taxonomy = %s", null, [...$known, $value], 'termmeta'),
+            default => $prefixes === [] ? [] : self::reference_rows(
+                null,
+                str_replace('%VALUE%', 'option_value', $like) . ' AND (' . implode(' OR ', array_fill(0, count($prefixes), 'option_name LIKE %s')) . ')',
+                [...$known, ...array_map(static fn(string $prefix): string => '\\_' . $wpdb->esc_like($prefix) . '\\_%', $prefixes)],
+                'option',
+            ),
+        };
+    }
+
+    /**
+     * Reference rows ("_" names) matching these conditions, from the tables that have one
+     * ($only: just that kind). $args fill the placeholders of each condition.
+     *
+     * @param list<string> $args
+     * @return list<Reference>
+     */
+    private static function reference_rows(?string $meta_where, ?string $option_where, array $args, ?string $only): array
+    {
+        global $wpdb;
+
+        $found = [];
+        if ($meta_where !== null && $only !== 'termmeta' && $only !== 'option') {
+            // A revision belongs to its parent's post type.
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT m.meta_id, m.post_id, m.meta_key, m.meta_value, p.post_type, pp.post_type AS parent_type
+                 FROM {$wpdb->postmeta} m
+                 LEFT JOIN {$wpdb->posts} p ON p.ID = m.post_id
+                 LEFT JOIN {$wpdb->posts} pp ON pp.ID = p.post_parent AND p.post_type = 'revision'
+                 WHERE m.meta_key LIKE '\\_%%' AND {$meta_where} ORDER BY m.meta_id",
+                ...$args,
+            ));
+            foreach ($rows as $row) {
+                $location = new Location('postmeta', (int) $row->meta_id, "{$row->post_type} {$row->post_id} {$row->meta_key}");
+                self::$owners["postmeta:{$row->meta_id}"] = (int) $row->post_id;
+                $found[] = new Reference($location, (string) $row->meta_key, (string) $row->meta_value, (string) ($row->parent_type ?? $row->post_type), (int) $row->post_id);
+            }
+        }
+        if ($meta_where !== null && $only !== 'postmeta' && $only !== 'option') {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT m.meta_id, m.term_id, m.meta_key, m.meta_value, t.taxonomy
+                 FROM {$wpdb->termmeta} m LEFT JOIN {$wpdb->term_taxonomy} t ON t.term_id = m.term_id
+                 WHERE m.meta_key LIKE '\\_%%' AND {$meta_where} ORDER BY m.meta_id",
+                ...$args,
+            ));
+            foreach ($rows as $row) {
+                $location = new Location('termmeta', (int) $row->meta_id, "{$row->taxonomy} term {$row->term_id} {$row->meta_key}");
+                self::$owners["termmeta:{$row->meta_id}"] = (int) $row->term_id;
+                $found[] = new Reference($location, (string) $row->meta_key, (string) $row->meta_value, (string) $row->taxonomy, (int) $row->term_id);
+            }
+        }
+        if ($option_where !== null && $only !== 'postmeta' && $only !== 'termmeta') {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT option_id, option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE '\\_%%' AND {$option_where} ORDER BY option_id",
+                ...$args,
+            ));
+            foreach ($rows as $row) {
+                $location = new Location('option', (int) $row->option_id, "option {$row->option_name}");
+                $found[] = new Reference($location, (string) $row->option_name, (string) $row->option_value, 'option', null);
+            }
         }
 
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT m.meta_id, m.term_id, m.meta_key, t.taxonomy FROM {$wpdb->termmeta} m LEFT JOIN {$wpdb->term_taxonomy} t ON t.term_id = m.term_id
-             WHERE m.meta_key LIKE '\\_%%' AND m.meta_value IN ({$in}) ORDER BY m.meta_id",
-            ...$keys,
-        ));
-        foreach ($rows as $row) {
-            $locations[] = new Location('termmeta', (int) $row->meta_id, "{$row->taxonomy} term {$row->term_id} {$row->meta_key}");
-        }
-
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT option_id, option_name FROM {$wpdb->options} WHERE option_name LIKE '\\_%%' AND option_value IN ({$in}) ORDER BY option_id",
-            ...$keys,
-        ));
-        foreach ($rows as $row) {
-            $locations[] = new Location('option', (int) $row->option_id, "option {$row->option_name}");
-        }
-
-        return $locations;
+        return $found;
     }
 
     /**
@@ -171,10 +232,14 @@ final class ContentStore
         if ($row === null || $row[2] === null) {
             return null;
         }
+        $cached = "{$location->kind}:{$location->id}";
+        if (isset(self::$owners[$cached])) {
+            return self::$owners[$cached];
+        }
         [$table, $id, $owner] = $row;
         $value = $wpdb->get_var($wpdb->prepare("SELECT {$owner} FROM {$wpdb->$table} WHERE {$id} = %d", $location->id));
 
-        return $value !== null ? (int) $value : null;
+        return $value !== null ? self::$owners[$cached] = (int) $value : null;
     }
 
     private static function option_name(Location $location): ?string
@@ -194,23 +259,33 @@ final class ContentStore
     }
 
     /**
-     * Who has this post open in the editor right now, if anyone (WordPress's own
-     * wp_check_post_lock(), which lives in the admin includes).
+     * The post this location is part of, when it has one (a post's content or its meta).
      */
-    public static function locked_by(Location $location): ?int
+    public static function post_of(Location $location): ?int
     {
-        $post = match ($location->kind) {
+        return match ($location->kind) {
             'post' => $location->id,
             'postmeta' => self::owner($location),
             default => null,
         };
-        if ($post === null) {
-            return null;
+    }
+
+    /**
+     * Who has this post open in the editor right now, and since when (WordPress's own
+     * wp_check_post_lock(), which lives in the admin includes; once per post and run).
+     *
+     * @return array{user: int, since: int}|null
+     */
+    public static function lock(int $post): ?array
+    {
+        if (array_key_exists($post, self::$locks)) {
+            return self::$locks[$post];
         }
         require_once ABSPATH . 'wp-admin/includes/post.php';
         $user = wp_check_post_lock($post);
+        $since = (int) explode(':', (string) get_post_meta($post, '_edit_lock', true))[0];
 
-        return $user ? (int) $user : null;
+        return self::$locks[$post] = $user ? ['user' => (int) $user, 'since' => $since] : null;
     }
 
     /**

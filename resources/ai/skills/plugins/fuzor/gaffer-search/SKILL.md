@@ -42,7 +42,13 @@ Gaffer theme.
   first page from `results`, and the same `results` go to the Alpine component
   as `initial`, through a JSON island
   (`<script type="application/json" id="…">{{ search.results|json_encode|raw }}</script>`),
-  so the browser never fetches the page it already has.
+  so the browser never fetches the page it already has. Cards with forms of
+  their own (add to cart, sizes) never sit inside the search form (the parser
+  drops a nested `<form>`, its fields join the search): the component goes on a
+  wrapper around form, list and pagination, with
+  `createAlpineSearch({ form: '#archive-form' })` (or `createFilterForm(fields,
+  { form })`). Fuzor's console warning "Parameters this endpoint doesn't
+  read" means a field leaked into the form.
 - **`Fuzor` is the plugin's global** (its own script, in `<head>`): use it
   directly, never bundle or import it. Theme components spread
   `Fuzor.createAlpineSearch()`, `createFilterForm()` or `createFacetSearch()`
@@ -51,6 +57,8 @@ Gaffer theme.
   rebuild them. Prefer the `onBeforeRun`/`onSuccess` hooks over overriding
   `run()`; write them as methods (`onSuccess(data) { this.… }`): an arrow
   function gets the component as its last argument, not as `this`.
+  `onSuccess` runs for every response, back/forward too: render pre-rendered
+  cards there (and `htmx.process()` them), not in a `@fuzor:results` listener.
   `createFilterForm()` fields have a `type` (`multi`, `single`, `range` for
   min/max inputs, `toggle` for one checkbox like "on sale") and the component
   keeps `sort`: no own URL seeding for them. Page sizes and grid/list are
@@ -62,6 +70,15 @@ Gaffer theme.
 - **Hits are index documents, not Gaffer types:** every stored field is plain
   text (`{{ hit.title }}`, `x-text`); only `hit.formatted.*` is HTML (`|raw`,
   `x-html`).
+- **Rendered cards** (`fuzor_index_document` in `inc/fuzor.php`, the card's
+  Twig rendered into a field, sent with the token's `attributes`) are the
+  exception: the theme's own HTML, `x-html`. Name what they depend on with
+  `fuzor_index_version` (the card template's `filemtime()`), so a deploy that
+  changes the template rebuilds the index. A variant per audience (prices
+  excl. VAT) is a second field, chosen by the token's `attributes`, with a
+  `ttl` on the private token. Cards that show the default variation's price
+  need `ProductIndexBuilder(variationPrice: 'default')`, so price sorting and
+  filters match them.
 - **URLs in PHP** (page links, canonical, redirects) come from
   `fuzor_archive_url($query)`, never `http_build_query()`/`add_query_arg()`:
   those number lists (`filter[x][0]`), which the form doesn't read back.

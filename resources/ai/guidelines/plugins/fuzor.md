@@ -13,5 +13,8 @@ follow the `gaffer-search` skill. Always:
 - **`Fuzor` is the plugin's global:** never bundle or import it. Components
   spread its Alpine helpers and add only UI state; filters, pagination and
   the request are Fuzor's.
+- **Cards with forms stay outside the search form:** the component sits on a
+  wrapper with `createAlpineSearch({ form })`; a nested `<form>` adds its
+  fields to the search.
 - **URLs in PHP come from `fuzor_archive_url()`**, never
   `http_build_query()`/`add_query_arg()`.

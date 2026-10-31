@@ -13,6 +13,8 @@ are not used. To add or change a form, follow the `gaffer-form` skill.
   `HX-Redirect`). `form` in the template is a `Gaffer\Forms\FormState`.
 - **Spam is handled before Gravity Forms** (a honeypot and Turnstile) and gets
   the normal confirmation plus a line in `storage/logs/spam.log`. No other
-  captcha.
+  captcha. So a confirmation is no proof a test submission went through:
+  outside production spam answers carry an `X-Gaffer-Spam` header (`honeypot`,
+  `turnstile`); a script or headless browser gets no Turnstile token.
 - Single-value fields, checkboxes and consent only: no Name/Address fields
   with sub-inputs, no file uploads, no multi-page forms.

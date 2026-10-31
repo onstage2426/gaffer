@@ -13,6 +13,8 @@ use Gaffer\View;
  * extends it). Checks the honeypot and Turnstile, submits to the Gravity Forms
  * form named like the template, and answers with views/forms/{form}.twig
  * re-rendered (errors, or sent), or an HX-Redirect for a confirmation page.
+ * Spam gets the same answer as a submission; outside production with an
+ * X-Gaffer-Spam header (honeypot, turnstile).
  */
 abstract class FormAction extends AjaxAction
 {
@@ -45,6 +47,9 @@ abstract class FormAction extends AjaxAction
         };
         if ($spam !== null) {
             Spam::log($form, $spam);
+            if (\wp_get_environment_type() !== 'production') {
+                header("X-Gaffer-Spam: {$spam}"); // so a test submission that got here can tell
+            }
             $fake = $gravity->default_confirmation(); // spam must look like it worked
             $this->answer($form, $fields, $fake['message'], $fake['redirect']);
             return;

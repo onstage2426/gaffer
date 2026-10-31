@@ -116,7 +116,7 @@ final class Renderer
             while ($queue !== [] && count($running) < self::PARALLEL) {
                 $path = array_shift($queue);
                 ($this->progress)($path);
-                $command = [PHP_BINARY, $entry, 'doctor:render', $path, '--no-ansi', ...($html ? ['--html'] : []), ...$this->visitor];
+                $command = [PHP_BINARY, '-d', 'memory_limit=' . ini_get('memory_limit'), $entry, 'doctor:render', $path, '--no-ansi', ...($html ? ['--html'] : []), ...$this->visitor];
                 if ($this->url !== null) {
                     $command[] = "--url={$this->url}";
                 }
@@ -127,16 +127,18 @@ final class Renderer
                 }
                 stream_set_blocking($pipes[1], false);
                 stream_set_blocking($pipes[2], false);
-                $running[$path] = [$process, $pipes, ''];
+                $running[$path] = [$process, $pipes, '', ''];
             }
 
-            foreach ($running as $path => [$process, $pipes, $stdout]) {
+            foreach ($running as $path => [$process, $pipes, $stdout, $stderr]) {
                 $stdout .= (string) stream_get_contents($pipes[1]);
-                stream_get_contents($pipes[2]);
+                $stderr = mb_substr($stderr . stream_get_contents($pipes[2]), -2000);
                 $running[$path][2] = $stdout;
+                $running[$path][3] = $stderr;
 
                 if (!proc_get_status($process)['running']) {
                     $stdout .= (string) stream_get_contents($pipes[1]);
+                    $stderr .= (string) stream_get_contents($pipes[2]);
                     fclose($pipes[1]);
                     fclose($pipes[2]);
                     proc_close($process);
@@ -144,7 +146,8 @@ final class Renderer
                     try {
                         $results[$path] = $this->as_live(DoctorRender::parse($stdout));
                     } catch (RuntimeException $e) {
-                        $results[$path] = $e->getMessage();
+                        // A process that died before its result line (a fatal error) says why on stderr.
+                        $results[$path] = $e->getMessage() . (trim($stderr) !== '' ? '; stderr: ' . trim(mb_substr($stderr, -500)) : '');
                     }
                 }
             }

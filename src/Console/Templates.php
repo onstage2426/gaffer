@@ -24,6 +24,7 @@ use Twig\Node\IncludeNode;
 use Twig\Node\ModuleNode;
 use Twig\Node\Node;
 use Twig\Node\SetNode;
+use Twig\Node\TextNode;
 
 /**
  * The theme's Twig templates, read through Twig's own parser: which templates
@@ -144,23 +145,56 @@ final class Templates
     }
 
     /**
-     * Calls of get_* methods (WordPress/WooCommerce/plugin objects; Gaffer's types
-     * have none): [method, line].
+     * Calls of methods whose name matches $pattern: [method, line]. Used for get_* (WordPress,
+     * WooCommerce and plugin objects; Gaffer's types have none) and meta() (a field name in
+     * the template).
      *
      * @return list<array{string, int}>
      */
-    public static function getter_calls(Node $node): array
+    public static function method_calls(Node $node, string $pattern): array
     {
         $found = [];
         if ($node instanceof GetAttrExpression) {
             $attribute = $node->getNode('attribute');
-            if ($attribute instanceof ConstantExpression && is_string($attribute->getAttribute('value')) && str_starts_with($attribute->getAttribute('value'), 'get_')) {
+            if ($attribute instanceof ConstantExpression && is_string($attribute->getAttribute('value')) && preg_match($pattern, $attribute->getAttribute('value'))) {
                 $found[] = [$attribute->getAttribute('value'), $node->getTemplateLine()];
             }
         }
         foreach ($node as $child) {
-            array_push($found, ...self::getter_calls($child));
+            array_push($found, ...self::method_calls($child, $pattern));
         }
+
+        return $found;
+    }
+
+    /**
+     * What this template includes between a <form> and its </form> in its own HTML (in
+     * source order; a form opened in one branch of an if counts for the rest): the include()
+     * calls and tags, as references() describes them.
+     *
+     * @return list<array{template: ?string, pattern: ?string, line: int, kind: string, isolated: bool}>
+     */
+    public static function includes_in_form(Node $node): array
+    {
+        $depth = 0;
+        $found = [];
+        $walk = static function (Node $node) use (&$walk, &$depth, &$found): void {
+            if ($node instanceof TextNode) {
+                $text = (string) $node->getAttribute('data');
+                $depth = max(0, $depth + (int) preg_match_all('/<form\b/i', $text) - (int) preg_match_all('/<\/form\s*>/i', $text));
+                return;
+            }
+            if (($node instanceof FunctionExpression && $node->getAttribute('name') === 'include') || $node instanceof IncludeNode) {
+                if ($depth > 0) {
+                    array_push($found, ...self::references($node));
+                }
+                return;
+            }
+            foreach ($node as $child) {
+                $walk($child);
+            }
+        };
+        $walk($node);
 
         return $found;
     }

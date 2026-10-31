@@ -24,14 +24,13 @@ use WP_Block_Type_Registry;
  * What WordPress actually has: registered blocks, block names and ACF field keys
  * used in content, ACF JSON vs database, ACF field types, WooCommerce template
  * names, form templates vs Gravity Forms, menu locations, the MCP server.
- * Needs WordPress loaded.
+ * Needs WordPress loaded, as the site that runs this theme (WordPress::wrong_site()).
  */
 final class WordPressCheck implements Check
 {
     #[\Override]
     public function run(Report $report): void
     {
-        $this->theme($report);
         $this->blocks($report);
         $this->acf_sync($report);
         $this->acf_orphans($report);
@@ -66,17 +65,6 @@ final class WordPressCheck implements Check
     }
 
     /**
-     * The other checks describe the loaded site: it must be the one that runs this theme.
-     */
-    private function theme(Report $report): void
-    {
-        if (!WordPress::is_theme_active()) {
-            $report->error('wp', 'The loaded site (' . \home_url('/') . ') runs the theme "' . \get_stylesheet() . '", not this one', null, null,
-                'Set SITE_URL in .env to the site that uses this theme (`php gaffer init`); the checks below describe the other site.');
-        }
-    }
-
-    /**
      * Gaffer's MCP server answers an agent's start command with every tool (catches
      * MCP Adapter updates that break it, and WP-CLI missing from the PATH).
      */
@@ -86,6 +74,12 @@ final class WordPressCheck implements Check
             return;
         }
         $expected = array_map(static fn(Tool $tool): string => "gaffer-{$tool->name()}", Mcp::tools());
+        if (Mcp::wp_on_path() === null) {
+            // Not a broken server: this process can't start it (WP-CLI elsewhere, e.g. on the host, not in the container).
+            $report->warning('mcp', 'WP-CLI (`wp`) isn\'t on the PATH here, so the MCP server "gaffer" wasn\'t checked', null, null,
+                'Agents start it with `wp mcp-adapter serve --server=gaffer`: run doctor --wp where they run (the host), or install WP-CLI here.');
+            return;
+        }
 
         try {
             $served = Mcp::served_tools();
@@ -420,6 +414,43 @@ final class WordPressCheck implements Check
                 $report->warning('wp', "Stored values point to {$key}, which fields/{$target}.php no longer has", $file, null,
                     "{$count} stored value(s). Renamed or removed a field? Restore its name, or delete the old values.");
             }
+        }
+
+        $this->deleted_targets($report);
+    }
+
+    /**
+     * Stored values of a fields/ target whose file is gone (deleting the file is how a target's
+     * fields go): their references hold its derived keys, field_{param}_{value}__{name}.
+     */
+    private function deleted_targets(Report $report): void
+    {
+        global $wpdb;
+
+        $files = [];
+        foreach (array_keys(FieldGroups::targets()) as $target) {
+            $files[FieldGroups::prefix($target)] = true;
+        }
+        $fields = [];
+        foreach ([[$wpdb->postmeta, 'meta_key', 'meta_value'], [$wpdb->termmeta, 'meta_key', 'meta_value'], [$wpdb->options, 'option_name', 'option_value']] as [$table, $name, $column]) {
+            foreach ($wpdb->get_results(
+                "SELECT SUBSTRING_INDEX({$column}, '__', 2) AS k, COUNT(*) AS n FROM {$table}
+                 WHERE {$name} LIKE '\\_%' AND ({$column} LIKE 'field\\_post\\_type\\_%\\_\\_%' OR {$column} LIKE 'field\\_taxonomy\\_%\\_\\_%' OR {$column} LIKE 'field\\_options\\_page\\_%\\_\\_%')
+                 GROUP BY k",
+            ) as $row) {
+                [$prefix, $field] = explode('__', (string) $row->k, 2) + [1 => ''];
+                if (!isset($files[$prefix]) && $field !== '') {
+                    $fields[$prefix][$field] = ($fields[$prefix][$field] ?? 0) + (int) $row->n;
+                }
+            }
+        }
+        foreach ($fields as $prefix => $counts) {
+            $id = substr($prefix, strlen('field_'));
+            $param = array_find(['post_type', 'taxonomy', 'options_page'], static fn(string $p): bool => str_starts_with($id, "{$p}_"));
+            $target = "{$param}/" . substr($id, strlen("{$param}_"));
+            $report->warning('wp', "Stored values belong to fields/{$target}.php, which no longer exists", null, null,
+                array_sum($counts) . ' stored reference(s), fields: ' . implode(', ', array_keys($counts))
+                . ". Delete them per field with php gaffer migrate:remove-field {$target} <field> (dry run first), or restore the file.");
         }
     }
 

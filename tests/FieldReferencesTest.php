@@ -105,6 +105,27 @@ final class FieldReferencesTest extends TestCase
         self::assertSame('^_?(options|options_nl)_titel$', $options->name_regex((string) $options->child_pattern(['titel'])));
     }
 
+    public function test_removing_a_field_takes_the_rows_below_it(): void
+    {
+        $key = 'field_options_page_theme__team';
+        $rows = [
+            self::option(1, 'options_team', '2'),
+            self::option(2, '_options_team', $key),
+            self::option(3, 'options_team_0_naam', 'Anna'),
+            self::option(4, '_options_team_0_naam', "{$key}__naam"),
+            self::option(5, 'options_nl_team_1_foto', '12'),
+            self::option(6, '_options_nl_team_1_foto', "{$key}__foto"),
+            self::option(7, 'options_team_lead', 'Bob'),                 // another field: its name only starts the same
+            self::option(8, '_options_team_lead', 'field_options_page_theme__team_lead'),
+        ];
+        // The file is gone: no fields, the name pattern is the field's own name.
+        $sorter = new FieldReferences('options_page/theme', [], [], ['options', 'options_nl']);
+        $pattern = (string) $sorter->child_pattern(['team']);
+
+        $removed = array_map(static fn(Reference $row): int => $row->location->id, $sorter->removal($rows, $pattern, $key));
+        self::assertSame([1, 2, 3, 4, 5, 6], $removed);
+    }
+
     /** @param list<string> $prefixes */
     private static function sorter(string $target, array $prefixes = []): FieldReferences
     {

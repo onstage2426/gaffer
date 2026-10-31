@@ -6,13 +6,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | |raw Baseline
+    | |raw Baseline (deprecated)
     |--------------------------------------------------------------------------
     |
-    | Number of |raw uses in templates plus new Markup(...) in theme PHP (both
-    | mark HTML as trusted) that are known and accepted. `doctor` warns (and
-    | lists them all) when there are more, so new ones get looked at. Unset:
-    | doctor just reports the count.
+    | Deprecated: mark each |raw (templates) and new Markup(...) (theme PHP)
+    | with a trust comment where it's used instead, {# trusted: why #} or
+    | // trusted: why, and remove this key. While it's set, doctor still
+    | counts the unmarked uses against it (and warns that it's deprecated).
     |
     */
 

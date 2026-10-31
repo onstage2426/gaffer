@@ -72,7 +72,25 @@ final class TemplatesTest extends TestCase
     {
         self::env(['t.twig' => "{{ post.title() }}\n{{ product.get_title() }}\n{{ product.get_meta('label') }} {{ post.wp.post_name }}"]);
 
-        self::assertSame([['get_title', 2], ['get_meta', 3]], Templates::getter_calls(Templates::parse('t.twig')));
+        self::assertSame([['get_title', 2], ['get_meta', 3]], Templates::method_calls(Templates::parse('t.twig'), '/^get_/'));
+    }
+
+    public function test_includes_inside_a_form(): void
+    {
+        self::env(['t.twig' => <<<'TWIG'
+            {{ include('before.twig', {}, with_context = false) }}
+            <form class="filters">
+                {% for item in items %}
+                    {{ include('card.twig', { item }, with_context = false) }}
+                {% endfor %}
+            </form>
+            {{ include('after.twig', {}, with_context = false) }}
+            TWIG]);
+
+        self::assertSame([['card.twig', 4]], array_map(
+            static fn(array $r): array => [$r['template'], $r['line']],
+            Templates::includes_in_form(Templates::parse('t.twig')),
+        ));
     }
 
     public function test_t_on_anything_but_a_literal(): void

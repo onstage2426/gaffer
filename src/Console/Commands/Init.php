@@ -32,8 +32,9 @@ final class Init extends Command
         }
 
         WordPress::load($url); // a multisite without a site at $url stops here
-        if (!WordPress::is_theme_active()) {
-            $output->writeln('<error>' . \home_url('/') . ' runs the theme "' . \get_stylesheet() . '", not this one. Use the URL of the site that runs this theme.</error>');
+        $wrong = WordPress::wrong_site();
+        if ($wrong !== null) {
+            $output->writeln("<error>{$wrong}. Use the URL of the site that runs this theme.</error>");
             return self::FAILURE;
         }
 

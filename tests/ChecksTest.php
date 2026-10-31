@@ -168,6 +168,24 @@ final class ChecksTest extends TestCase
         self::assertSame(1, substr_count($messages, 'Nothing renders or includes this template')); // old.twig, not the multi-line footer.twig
     }
 
+    public function test_nested_forms_and_meta_in_templates(): void
+    {
+        mkdir("{$this->theme}/views/components", 0755, true);
+        file_put_contents("{$this->theme}/views/components/card.twig", "{{ term.meta('tint') }}\n{{ include('components/add-to-cart.twig', {}, with_context = false) }}");
+        file_put_contents("{$this->theme}/views/components/add-to-cart.twig", '<form method="post"></form>');
+        file_put_contents("{$this->theme}/views/archive.twig", "<form>\n{{ include('components/card.twig', {}, with_context = false) }}\n</form>\n{{ include('components/card.twig', {}, with_context = false) }}");
+        file_put_contents("{$this->theme}/archive.php", "<?php View::render('archive.twig', []);");
+        self::reset(View::class, 'env', null);
+        self::reset(Gaffer::class, 'twig', false);
+
+        $found = array_map(static fn(array $f): string => basename((string) $f['file']) . ":{$f['line']} {$f['message']}", $this->findings(new TemplatesCheck()));
+        sort($found);
+        self::assertSame([
+            'archive.twig:2 Includes components/card.twig inside a <form>, and it includes components/add-to-cart.twig, which has a <form> itself',
+            'card.twig:1 Calls meta(): the template reads a field by name',
+        ], $found);
+    }
+
     public function test_a_gt_inside_an_attribute(): void
     {
         $source = <<<'TWIG'
@@ -210,14 +228,36 @@ final class ChecksTest extends TestCase
         self::assertStringStartsWith('On line 4, 6.', $findings[0]['hint']);
     }
 
-    public function test_new_markup_in_php_counts_as_raw(): void
+    public function test_raw_and_new_markup_need_a_trust_comment(): void
     {
         mkdir("{$this->theme}/views", 0755, true);
         mkdir("{$this->theme}/inc", 0755, true);
-        file_put_contents("{$this->theme}/views/a.twig", "{{ a|raw }}\n{{ b }}\n");
-        file_put_contents("{$this->theme}/inc/x.php", "<?php\n\$c = new \\Twig\\Markup(\$html, 'UTF-8');\n\$d = new MarkupThing();\n");
+        file_put_contents("{$this->theme}/views/a.twig", implode("\n", [
+            '{{ a|raw }}',
+            '{{ b }}',
+            '{{ c|raw }}{# trusted: WordPress content #}',
+            '{# trusted: a Gravity Forms confirmation #}',
+            '{{ d|raw }}',
+            '{# trusted: #}{{ e|raw }}',
+        ]) . "\n");
+        file_put_contents("{$this->theme}/inc/x.php", "<?php\n\$c = new \\Twig\\Markup(\$html, 'UTF-8');\n\$d = new MarkupThing();\n// trusted: rendered by Theme\\Search\n\$e = new Markup(\$card, 'UTF-8');\n");
 
-        self::assertSame('2 uses of |raw (templates) and new Markup (PHP)', $this->messages(new SourceCheck()));
+        $found = array_map(static fn(array $f): string => basename((string) $f['file']) . ":{$f['line']} {$f['message']}", $this->findings(new SourceCheck()));
+        sort($found);
+        self::assertSame(['a.twig:1 |raw without a trust comment', 'a.twig:6 |raw without a trust comment', 'x.php:2 new Markup without a trust comment'], $found);
+    }
+
+    public function test_raw_baseline_still_counts_but_is_deprecated(): void
+    {
+        mkdir("{$this->theme}/views", 0755, true);
+        file_put_contents("{$this->theme}/config/console.php", "<?php return ['raw_baseline' => 0];");
+        file_put_contents("{$this->theme}/views/a.twig", "{{ a|raw }}\n{{ b|raw }}{# trusted: content #}\n");
+        Config::load("{$this->theme}/config");
+
+        self::assertSame(
+            ['console.raw_baseline is deprecated', '1 uses of |raw and new Markup, baseline is 0; check the new ones below', '|raw'],
+            array_column($this->findings(new SourceCheck()), 'message'),
+        );
     }
 
     public function test_declarations_in_inc(): void

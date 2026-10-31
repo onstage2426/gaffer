@@ -58,9 +58,15 @@ final class Doctor extends Command
         if ($input->getOption('wp')) {
             $url = $input->getOption('url');
             WordPress::load($url);
-            new WordPressCheck()->run($report);
+            $wrong = WordPress::wrong_site();
+            if ($wrong !== null) {
+                // Every WordPress check would describe another site: stop here.
+                $report->error('wp', $wrong, null, null, 'Run `php gaffer init --url=<the URL of the site that runs this theme>`; the WordPress checks were skipped.');
+            } else {
+                new WordPressCheck()->run($report);
+            }
 
-            if (!$input->getOption('no-render')) {
+            if ($wrong === null && !$input->getOption('no-render')) {
                 new RenderCheck(is_string($url) ? $url : null, static function (string $path) use ($output, $json): void {
                     if (!$json && $output->isVerbose()) {
                         $output->writeln("<comment>rendering</comment> {$path}");

@@ -29,7 +29,8 @@ missing, `0` or the wrong type → `null`. Cast ACF values: `(int) get_field('x'
 | `Menu::location(string $location)` | The menu tree for a registered location. |
 | `Pagination::current()` | Main query pagination: readonly `page`, `total_pages`, `items`, `total_items`, `per_page`, `results_start`, `results_end`; `pages(padding)` (page → URL, `null` = ellipsis), `previous()`, `next()`, `previous_link()`, `next_link()`. |
 
-Main methods:
+Main methods (`meta($key)` is for PHP: a type method reads the field and the
+template calls that method):
 - `Post`: `content()`, `excerpt()`, `date(?format)`, `modified_date(?format)`,
   `parent()`, `ancestors()` (nearest first: the top-level one is
   `array_last()`), `children()` (page order, then title), `terms($taxonomy)`,

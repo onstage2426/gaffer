@@ -7,6 +7,78 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-10-31
+
+### `|raw` needs a trust comment; `console.raw_baseline` is deprecated
+
+Every `|raw` in a template and `new Markup(...)` in theme PHP says why its HTML
+is trusted, on its line or alone on the line above. `doctor` warns about each
+one without a comment. While `console.raw_baseline` is set, `doctor` still
+counts the unmarked uses against it, with a deprecation warning.
+
+Find: `grep -rn '|\s*raw' views blocks woocommerce` and
+`grep -rnE 'new\s+\\?(Twig\\)?Markup\s*\(' app inc blocks`.
+
+```twig
+{# before #}
+{{ post.content()|raw }}
+{# after #}
+{{ post.content()|raw }}{# trusted: WordPress content #}
+```
+
+```php
+// trusted: a card rendered by Theme\Search
+$card = new Markup($html, 'UTF-8');
+```
+
+Name where the HTML comes from (WordPress content, a Gravity Forms
+confirmation, WooCommerce notices); a value from a visitor or an unescaped
+field is no reason, print it escaped. Then remove `raw_baseline` from
+`config/console.php`. Check: `php gaffer doctor` has no `raw` warnings.
+
+### `doctor`: `meta()` in templates, nested forms
+
+- `term.meta('tint')` (any `.meta(` call) in a template is a warning: add a
+  method to the type that reads the field (`tint()`) and call that. Find:
+  `grep -rn '\.meta(' views blocks`.
+- An include inside a `<form>` whose template (or one it includes) has a
+  `<form>` itself is a warning: browsers drop the inner form. Move the include
+  out of the form.
+
+### `doctor --wp` stops when `SITE_URL` isn't this install's
+
+When `SITE_URL`'s host (or `--url`'s) isn't the `home_url()` of the WordPress
+install the theme is in (a `.env` copied with the theme), or `SITE_URL` isn't
+set, `doctor --wp` reports an error and skips the WordPress checks and
+renders; `init` refuses such a URL. Fix: `php gaffer init --url=<the site's
+URL>`. Check: `php gaffer doctor --wp` runs its WordPress checks.
+
+### CLI: memory limit and fatal errors
+
+Commands that load WordPress raise `memory_limit` to `WP_MAX_MEMORY_LIMIT`
+(256M unless `wp-config.php` sets it), as wp-admin and WP-CLI do, also in the
+render processes, and print a fatal error instead of exiting with code 255 and
+no output. Nothing to change; a `-d memory_limit=…` you pass is kept.
+
+### `migrate:remove-field` on `fields/` targets: recursive, and without the file
+
+Removing a repeater or group also removes its sub fields' rows (as it already
+did for blocks), and the command works after the target's file is deleted.
+`doctor --wp` warns about stored values of a `fields/` target whose file is
+gone, with its fields. Nothing to change; if `doctor --wp` shows such values,
+remove them per top-level field (dry run first).
+
+### Forms: `X-Gaffer-Spam` outside production
+
+A submission caught as spam (honeypot, Turnstile) still gets the normal
+confirmation; outside production the answer now has an `X-Gaffer-Spam:
+honeypot|turnstile` header, so a test can tell. Nothing to change.
+
+### `doctor --wp`: no WP-CLI here is a warning
+
+When `wp` isn't on the PATH of the process running `doctor --wp` (a container
+without WP-CLI), the MCP server check is a warning instead of an error.
+
 ## 2026-10-20
 
 ### `render:diff`: reorders and long lines

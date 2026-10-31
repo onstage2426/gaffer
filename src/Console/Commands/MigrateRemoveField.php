@@ -10,6 +10,7 @@ use Gaffer\Console\Migrate\BlockData;
 use Gaffer\Console\Migrate\ContentStore;
 use Gaffer\Console\Migrate\FieldTarget;
 use Gaffer\Console\Migrate\Migration;
+use Gaffer\FieldGroups;
 use Gaffer\Paths;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -77,8 +78,9 @@ final class MigrateRemoveField extends MigrateCommand
 
     /**
      * Deletes every row stored under the field's name in a fields/ target (values and
-     * references; posts and their revisions, terms, options in every language), by row ID.
-     * The field must be gone from the file and from the target's UI groups.
+     * references; posts and their revisions, terms, options in every language), by row ID,
+     * with everything below it (a repeater's rows, a group's sub fields). The field must be
+     * gone from the file and from the target's UI groups; the file itself may be gone.
      *
      * @param list<string> $path
      */
@@ -86,7 +88,7 @@ final class MigrateRemoveField extends MigrateCommand
     {
         $migration->summarize();
         try {
-            $sorter = FieldTarget::sorter($target);
+            $sorter = FieldTarget::sorter($target, file_required: false);
         } catch (\RuntimeException $e) {
             $migration->problem($e->getMessage());
             return;
@@ -102,13 +104,16 @@ final class MigrateRemoveField extends MigrateCommand
         }
         $pattern = $sorter->child_pattern($path);
         if ($pattern === null) {
-            $migration->problem(implode('.', array_slice($path, 0, -1)) . " isn't a repeater or group in fields/{$target}.php");
+            $migration->problem(implode('.', array_slice($path, 0, -1)) . " isn't a repeater or group in fields/{$target}.php"
+                . (count($path) > 1 && !$sorter->has($path[0]) ? ": remove {$path[0]} itself, its sub fields go with it" : ''));
             return;
         }
 
         [$param, $value] = explode('/', $target, 2);
+        $key = FieldGroups::prefix($target) . '__' . implode('__', $path);
         $migration->progress("{$target}: finding the rows of {$joined}…");
-        foreach (ContentStore::target_rows($param, $value, $sorter->name_regex($pattern)) as $row) {
+        $rows = ContentStore::target_rows($param, $value, $sorter->name_regex("{$pattern}(_.+)?"));
+        foreach ($sorter->removal($rows, $pattern, $key) as $row) {
             $migration->change($row->location, $row->key, null, "remove \"{$joined}\"");
         }
     }

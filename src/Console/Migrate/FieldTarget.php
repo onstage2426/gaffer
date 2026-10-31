@@ -17,21 +17,26 @@ use RuntimeException;
 final class FieldTarget
 {
     /**
-     * @throws RuntimeException when the target has no file in fields/ or the file is invalid
+     * @param bool $file_required false: a target whose file is gone has no fields (removing
+     *     its values is all that's left to do)
+     * @throws RuntimeException when the target has no file in fields/ (and one is required),
+     *     the file is invalid, or the target isn't one
      */
-    public static function sorter(string $target): FieldReferences
+    public static function sorter(string $target, bool $file_required = true): FieldReferences
     {
-        if (!isset(FieldGroups::targets()[$target])) {
-            throw new RuntimeException("{$target} has no file in fields/ (expected fields/{$target}.php)");
-        }
         try {
-            $group = FieldGroups::group($target);
+            FieldGroups::prefix($target); // a valid target
+            $fields = match (true) {
+                isset(FieldGroups::targets()[$target]) => FieldGroups::group($target)['fields'],
+                $file_required => throw new RuntimeException("{$target} has no file in fields/ (expected fields/{$target}.php)"),
+                default => [],
+            };
         } catch (\LogicException $e) {
             throw new RuntimeException($e->getMessage(), previous: $e);
         }
         [$param, $value] = explode('/', $target, 2);
 
-        return new FieldReferences($target, self::old_fields($target), FieldReferences::paths($group['fields']), $param === 'options_page' ? self::option_prefixes($value) : []);
+        return new FieldReferences($target, self::old_fields($target), FieldReferences::paths($fields), $param === 'options_page' ? self::option_prefixes($value) : []);
     }
 
     /**

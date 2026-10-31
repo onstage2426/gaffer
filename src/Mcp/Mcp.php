@@ -96,14 +96,23 @@ final class Mcp
     /** The first `wp` on the PATH when it's a PHP file, resolved; null otherwise. */
     private static function wp_cli(): ?string
     {
+        $file = self::wp_on_path();
+        $head = $file !== null ? (string) file_get_contents($file, false, null, 0, 200) : '';
+
+        return str_starts_with($head, '<?php') || preg_match('/^#![^\n]*\bphp\b/', $head) === 1 ? $file : null;
+    }
+
+    /**
+     * The first executable `wp` on this process's PATH, resolved. Without one, launch()
+     * can't be tried from here (a container without WP-CLI, while agents start it on the host).
+     */
+    public static function wp_on_path(): ?string
+    {
         foreach (explode(PATH_SEPARATOR, (string) getenv('PATH')) as $dir) {
             $file = $dir !== '' ? realpath("{$dir}/wp") : false;
-            if ($file === false || !is_file($file) || !is_executable($file)) {
-                continue;
+            if ($file !== false && is_file($file) && is_executable($file)) {
+                return $file;
             }
-            $head = (string) file_get_contents($file, false, null, 0, 200);
-
-            return str_starts_with($head, '<?php') || preg_match('/^#![^\n]*\bphp\b/', $head) === 1 ? $file : null;
         }
 
         return null;

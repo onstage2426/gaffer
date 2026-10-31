@@ -44,5 +44,8 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
 6. Run `php gaffer doctor --wp` (form exists, only known fields, every
    required one sent, fields without an Admin Field Label), then submit it
    for real through the web server: a valid entry (use an e-mail address on a real domain), one with errors,
-   and check the confirmation and the notification. Delete your test entries
-   by ID afterwards.
+   and check the confirmation and the notification. A confirmation alone
+   isn't proof: check the response has no `X-Gaffer-Spam` header and that the
+   entry and the e-mail exist (a script gets no Turnstile token, so with
+   Turnstile on, test valid entries in a browser or ask the user). Delete your
+   test entries by ID afterwards.

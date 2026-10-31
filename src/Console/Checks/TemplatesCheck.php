@@ -14,11 +14,15 @@ use Gaffer\View;
 /**
  * Templates that are rendered or included but don't exist, templates nothing
  * uses, includes that hand the partial all of the caller's variables, and
- * get_*() calls that reach past the types into WordPress/WooCommerce, and |t on
- * anything but a literal string.
+ * get_*() calls that reach past the types into WordPress/WooCommerce, meta() calls
+ * (field names belong in the type), |t on anything but a literal string, and an
+ * include inside a <form> that brings a <form> of its own.
  */
 final class TemplatesCheck implements Check
 {
+    /** @var array<string, ?string> by template: the template (itself or one it includes) with a <form>, if any */
+    private array $forms = [];
+
     #[\Override]
     public function run(Report $report): void
     {
@@ -44,9 +48,20 @@ final class TemplatesCheck implements Check
             if ($module === null) {
                 continue; // twig:lint reports it
             }
-            foreach (Templates::getter_calls($module) as [$method, $line]) {
+            foreach (Templates::method_calls($module, '/^get_/') as [$method, $line]) {
                 $report->warning('views', "Calls {$method}(): a WordPress/WooCommerce/plugin method from the template", $file, $line,
                     'Add a method to the type (or pass the value from PHP) and use that.');
+            }
+            foreach (Templates::method_calls($module, '/^meta$/') as [, $line]) {
+                $report->warning('views', 'Calls meta(): the template reads a field by name', $file, $line,
+                    "Add a method to the type that reads it (term.tint(), not term.meta('tint')) and use that.");
+            }
+            foreach (Templates::includes_in_form($module) as $ref) {
+                $inner = $ref['template'] !== null ? $this->form_in($ref['template'], $templates) : null;
+                if ($inner !== null) {
+                    $report->warning('views', "Includes {$ref['template']} inside a <form>, and " . ($inner === $ref['template'] ? 'it has' : "it includes {$inner}, which has") . ' a <form> itself', $file, $ref['line'],
+                        'Browsers drop a <form> inside another one: its fields then belong to the outer form. Move the include out of the form, or close the form before it.');
+                }
             }
             foreach (Templates::non_literal_translations($module) as $line) {
                 $report->warning('views', '|t on something that isn\'t a literal string', $file, $line,
@@ -85,5 +100,34 @@ final class TemplatesCheck implements Check
                     'Delete it, unless PHP renders it with a computed name.');
             }
         }
+    }
+
+    /**
+     * The template with a <form> that rendering $name brings in: $name itself or one it
+     * includes (by fixed name), or null.
+     *
+     * @param array<string, string> $templates
+     */
+    private function form_in(string $name, array $templates): ?string
+    {
+        if (array_key_exists($name, $this->forms)) {
+            return $this->forms[$name];
+        }
+        $this->forms[$name] = null; // an include cycle ends here
+        $file = $templates[$name] ?? null;
+        if ($file === null) {
+            return null;
+        }
+        if (preg_match('/<form\b/i', (string) file_get_contents($file))) {
+            return $this->forms[$name] = $name;
+        }
+        $module = Templates::parse($name);
+        foreach ($module !== null ? Templates::references($module) : [] as $ref) {
+            if ($ref['template'] !== null && $ref['kind'] !== 'source()' && ($inner = $this->form_in($ref['template'], $templates)) !== null) {
+                return $this->forms[$name] = $inner;
+            }
+        }
+
+        return null;
     }
 }

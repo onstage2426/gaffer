@@ -57,8 +57,11 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
 - `migrate:remove-field {target} {field}` deletes every row stored under the
   field's name in the target (values and references, posts and their
   revisions, terms, options in every language), by row ID, once the field is
-  gone from the file and from the target's UI groups. A sub field:
-  `vragen.bron`. Never delete meta by hand (`delete_post_meta()` on a
+  gone from the file and from the target's UI groups. A repeater or group
+  goes with everything below it (its rows' sub fields); a sub field alone:
+  `vragen.bron`. It also works after the whole file is deleted (one command
+  per top-level field; `doctor --wp` lists the fields of a deleted file that
+  still have values). Never delete meta by hand (`delete_post_meta()` on a
   revision deletes the parent's).
 - The dry run prints one line per field (old key → new key, how many, which
   kinds); `-v` lists every location. `--run` also reads every changed field

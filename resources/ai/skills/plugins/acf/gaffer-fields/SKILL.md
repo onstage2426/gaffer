@@ -24,11 +24,12 @@ description: Add or change ACF fields of an options page, a post type or a taxon
 3. Options pages share one stored namespace (`options_{name}`): a name is used
    once across all of them.
 4. Read the values where they're shown, in PHP: `get_field('x', 'option')`,
-   `Acf::option_array()`, `Acf::term_array()`, `$post->meta()` or a type method;
-   pass them to the template. `doctor` warns about fields nothing mentions.
+   `Acf::option_array()`, `Acf::term_array()`, `$post->meta()` in a type method;
+   pass them to the template (never `meta()` in Twig: `doctor` warns). `doctor` warns about fields nothing mentions.
 5. **Removing a field:** take it out of the file, then `php gaffer
    migrate:remove-field {param}/{value} {field}` (dry run, then `--run` once
-   the user agrees) deletes its values. **Renaming** has no command yet: it
+   the user agrees) deletes its values, a repeater's or group's sub fields
+   too; after deleting a whole file, run it per top-level field. **Renaming** has no command yet: it
    leaves the values under the old name and key (`doctor --wp` warns about
    values pointing to a key the file no longer has). Ask before renaming
    fields that already have content.

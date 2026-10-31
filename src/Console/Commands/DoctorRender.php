@@ -50,7 +50,7 @@ final class DoctorRender extends Command
         ];
         // The autoloader this process runs on, so the render uses the same Gaffer.
         $autoload = dirname((string) (new ReflectionClass(ClassLoader::class))->getFileName(), 2) . '/autoload.php';
-        $command = [PHP_BINARY, dirname(__DIR__, 3) . '/bin/render.php', $autoload, Paths::base(), (string) json_encode($options, JSON_UNESCAPED_SLASHES)];
+        $command = [PHP_BINARY, '-d', 'memory_limit=' . ini_get('memory_limit'), dirname(__DIR__, 3) . '/bin/render.php', $autoload, Paths::base(), (string) json_encode($options, JSON_UNESCAPED_SLASHES)];
 
         $process = proc_open($command, [1 => STDOUT, 2 => STDERR], $pipes);
         if ($process === false) {

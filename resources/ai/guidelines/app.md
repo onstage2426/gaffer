@@ -15,10 +15,10 @@ template file, block, ajax action or hook registration.
   shortcodes or call plugins from Twig: that data is prepared in PHP and passed
   in. Register the class in `theme.twig_extensions`; the first line of each
   method's docblock is what the reference shows.
-- **Templates use the types, not what's behind them:** no `post.product().get_title()`
-  or `product.get_meta('label')` in Twig. Add a method to the type
-  (`label()`, `rating()`) and call that.
+- **Templates use the types, not what's behind them:** no `post.product().get_title()`,
+  `product.get_meta('label')` or `term.meta('tint')` in Twig (field names stay
+  in PHP). Add a method to the type (`label()`, `tint()`) and call that.
 - `doctor` reports method names that aren't snake_case, Twig functions and
   filters that look content up (WordPress/ACF/plugin lookups, type factories),
-  and `.get_*()` calls in templates (Gaffer's types have no `get_` methods, so those reach into
+  and `.get_*()` and `.meta()` calls in templates (Gaffer's types have no `get_` methods, so those reach into
   WordPress, WooCommerce or a plugin).

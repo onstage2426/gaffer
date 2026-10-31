@@ -186,6 +186,36 @@ final class FieldReferences
     }
 
     /**
+     * The rows removing a field deletes, from the target's rows under its name and below
+     * (target_rows() with name_regex("{pattern}(_.+)?")): every row under the field's own
+     * name, and the rows below it (a repeater's or group's sub fields, "{name}_0_{sub}") whose
+     * reference holds a key under the field's ("{key}__…"), with their values. Also when the
+     * file no longer says what the field was. A field whose name only starts the same
+     * ("{name}_extra") has another key and stays.
+     *
+     * @param list<Reference> $rows candidates, the stored value in Reference::$key
+     * @param string $key the field's derived key
+     * @return list<Reference>
+     */
+    public function removal(array $rows, string $pattern, string $key): array
+    {
+        $own = '/' . $this->name_regex($pattern) . '/';
+        $below = [];
+        foreach ($rows as $row) {
+            if (str_starts_with($row->name, '_') && str_starts_with($row->key, "{$key}__")) {
+                $below[substr($row->name, 1)] = true;
+            }
+        }
+
+        return array_values(array_filter(
+            $rows,
+            static fn(Reference $row): bool => preg_match($own, $row->name) === 1
+                || isset($below[$row->name])
+                || (str_starts_with($row->name, '_') && isset($below[substr($row->name, 1)])),
+        ));
+    }
+
+    /**
      * MySQL REGEXP for every row (value and reference) stored under this name pattern in the
      * target: "^_?name$", for options after the post_id prefixes.
      */

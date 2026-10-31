@@ -83,8 +83,17 @@
   Never use menu IDs. Loop safely: `{% for item in nav_primary.items ?? [] %}`.
 - `|raw` only for HTML that is already trusted (WordPress content, notices,
   plugin output like Yoast breadcrumbs or a Gravity Forms shortcode): pass it
-  to the template as a string and print it with `|raw` there. `doctor` counts
-  `|raw` and `new Markup(...)` in theme PHP together against
-  `console.raw_baseline`, so wrapping HTML in `Twig\Markup` in PHP doesn't
-  hide it; prefer `|raw` in the template, where the trust is visible.
+  to the template as a string and print it with `|raw` there, with why it's
+  trusted on the same line or alone on the line above:
+  `{{ post.content()|raw }}{# trusted: WordPress content #}`. The reason is
+  for the reader: name where the HTML comes from, don't just add a comment
+  to quiet `doctor`. `doctor` warns about a `|raw` without one, and about
+  `new Markup(...)` in theme PHP without a `// trusted: why`, so wrapping HTML
+  in `Twig\Markup` in PHP doesn't hide it; prefer `|raw` in the template.
+- **Forms don't nest:** a template with a `<form>` (add to cart, a size
+  picker) can't be included inside another form (a filter form around an
+  archive): browsers drop the inner `<form>` tag. `doctor` warns.
+- Autoescape escapes values, not string literals: `{{ error ?
+  'aria-invalid="true"' }}` prints the quotes as they are, `{{ value }}` is
+  escaped.
 - Twig gotcha: `and` binds tighter than `or`; use parentheses.

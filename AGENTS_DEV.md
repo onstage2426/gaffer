@@ -236,12 +236,10 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 - **MCP:** the MCP Adapter plugin (0.7.x) is on both dev sites, never on
   production; `doctor --wp` checks the server over the protocol. Claude Code
   in Zed uses it via the generated `.mcp.json`.
-- **Screenshots on this host:** Chromium lacks system libraries here (no sudo):
-  run a Playwright server (`docker run -d --rm --name gaffer-playwright -p
-  127.0.0.1:3000:3000 --init mcr.microsoft.com/playwright:v1.57.0-noble npx -y
-  playwright@1.57.0 run-server --port 3000 --host 0.0.0.0`) with
-  `PLAYWRIGHT_WS_ENDPOINT=ws://127.0.0.1:3000/` in the theme's `.env` and
-  `playwright@1.57.0` in the theme (client and server versions must match).
+- **Screenshots on this host:** Chromium runs locally (its system libraries were
+  installed with dnf on 2026-11-01; Playwright warns the OS isn't officially
+  supported and uses its Ubuntu build, which works). Blueprint has `playwright`
+  as a dev dependency (bun); other themes: `npm install --save-dev playwright`.
 - **Testing unpushed Gaffer against a theme:** the throwaway entry file
   described above (`/tmp/gaffer-test`; a copy with the theme path swapped for
   thenewbride). For WP-CLI (the MCP server): `wp --require=<file that preloads

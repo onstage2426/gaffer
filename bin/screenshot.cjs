@@ -75,10 +75,13 @@ async function main() {
             page.on('requestfailed', (request) => {
                 if (request.frame() === page.mainFrame()) failed.add(`${short(request.url())} (${request.failure()?.errorText ?? 'failed'})`);
             });
-            page.on('response', (response) => {
-                if (response.status() >= 400 && response.request().frame() === page.mainFrame() && response.url() !== options.url) {
-                    failed.add(`${short(response.url())} (HTTP ${response.status()})`);
-                }
+            page.on('response', async (response) => {
+                const request = response.request();
+                if (response.status() < 400 || request.frame() !== page.mainFrame() || response.url() === options.url) return;
+                // An ajax answer's body usually says why (an error message, a JSON code).
+                const body = ['fetch', 'xhr'].includes(request.resourceType()) ? await response.text().catch(() => '') : '';
+                const why = body.replace(/\s+/g, ' ').trim().slice(0, 200);
+                failed.add(`${short(response.url())} (HTTP ${response.status()})${why ? `: ${why}` : ''}`);
             });
 
             await page.goto(options.url, { waitUntil: 'load' });

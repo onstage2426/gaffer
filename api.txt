@@ -32,6 +32,28 @@ final class Gaffer\Gaffer
   static boot(string $dir): void
 final class Gaffer\Paths
   static base(string $path = ''): string
+final class Gaffer\Search\Archive
+  readonly bool $available
+  readonly string $endpoint
+  readonly string $token
+  readonly string $query
+  readonly int $total
+  readonly array $cards
+  readonly array $results
+  readonly array $sorts
+  readonly string $sort
+  readonly string $card_field
+  initial(): Twig\Markup
+final class Gaffer\Search\Search
+  static archive(): ?Gaffer\Search\Archive
+  static available(): bool
+  static cards(string $index, int $limit, array $sort = [], ?Gaffer\Types\Term $term = NULL, ?Gaffer\Types\Post $except = NULL): array
+  static searchbar(string $index, int $limit = 8, array $facets = [], array $attributes = []): Gaffer\Search\Searchbar
+final class Gaffer\Search\Searchbar
+  readonly bool $available
+  readonly string $endpoint
+  readonly string $token
+  readonly string $results_url
 final class Gaffer\Turnstile
   static enabled(): bool
   static site_key(): ?string

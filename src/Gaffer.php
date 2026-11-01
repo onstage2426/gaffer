@@ -51,6 +51,7 @@ final class Gaffer
         self::blocks();
         AdminBar::register();
         Mcp::register();
+        Search\Integration::register();
     }
 
     /**

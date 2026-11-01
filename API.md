@@ -66,6 +66,13 @@ the questions below.
 **Forms**: extend `Forms\FormAction` (one `Form` action); `Forms\FormState`:
 `blank()`, `name`, `sent`, `message`, `failed`, `value()`, `checked()`, `error()`.
 
+**Search** (with the gaffer-search plugin; config in `config/search.php`):
+`Search\Search::available()`, `archive()`, `cards()`, `searchbar()`;
+`Search\Archive`: `available`, `endpoint`, `token`, `query`, `total`, `cards`,
+`results`, `sorts`, `sort`, `card_field`, `initial()`; `Search\Searchbar`:
+`available`, `endpoint`, `token`, `results_url`; the JavaScript in
+`resources/js/search.js`.
+
 **Twig**: the functions `config()` and `ajax_url()`; the filter `t`; the namespace `@block`;
 `strict_variables` with `WP_DEBUG`.
 

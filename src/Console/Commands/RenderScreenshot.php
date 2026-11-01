@@ -7,6 +7,7 @@ namespace Gaffer\Console\Commands;
 use Gaffer\Console\Command;
 use Gaffer\Console\Env;
 use Gaffer\Console\Render\Renderer;
+use Gaffer\Console\Render\Request;
 use Gaffer\Console\Render\StagedTheme;
 use Gaffer\Paths;
 use Gaffer\Storage;
@@ -21,11 +22,12 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Screenshots of one page at several widths, with the console errors and failed requests
  * the browser saw. The page is rendered the way doctor does (--theme the same) and handed
  * to a headless Chromium as the page's answer; styles, scripts, images and ajax come from
- * the site itself, as a new logged-out visitor's: no --user or --cart, since what shops
- * show of a cart or a login comes from cookies and ajax, which a render can't give the
- * browser. The browser is Playwright, the theme's own dev dependency (bin/screenshot.cjs),
- * or a Playwright server at PLAYWRIGHT_WS_ENDPOINT in the theme's .env when this machine
- * can't run Chromium.
+ * the site itself, as a new logged-out visitor's, or with --session as the visitor of an
+ * ajax:call session (its cookies in both the render and the browser): what shops show of a
+ * cart comes from cookies and ajax, so a render's --cart alone wouldn't show in the browser.
+ * The browser is Playwright, the theme's own dev dependency (bin/screenshot.cjs), or a
+ * Playwright server at PLAYWRIGHT_WS_ENDPOINT in the theme's .env when this machine can't
+ * run Chromium.
  */
 #[AsCommand('render:screenshot', 'Screenshot a page at several widths, with its console errors and failed requests')]
 final class RenderScreenshot extends Command
@@ -40,6 +42,7 @@ final class RenderScreenshot extends Command
         $this->addOption('full', null, InputOption::VALUE_NONE, 'The whole page, not only the first screen');
         $this->addOption('click', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Click this CSS selector before the screenshot (repeatable; with --fill in the order given)');
         $this->addOption('fill', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Type into a field first: selector=value, e.g. "input[name=qty]=3" (repeatable)');
+        $this->addOption('session', null, InputOption::VALUE_REQUIRED, 'As the visitor of this ajax:call session: its cookies in the render and the browser (its cart, its drawer)');
         $this->addOption('theme', null, InputOption::VALUE_REQUIRED, 'Render a full copy of the theme next to it (e.g. blueprint-stage), with its own assets');
         $this->addOption('json', null, InputOption::VALUE_NONE, 'Print the result as JSON (the gaffer-screenshot MCP tool)');
     }
@@ -64,10 +67,12 @@ final class RenderScreenshot extends Command
         try {
             $steps = self::steps($input instanceof ArgvInput ? $input->getRawTokens(true) : []);
             $entry = is_string($theme = $input->getOption('theme')) ? StagedTheme::entry($theme) : null;
+            $session = is_string($session = $input->getOption('session')) ? $session : null;
+            $cookies = $session !== null ? Request::session($session) : [];
         } catch (\InvalidArgumentException $e) {
             return $fail($e->getMessage());
         }
-        $render = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, static fn(string $p) => null, [], $entry)
+        $render = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, static fn(string $p) => null, $session !== null ? ["--session={$session}"] : [], $entry)
             ->render([$path], true, as_live: false)[$path];
         if (is_string($render)) {
             return $fail("The render failed: {$render}");
@@ -91,6 +96,7 @@ final class RenderScreenshot extends Command
             'widths' => $widths,
             'full' => (bool) $input->getOption('full'),
             'steps' => $steps,
+            'cookies' => (object) $cookies,
             'out' => $out,
             'endpoint' => Env::get('PLAYWRIGHT_WS_ENDPOINT'),
         ];

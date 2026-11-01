@@ -87,7 +87,10 @@ Gaffer theme.
   page), robots from `fuzor_archive_indexable($index)` (`wpseo_robots_array`),
   and `fuzor_redirect_archive_params($perPage, $index)` on `template_redirect`
   (redirects `/page/N/` to `?offset=`, translates WooCommerce's own filter,
-  price and `orderby` params; another filter plugin's old URLs are the
-  theme's to redirect, with `fuzor_archive_url()`). Which facet values get an indexable page is the site's
-  call (`fuzor_archive_indexable_facets`); a search, `limit` or `view` is
-  never indexable, so no own `noindex` for them.
+  price and `orderby` params; another filter plugin's old params go into the
+  same 301 on `fuzor_redirect_archive_query`, never a redirect of the theme's
+  own). Which facet values get an indexable page is the site's call
+  (`fuzor_archive_indexable_facets`); later pages only with
+  `fuzor_archive_indexable_page_size`; a search, `limit` or `view` is never
+  indexable, so no own `noindex` for them. A site param the archive's URLs
+  must keep (`show=all`) is named on `fuzor_archive_url_params`.

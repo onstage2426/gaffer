@@ -43,6 +43,9 @@ class CartAdd extends AjaxAction
 - URLs: `{{ ajax_url('CartAdd') }}` in Twig, `Gaffer\Ajax::url('CartAdd')` in PHP.
 - Wrong HTTP method → 405, unknown action → 404.
 - No nonces (cached pages); see the core rules.
+- Test actions with `php gaffer ajax:call` (`--session` for a sequence as one
+  visitor, then `ajax:end`; see the `gaffer-ajax` skill), not with throwaway
+  scripts.
 
 ### SHORTINIT
 

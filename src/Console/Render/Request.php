@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Render;
 
+use Gaffer\Console\Ajax\Session;
 use Gaffer\Console\WordPress;
 use Gaffer\Gaffer;
 use Gaffer\Paths;
@@ -55,8 +56,8 @@ final class Request
     /**
      * Everything that has to be in place before WordPress loads.
      *
-     * @param array{path: string, html: bool, user: ?string, cart: list<string>, url: ?string} $options
-     * @throws \InvalidArgumentException on a malformed --user or --cart
+     * @param array{path: string, html: bool, user: ?string, cart: list<string>, session?: ?string, url: ?string} $options
+     * @throws \InvalidArgumentException on a malformed --user, --cart or --session
      */
     public static function start(string $theme, array $options): self
     {
@@ -67,10 +68,11 @@ final class Request
         return $request;
     }
 
-    /** @param array{path: string, html: bool, user: ?string, cart: list<string>, url: ?string} $options */
+    /** @param array{path: string, html: bool, user: ?string, cart: list<string>, session?: ?string, url: ?string} $options */
     private function prepare(array $options): void
     {
-        $this->as_visitor($options['user'], $options['cart']); // throws on a malformed value: before anything else
+        $session = isset($options['session']) ? self::session($options['session']) : []; // throws on a malformed or unknown name
+        $this->as_visitor($options['user'], $options['cart'], $session); // throws on a malformed value: before anything else
         $path = $options['path'];
         $started = hrtime(true);
         $this->result = ['path' => $path, 'status' => 'ok', 'error' => null, 'file' => null, 'line' => null, 'redirect' => null, 'http' => 200, 'notices' => [], 'bytes' => 0, 'time_ms' => 0, 'queries' => 0, 'twig_ms' => 0];
@@ -168,15 +170,18 @@ final class Request
 
     /**
      * Logged in as $user and with these products in the WooCommerce cart, hooked before WordPress
-     * loads (the session and cart are set up while it does). Writes nothing: no persistent cart
-     * (the user's saved cart is neither read nor changed: the cart is exactly --cart) and no
-     * WooCommerce session row.
+     * loads (the session and cart are set up while it does), or with an ajax:call session's
+     * cookies (its WooCommerce session and cart). Writes nothing: no persistent cart (the user's
+     * saved cart is neither read nor changed: the cart is exactly --cart) and no WooCommerce
+     * session row (a --session's row is read, not saved back).
      *
      * @param list<string> $cart "ID" or "ID:quantity"
+     * @param array<string, string> $cookies
      * @throws \InvalidArgumentException on a malformed value
      */
-    private function as_visitor(?string $user, array $cart): void
+    private function as_visitor(?string $user, array $cart, array $cookies = []): void
     {
+        $_COOKIE = [...$_COOKIE, ...$cookies];
         if ($user !== null) {
             $id = ctype_digit($user) ? (int) $user : 0;
             if ($id <= 0) {
@@ -184,7 +189,7 @@ final class Request
             }
             $GLOBALS['wp_filter']['determine_current_user'][PHP_INT_MAX][] = ['function' => static fn(): int => $id, 'accepted_args' => 1];
         }
-        if ($user === null && $cart === []) {
+        if ($user === null && $cart === [] && $cookies === []) {
             return;
         }
 
@@ -240,6 +245,19 @@ final class Request
             'function' => static fn(mixed $value): mixed => $active !== null ? \get_option("theme_mods_{$active}") : $value,
             'accepted_args' => 1,
         ];
+    }
+
+    /**
+     * @return array<string, string> an ajax:call session's cookies
+     * @throws \InvalidArgumentException on a malformed name or a session that doesn't exist
+     */
+    public static function session(string $name): array
+    {
+        if (!Session::exists($name)) {
+            throw new \InvalidArgumentException("No session {$name}: start one with php gaffer ajax:call <action> --session={$name}");
+        }
+
+        return Session::load($name)->cookies();
     }
 
     private function fail(string $message, string $file, int $line): void

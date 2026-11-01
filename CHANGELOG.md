@@ -9,6 +9,19 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-01
 
+### New: `ajax:call` / `ajax:end`, and `--session` for screenshots
+
+`php gaffer ajax:call CartAdd product=65 quantity=2 --session=t` calls an ajax
+action over HTTP like htmx does and prints status, `HX-*`/`X-Gaffer-*` headers
+and HTML; `--session` keeps the visitor's cookies, so a sequence (add, drawer,
+update, remove) runs as one visitor. `php gaffer ajax:end t` deletes its
+WooCommerce session and cart. `render:screenshot --session=t` (and the
+`gaffer-screenshot` tool's `session`) shows that visitor's cart.
+
+Nothing to change in a theme. Replace any throwaway scripts or notes that test
+actions with their own cookie handling: `grep -rniE "set-cookie|curl|file_get_contents\(.*ajax" .ai`.
+Check: `php gaffer ajax:call <a GET action>` prints status 200.
+
 ### New: `render:screenshot` and the `gaffer-screenshot` MCP tool (optional)
 
 Screenshots of a rendered page at several widths (default 390 and 1440 px),

@@ -27,7 +27,7 @@ final class Screenshot implements Tool
     {
         return 'Screenshots one URL of this site in a headless browser at the given widths (default 390 and 1440) and returns the PNG files '
             . '(read them to look at them), the console errors and the failed requests of the page itself. The page is rendered the way the render tool does; '
-            . 'styles, scripts, images and ajax come from the site, as a new logged-out visitor\'s (no cart, no login). `steps` click or fill elements first, '
+            . 'styles, scripts, images and ajax come from the site, as a new logged-out visitor\'s, or with `session` as the visitor of a `php gaffer ajax:call --session` session (its cart in the page and in ajax answers). `steps` click or fill elements first, '
             . 'in order (the first visible match), e.g. to open a menu or a drawer. `full` takes the whole page instead of the first screen (tall: prefer the first screen '
             . 'and steps). Use after any change with a visual effect, and to compare with a design. A Turnstile error in the console is expected (it rejects headless browsers). '
             . 'Needs Playwright in the theme (`npm install --save-dev playwright`); the error says what is missing.';
@@ -50,6 +50,7 @@ final class Screenshot implements Tool
                         'properties' => ['click' => ['type' => 'string'], 'fill' => ['type' => 'string'], 'value' => ['type' => 'string']],
                     ],
                 ],
+                'session' => ['type' => 'string', 'description' => 'The name of a session started with `php gaffer ajax:call <action> --session=<name>` (e.g. after adding to the cart)'],
                 'theme' => ['type' => 'string', 'description' => 'Render a full copy of the theme next to it (its directory name, e.g. "blueprint-stage"), with its own assets'],
             ],
             'required' => ['path'],
@@ -74,6 +75,9 @@ final class Screenshot implements Tool
             } else {
                 return new WP_Error('gaffer_screenshot', 'A step is {"click": selector} or {"fill": selector, "value": text}');
             }
+        }
+        if (is_string($input['session'] ?? null)) {
+            $args[] = "--session={$input['session']}";
         }
         if (is_string($input['theme'] ?? null)) {
             $args[] = "--theme={$input['theme']}";

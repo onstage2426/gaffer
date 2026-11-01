@@ -5,7 +5,7 @@
  * dev dependency, resolved from the theme directory.
  *
  * node screenshot.cjs <options as JSON>
- *   {theme, url, html, http, widths, full, steps, out, endpoint}
+ *   {theme, url, html, http, widths, full, steps, cookies, out, endpoint}
  * Prints one JSON line: {shots: [{width, file}], console: [...], failed: [...]} or {error}.
  *
  * @internal
@@ -44,6 +44,9 @@ async function main() {
     try {
         for (const width of options.widths) {
             const context = await browser.newContext({ viewport: { width, height: width <= 480 ? 844 : 900 } });
+            // An ajax:call session's cookies (render:screenshot --session): its cart in ajax answers too.
+            const cookies = Object.entries(options.cookies ?? {}).map(([name, value]) => ({ name, value, url: new URL(options.url).origin }));
+            if (cookies.length) await context.addCookies(cookies);
             const page = await context.newPage();
             let served = false;
             // Only the first request for the page itself is the render; links clicked later go to the site.

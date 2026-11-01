@@ -35,6 +35,7 @@ final class DoctorRender extends Command
         $this->addArgument('path', InputArgument::REQUIRED, 'URL path, e.g. /contact/');
         $this->addOption('html', null, InputOption::VALUE_NONE, 'Include the rendered page in the result');
         $this->addOption('user', null, InputOption::VALUE_REQUIRED, 'Render as this user (ID), e.g. the account pages or role prices');
+        $this->addOption('session', null, InputOption::VALUE_REQUIRED, 'Render with the cookies of this ajax:call session (its WooCommerce session and cart)');
         $this->addOption('cart', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'WooCommerce: put this product in the cart first, ID or ID:quantity (a variation by its own ID; repeatable)');
     }
 
@@ -46,6 +47,7 @@ final class DoctorRender extends Command
             'html' => (bool) $input->getOption('html'),
             'user' => is_string($user = $input->getOption('user')) ? $user : null,
             'cart' => array_values(array_map('strval', (array) $input->getOption('cart'))),
+            'session' => is_string($session = $input->getOption('session')) ? $session : null,
             'url' => is_string($url = $input->getOption('url')) ? $url : null,
         ];
         // The autoloader this process runs on, so the render uses the same Gaffer.

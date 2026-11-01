@@ -7,6 +7,8 @@ namespace Gaffer\Console;
 use Gaffer\Console\Commands\AiClear;
 use Gaffer\Console\Commands\AiInstall;
 use Gaffer\Console\Commands\AiUpdate;
+use Gaffer\Console\Commands\AjaxCall;
+use Gaffer\Console\Commands\AjaxEnd;
 use Gaffer\Console\Commands\ConfigShow;
 use Gaffer\Console\Commands\Doctor;
 use Gaffer\Console\Commands\DoctorRender;
@@ -48,6 +50,8 @@ final class Console
             new AiClear(),
             new AiInstall(),
             new AiUpdate(),
+            new AjaxCall(),
+            new AjaxEnd(),
             new ConfigShow(),
             new Doctor(),
             new DoctorRender(),

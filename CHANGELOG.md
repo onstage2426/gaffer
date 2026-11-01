@@ -7,6 +7,29 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-01
+
+### New: `render:screenshot` and the `gaffer-screenshot` MCP tool (optional)
+
+Screenshots of a rendered page at several widths (default 390 and 1440 px),
+with its console errors and failed requests, so an agent can check how a
+change looks. `--click`/`--fill` run first (in order) to open a menu or drawer;
+`--full` takes the whole page. Nothing to change in a theme; to turn it on:
+
+```
+npm install --save-dev playwright
+npx playwright install chromium
+```
+
+Where Chromium can't run (missing system libraries), point
+`PLAYWRIGHT_WS_ENDPOINT` in `.env` at a Playwright server of the same version,
+e.g. `docker run --rm -p 127.0.0.1:3000:3000 --init mcr.microsoft.com/playwright:v<version>-noble npx -y playwright@<version> run-server --port 3000 --host 0.0.0.0`
+and `PLAYWRIGHT_WS_ENDPOINT=ws://127.0.0.1:3000/`. Add the key (commented) to
+`.env.example`. `storage/screenshots/` is created with a `.gitignore`.
+
+Check: `php gaffer render:screenshot /` prints two PNG paths; `php gaffer
+doctor` no longer shows the "render:screenshot is off" info line.
+
 ## 2026-10-31
 
 ### `|raw` needs a trust comment; `console.raw_baseline` is deprecated

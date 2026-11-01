@@ -82,6 +82,15 @@ php gaffer twig:lint      # every template compiles; unknown functions/filters f
 php gaffer doctor --wp    # conventions + renders every page with strict variables
 ```
 
+They can't tell whether a page *looks* right: after a change with a visual
+effect, look at it with `php gaffer render:screenshot <path>` (PNGs at 390
+and 1440 px, plus the page's console errors and failed requests; `--click`
+/ `--fill` first to open a menu or drawer, `--full` for the whole page). It
+needs Playwright in the theme (`npm install --save-dev playwright`, then
+`npx playwright install chromium`, or a Playwright server at
+`PLAYWRIGHT_WS_ENDPOINT` in `.env`). Read the PNGs; compare them with the
+design when there is one.
+
 Fix what they report (exit code 1 = errors), including Gaffer API that is
 deprecated (`doctor` names the replacement; PHP also raises a deprecation
 notice when it's called). The theme's own `.ai/guidelines/`

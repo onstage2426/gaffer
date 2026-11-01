@@ -99,7 +99,8 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
   theme-stage`, `vendor/` included), edit the copy, then `php gaffer
   render:snapshot` and `php gaffer render:diff --theme=theme-stage` from the
   live theme: staged against live, before switching. No throwaway compare
-  scripts.
+  scripts. A redesign changes every page, so the diff says nothing there:
+  compare `render:screenshot` (with `--theme=theme-stage`) instead.
 - Make a database backup first on a live site, and run it right after
   deploying the code (until then a renamed field shows empty).
 - Page caches: the write bypasses `wp_update_post()`, so only cache plugins

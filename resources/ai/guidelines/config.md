@@ -17,5 +17,8 @@ Each `config/{file}.php` returns an array; the file name is the top-level key:
   - developer settings go in the theme's `.env` (not committed; keep
     `.env.example` up to date): `SITE_URL` for the CLI and Vite's dev server,
     `PHP_ERROR_LOG` (optional) for `gaffer-last-errors` when the web server's
-    PHP logs elsewhere than the CLI's (a PHP-FPM pool's `error_log`).
+    PHP logs elsewhere than the CLI's (a PHP-FPM pool's `error_log`),
+    `PLAYWRIGHT_WS_ENDPOINT` (optional) for `render:screenshot` when this
+    machine can't run Chromium (a Playwright server in Docker, the same
+    version as the theme's `playwright`).
 - `config:show` and `doctor` flag unknown keys (with a did-you-mean).

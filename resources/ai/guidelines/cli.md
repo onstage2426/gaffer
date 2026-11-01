@@ -17,4 +17,5 @@ Run from the theme directory. Commands that need WordPress load it themselves
 | `ai:install` / `ai:update` | Writes these AI guidelines and skills for the selected agents (`config/ai.php`) and removes those of deselected agents. The generated files are gitignored. |
 | `migrate:*` | Rename or remove a block or field in stored content, and undo it (dry run unless `--run`; see the `gaffer-migrate` skill). |
 | `render:snapshot` / `render:diff` | Save rendered pages, then show what a change did to them (see the `gaffer-migrate` skill). |
+| `render:screenshot <path> [--width=390,1440] [--full] [--click=] [--fill=selector=value] [--theme=]` | PNGs of the rendered page in a headless browser, with its console errors and failed requests (`storage/screenshots/`). Clicks and fills run in the order given, on the first visible match. A new logged-out visitor: what shows a cart or login through ajax shows it empty. |
 | `ai:clear` | Removes the generated AI files (keeps `.ai/`, `config/ai.php` and hand-written content). |

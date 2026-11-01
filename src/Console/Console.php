@@ -20,6 +20,7 @@ use Gaffer\Console\Commands\MigrateRemoveField;
 use Gaffer\Console\Commands\MigrateRemoveLeftovers;
 use Gaffer\Console\Commands\MigrateRollback;
 use Gaffer\Console\Commands\RenderDiff;
+use Gaffer\Console\Commands\RenderScreenshot;
 use Gaffer\Console\Commands\RenderSnapshot;
 use Gaffer\Console\Commands\TwigClear;
 use Gaffer\Console\Commands\TwigLint;
@@ -60,6 +61,7 @@ final class Console
             new MigrateRemoveLeftovers(),
             new MigrateRollback(),
             new RenderDiff(),
+            new RenderScreenshot(),
             new RenderSnapshot(),
             new TwigClear(),
             new TwigLint(),

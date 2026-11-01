@@ -103,9 +103,11 @@ final class Renderer
 
     /**
      * @param list<string> $paths
+     * @param bool $as_live a staged copy's HTML with the live theme's directory name (see as_live()); off for a
+     *        browser, which should load the copy's own assets
      * @return array<string, Result|string> by path: the result, or why there is none
      */
-    public function render(array $paths, bool $html = false): array
+    public function render(array $paths, bool $html = false, bool $as_live = true): array
     {
         $entry = $this->entry ?? (string) realpath((string) $_SERVER['SCRIPT_FILENAME']);
         $queue = $paths;
@@ -144,7 +146,7 @@ final class Renderer
                     proc_close($process);
                     unset($running[$path]);
                     try {
-                        $results[$path] = $this->as_live(DoctorRender::parse($stdout));
+                        $results[$path] = $as_live ? $this->as_live(DoctorRender::parse($stdout)) : DoctorRender::parse($stdout);
                     } catch (RuntimeException $e) {
                         // A process that died before its result line (a fatal error) says why on stderr.
                         $results[$path] = $e->getMessage() . (trim($stderr) !== '' ? '; stderr: ' . trim(mb_substr($stderr, -500)) : '');

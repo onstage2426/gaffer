@@ -198,6 +198,13 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 - Right after a push, the first `composer update onstage2426/gaffer` on a site
   can still get the previous commit (GitHub briefly serves the old ref): run it
   again until `composer.lock` has the new reference.
+- Anything that hashes or caches theme files must use paths relative to the theme: the web
+  server (container, `/usr/local/apache2/htdocs/…`) and the CLI (host, `/home/devgoat/…`) see
+  the same theme under two paths. Absolute paths in gaffer-search's endpoint config and in
+  `Cards::version()` made each side rebuild what the other built.
+- Don't parse templates with `View::env()` while Gaffer boots: parsing initializes its
+  extensions, and later `addExtension()` calls fail (doctor's render profiler did).
+  `Cards::files()` parses with its own environment (same loader and extensions).
 - Register blocks (and anything that runs other plugins' filters) on `init`,
   not while `functions.php` loads: WooCommerce's block filters call `__()`,
   and translations before `init` log `_load_textdomain_just_in_time`. Find
@@ -251,7 +258,9 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   `onstage2426/gaffer-search`, the user pushes it) continues fuzor-wp (frozen) as Gaffer's
   search engine behind a data-only contract (`docs/contract.md` there, frozen fixtures);
   `Gaffer\Search` is the theme side (see Architecture). Sites move from fuzor-wp / the plugin's
-  old theme API to `config/search.php`: verdemare first, then blueprint and blueprint-base;
+  old theme API to `config/search.php`: verdemare done 2026-11-02 (uncommitted there; before-state tagged
+  `pre-gaffer-search` in its theme repo, files + DB dump in
+  `~/backups/verdemare-wp-2026-11-02-pre-gaffer-search/`), then blueprint and blueprint-base;
   then the plugin's old theme API and its general dashboard go (`design.md` step 5) and Gaffer's
   `plugins/fuzor` guideline/skill with them. The Fuzor library itself stays standalone.
 

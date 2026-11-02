@@ -267,10 +267,13 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   `~/backups/verdemare-wp-2026-11-02-pre-gaffer-search/`), then blueprint and blueprint-base;
   the plugin's old theme API and its general dashboard are gone (2026-11-02); Gaffer's
   `plugins/fuzor` guideline/skill stays until blueprint and blueprint-base have switched. The
-  Fuzor library itself stays standalone. **Pending:** a Claude Code on another server (a
-  multisite on fuzor-wp and an old Gaffer) got a gaffer-search zip and a prompt
-  (`~/handoff/gaffer-search-2026-11-02/`) to integrate and write a feedback report: work on that
-  report when the user brings it (questions to the user, verify on verdemare, then a new zip).
+  Fuzor library itself stays standalone. Bestratingsmarkt (fuzor-wp multisite, old Gaffer) got
+  a zip and a prompt (`~/handoff/gaffer-search-2026-11-02/`), tried the switch in a stage on
+  2026-11-02 and waited for its gaps; all closed the same day (staged CLI, `direct_terms`,
+  `document`/`fields`, archive `limits`/`facet_values`/`max_docs`/`index_pages`/
+  `indexable_filters`/`base_params`/`redirect_params`, compact cards; decided out: views,
+  cards-by-ID tokens, `bounds`, facet search, audiences). The skill's "Moving from fuzor-wp"
+  table is what such a site reads first.
 
 ## Open
 

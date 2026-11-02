@@ -18,3 +18,9 @@ follow the `gaffer-search` skill. Always:
   fields to the search.
 - **URLs in PHP come from `fuzor_archive_url()`**, never
   `http_build_query()`/`add_query_arg()`.
+- **fuzor-wp is replaced by gaffer-search** (`config/search.php` and
+  `Gaffer\Search`; `doctor` warns about every `fuzor_*` use). Don't build new
+  search on fuzor-wp. Moving a site: the mapping of every fuzor-wp option and
+  hook, and what isn't supported, is in
+  `vendor/onstage2426/gaffer/resources/ai/skills/plugins/gaffer-search/gaffer-search/SKILL.md`
+  ("Moving from fuzor-wp"); read it before you start.

@@ -43,6 +43,33 @@ final class SearchTest extends TestCase
         self::assertNotSame($definitions['news']['version'], Indexes::definitions(['news' => ['type' => 'posts', 'post_types' => ['page']]])['news']['version']);
     }
 
+    public function test_the_themes_document_method_adds_fields(): void
+    {
+        self::boot_fixture();
+        $definition = ['type' => 'products', 'fields' => ['price_m2' => 'float']];
+        $definitions = Indexes::definitions(['products' => [...$definition, 'document' => [self::class, 'fields']]]);
+
+        self::assertSame(['type', 'fields', 'document', 'version'], array_keys($definitions['products']), 'its own document closure, fields passed on');
+        self::assertInstanceOf(\Closure::class, $definitions['products']['document']);
+        self::assertSame(['id' => 7], ($definitions['products']['document'])(['id' => 7], 'products'), 'a post that doesn\'t exist: nothing added');
+    }
+
+    public function test_cards_are_stored_without_indentation(): void
+    {
+        self::assertSame("<div>\n<h3>\nA  title\n</h3>\n<pre>  a\n    b</pre>\n<span>a</span> <span>b</span>\n</div>", Cards::compact("\n  <div>\n\n    <h3>\n      A  title\n    </h3>\n    <pre>  a\n    b</pre>\n    <span>a</span> <span>b</span>\n  </div>\n"));
+    }
+
+    public function test_the_archive_base_keeps_the_params_that_make_another_page(): void
+    {
+        $_GET = ['show' => 'all', 'offset' => '24', 'utm_source' => 'x'];
+        self::config(['archive' => ['base_params' => ['show']]]);
+        self::assertSame('/page/1/?show=all', Search::archive_base());
+
+        self::config(['archive' => []]);
+        self::assertSame('/page/1/', Search::archive_base());
+        $_GET = [];
+    }
+
     public function test_the_card_field_follows_the_visitors_variant(): void
     {
         self::config(['indexes' => [
@@ -140,6 +167,15 @@ final class SearchTest extends TestCase
     private static function config(array $search): void
     {
         new \ReflectionProperty(Config::class, 'config')->setValue(null, ['search' => $search]);
+    }
+
+    /**
+     * @param array<string, mixed> $document
+     * @return array<string, mixed>
+     */
+    public static function fields(mixed $post, array $document): array
+    {
+        return ['price_m2' => 1.5];
     }
 
     public static function business(): string

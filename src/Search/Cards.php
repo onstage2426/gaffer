@@ -37,14 +37,35 @@ final class Cards
         $context = is_callable($prepare) ? (array) $prepare($post) : ['post' => $post];
         $render = static fn(): string => View::fetch($template, $context);
 
-        $fields = ['card' => self::on_site_scheme($render)];
+        $fields = ['card' => self::compact(self::on_site_scheme($render))];
         foreach ((array) ($definition['card_variants'] ?? []) as $variant => $wrap) {
             if (is_callable($wrap)) {
-                $fields["card_{$variant}"] = self::on_site_scheme(static fn(): string => (string) $wrap($render));
+                $fields["card_{$variant}"] = self::compact(self::on_site_scheme(static fn(): string => (string) $wrap($render)));
             }
         }
 
         return $fields;
+    }
+
+    /**
+     * A card without the template's indentation and blank lines: every run of whitespace with a
+     * line break becomes one line break, which a browser shows the same (about a tenth of an
+     * index and of every response). Inside <pre>, <textarea>, <script> and <style> whitespace is
+     * kept as it is.
+     */
+    public static function compact(string $html): string
+    {
+        $parts = preg_split('#(<(pre|textarea|script|style)\b.*?</\2\s*>)#si', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+        if ($parts === false) {
+            return $html;
+        }
+        $out = '';
+        // [text, block, block's tag name, text, …]
+        for ($i = 0, $n = count($parts); $i < $n; $i += 3) {
+            $out .= (string) preg_replace('/[ \t\r]*\n\s*/', "\n", $parts[$i]) . ($parts[$i + 1] ?? '');
+        }
+
+        return trim($out);
     }
 
     /**

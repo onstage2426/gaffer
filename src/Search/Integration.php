@@ -8,9 +8,9 @@ use Gaffer\Config;
 
 /**
  * Hooks the search into WordPress when config/search.php defines indexes and the plugin is
- * there: the definitions for the engine, and with `archive` its redirects (/page/N/ and
- * WooCommerce's own params; WordPress's ?s= search with `redirect_search`), canonical URL and
- * robots.
+ * there: the definitions for the engine, and with `archive` its redirects (/page/N/,
+ * WooCommerce's own params, the theme's old ones with `redirect_params`; WordPress's ?s= search
+ * with `redirect_search`), canonical URL and robots.
  *
  * @internal
  */
@@ -56,7 +56,16 @@ final class Integration
         if (!Search::on_archive()) {
             return;
         }
-        $url = $engine->redirect($index, (array) \wp_unslash($_GET), (int) \get_query_var('paged'), max(1, (int) Config::get('search.archive.per_page') ?: 24), Search::archive_base());
+        $query = (array) \wp_unslash($_GET);
+        // The theme's own old URLs (a filter plugin's params) as the archive's query.
+        $translate = Config::get('search.archive.redirect_params');
+        $translated = is_callable($translate) ? (array) $translate($query) : $query;
+        $url = $engine->redirect($index, $translated, (int) \get_query_var('paged'), max(1, (int) Config::get('search.archive.per_page') ?: 24), Search::archive_base());
+        if ($url === null && $translated !== $query) {
+            // Only when the translation changes the page (no redirect to the same URL).
+            $target = $engine->url(Search::archive_base(), $translated);
+            $url = $target !== $engine->url(Search::archive_base(), $query) ? $target : null;
+        }
         if ($url !== null) {
             \wp_safe_redirect($url, 301);
             exit;

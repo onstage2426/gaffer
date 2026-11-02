@@ -5,21 +5,23 @@ declare(strict_types=1);
 namespace Gaffer\Search;
 
 use Gaffer\Config;
+use Gaffer\Types\Post;
 
 /**
  * The theme's indexes (config/search.php `indexes`) as the engine's definitions: Gaffer's own
- * keys (the card and its variants) taken out, a `document` callable that renders the cards into
- * each document and a `version` that changes with the definition and the card's templates added.
+ * keys (the card and its variants, the theme's `document` method) taken out, a `document`
+ * callable that adds the theme's fields and renders the cards into each document, and a `version`
+ * that changes with the definition, the card's templates and the files of those methods.
  *
  * @internal
  */
 final class Indexes
 {
     /** Keys Gaffer handles itself; every other key goes to the engine as it is. */
-    public const array OWN_KEYS = ['card', 'card_context', 'card_variants', 'card_variant'];
+    public const array OWN_KEYS = ['card', 'card_context', 'card_variants', 'card_variant', 'document'];
 
     /** Bumped when Gaffer renders cards differently, so indexes rebuild. */
-    private const string RENDERING = '1';
+    private const string RENDERING = '2';
 
     /** @return array<string, array<string, mixed>> the config's indexes */
     public static function all(): array
@@ -49,8 +51,14 @@ final class Indexes
         $definitions = [];
         foreach ($indexes as $name => $definition) {
             $engine = array_diff_key($definition, array_flip(self::OWN_KEYS));
-            if (is_string($definition['card'] ?? null)) {
-                $engine['document'] = static fn(array $document, string $index): array => [...$document, ...Cards::fields($index, (int) ($document['id'] ?? 0))];
+            $fields = $definition['document'] ?? null;
+            if (is_string($definition['card'] ?? null) || is_callable($fields)) {
+                $engine['document'] = static function (array $document, string $index) use ($fields): array {
+                    $id = (int) ($document['id'] ?? 0);
+                    $post = is_callable($fields) && $id > 0 ? Post::from($id) : null;
+
+                    return [...$document, ...($post !== null ? (array) $fields($post, $document) : []), ...Cards::fields($index, $id)];
+                };
             }
             $engine['version'] = self::version($definition);
             $definitions[$name] = $engine;
@@ -89,16 +97,17 @@ final class Indexes
 
     /**
      * Changes with the definition, the card's templates and the files of the methods that shape
-     * a card (card_context, card_variants: what the documents hold; card_variant only picks one).
+     * a document (card_context, card_variants, document: what the documents hold; card_variant
+     * only picks one).
      *
      * @param array<string, mixed> $definition
      */
     private static function version(array $definition): string
     {
         $card = is_string($definition['card'] ?? null) ? $definition['card'] : null;
-        $plain = array_diff_key($definition, array_flip(['card_context', 'card_variant']));
+        $plain = array_diff_key($definition, array_flip(['card_context', 'card_variant', 'document']));
         $plain['card_variants'] = array_keys((array) ($definition['card_variants'] ?? []));
-        $methods = [$definition['card_context'] ?? null, ...array_values((array) ($definition['card_variants'] ?? []))];
+        $methods = [$definition['card_context'] ?? null, $definition['document'] ?? null, ...array_values((array) ($definition['card_variants'] ?? []))];
 
         return md5((string) json_encode([self::RENDERING, $plain, $card !== null ? Cards::version($card) : null, Cards::code_version($methods)], JSON_PARTIAL_OUTPUT_ON_ERROR));
     }

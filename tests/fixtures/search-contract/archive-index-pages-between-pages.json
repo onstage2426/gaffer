@@ -1,0 +1,84 @@
+{
+    "call": "archive",
+    "args": [
+        "products",
+        {
+            "limit": 4,
+            "attributes": [
+                "id"
+            ],
+            "default_sort": [
+                "id:asc"
+            ],
+            "index_pages": true
+        },
+        {
+            "offset": "5"
+        },
+        "https://shop.test/winkel/"
+    ],
+    "expect": {
+        "token": {
+            "index": "products",
+            "limit": 4,
+            "default_sort": [
+                "id:asc"
+            ],
+            "attributes": [
+                "id"
+            ],
+            "site": 1,
+            "c": 1
+        },
+        "results": {
+            "query": "",
+            "total": 12,
+            "offset": 5,
+            "limit": 4,
+            "view": null,
+            "results": [
+                {
+                    "id": 6,
+                    "formatted": {
+                        "title": "Zwarte schoenen",
+                        "snippet": "Sneakers voor de hele dag."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 7,
+                    "formatted": {
+                        "title": "Tiara",
+                        "snippet": "Tiara met kristallen."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 8,
+                    "formatted": {
+                        "title": "Clutch",
+                        "snippet": "Kleine tas voor het feest."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 9,
+                    "formatted": {
+                        "title": "Bolero",
+                        "snippet": "Kanten bolero voor koude dagen."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": [],
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": []
+        },
+        "url": "https://shop.test/winkel/?offset=5",
+        "indexable": false
+    }
+}

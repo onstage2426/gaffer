@@ -21,7 +21,9 @@ final class SearchContractTest extends TestCase
     private const string DIR = __DIR__ . '/fixtures/search-contract';
 
     /** The request keys of contract 1 (docs/contract.md, "Request"). */
-    private const array REQUEST_KEYS = ['query', 'limit', 'offset', 'sort', 'default_sort', 'filter', 'visibility', 'term', 'facets', 'attributes', 'ttl'];
+    private const array REQUEST_KEYS = ['query', 'limit', 'offset', 'sort', 'default_sort', 'filter', 'visibility', 'term', 'facets', 'attributes', 'ttl',
+        // features (docs/contract.md, "Features")
+        'limits', 'facet_values', 'max_docs', 'index_pages', 'indexable_filters'];
 
     #[\Override]
     protected function setUp(): void

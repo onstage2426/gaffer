@@ -29,6 +29,7 @@ versions offer. No minimum plugin versions are declared or checked.
 - `Gaffer\Gaffer::boot(string $dir)` (`functions.php`)
 - `Gaffer\Ajax::boot(string $dir)` (`ajax.php`)
 - `Gaffer\Console\Console::boot(string $dir)` (`gaffer`)
+- `vendor/onstage2426/gaffer/bin/stage.php` (`wp --require=` in a staged copy of the theme)
 
 **Services**
 - `View::render(string $template, array $data = [])`, `View::fetch(...)`,

@@ -561,6 +561,13 @@ final class WordPressCheck implements Check
         foreach ($engine->problems($definitions) as $problem) {
             $report->error('search', $problem, $file);
         }
+        // Archive keys the engine reads only with a feature: an older plugin ignores them.
+        $features = ['limits' => 'limits', 'facet_values' => 'facet_values', 'max_docs' => 'max_docs', 'index_pages' => 'archive_indexing', 'indexable_filters' => 'archive_indexing'];
+        foreach (array_intersect_key($features, (array) Config::get('search.archive')) as $key => $feature) {
+            if (!$engine->supports($feature)) {
+                $report->error('search', "archive: {$key} needs a gaffer-search version with the feature \"{$feature}\"", $file, null, 'Update the plugin; until then it\'s ignored.');
+            }
+        }
 
         $status = $engine->status();
         foreach ($definitions as $name => $definition) {

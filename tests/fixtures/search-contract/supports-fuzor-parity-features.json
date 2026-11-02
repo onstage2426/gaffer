@@ -1,0 +1,19 @@
+{
+    "call": "supports",
+    "args": [
+        "direct_terms",
+        "document_fields",
+        "limits",
+        "facet_values",
+        "max_docs",
+        "archive_indexing"
+    ],
+    "expect": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+    ]
+}

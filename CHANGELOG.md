@@ -9,6 +9,20 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-02
 
+### Search: computed fields, direct terms, archive indexing and page sizes; compact cards
+
+For sites on `config/search.php` (gaffer-search with these contract features; `doctor --wp` says
+when the plugin is too old). New, all optional: `document` + `fields` in an index (fields the
+theme computes, e.g. a price per m² to filter on), `direct_terms` (a category without its
+subcategories' products), and in `archive`: `limits`, `facet_values`, `max_docs`,
+`index_pages`, `indexable_filters`, `base_params`, `redirect_params` (the `gaffer-search`
+skill; fuzor-wp sites: its "Moving from fuzor-wp" table maps every option and hook).
+Cards are now stored without the template's indentation and blank lines (about a tenth of the
+index and of each response): every index rebuilds once by itself.
+Find: `grep -rn "view" config/search.php views/woocommerce` (a `?view=` the plugin no longer
+reads). Check: `php gaffer doctor --wp` shows the index current after the rebuild
+(`wp gaffer-search rebuild` does it now); a page with `<pre>`-formatted card text looks the same.
+
 ### `php gaffer` from a staged copy loads the copy
 
 Run from a full copy of the active theme next to it (`cp -r theme theme-stage`, same `Theme Name`

@@ -59,10 +59,38 @@ return [
   day, so such pages mustn't be cached for others. A change to the card
   template, anything it includes, or the files of `card_context`/variant
   methods rebuilds the index by itself.
+- **Computed fields** (a price per m² to filter on): `document => [Theme\X::class,
+  'method']` gets the post and the document (`price`, the mapped fields) and
+  returns the fields to add; declare them in `fields` (`['price_m2' =>
+  'float']`) and they work in `facets`, `sortable` and `searchable`. Return
+  null for a product without one. Its file counts in the version like a card
+  method.
+- **Hierarchical taxonomies** store a term's ancestors too: a parent
+  category's archive shows its children's products. `direct_terms =>
+  ['product_cat']` keeps each category to its own products (WooCommerce with
+  `include_children: false`); a filter on the parent then also matches only
+  its own.
 - **The archive** (`archive`): the shop, product categories and the shop's
   search results (`?q=`). Gaffer adds the redirects (`/page/N/` → `offset`,
   WooCommerce's `orderby`/`min_price`/`filter_*`), the canonical URL and robots
-  (Yoast, or WordPress's own): no hooks of the theme's own for them.
+  (Yoast, or WordPress's own): no hooks of the theme's own for them. Indexable:
+  the first page without query, sort or extra filter. Optional keys:
+  - `limits => [12, 24, 48]`: page sizes the visitor picks (`<select
+    name="limit">` in the form; `per_page` must be one); the canonical leaves
+    `limit` out.
+  - `index_pages => true`: later pages are indexable too (offsets that are
+    multiples of the page size).
+  - `indexable_filters => ['on_sale' => ['yes']]`: a filtered page search
+    engines may index (a sale page).
+  - `base_params => ['show']`: params that make another page
+    (`/category/?show=all`), kept in the canonical and page links.
+  - `redirect_params => [Theme\X::class, 'method']`: gets the query, returns it
+    with the theme's old params translated (a former filter plugin's
+    `?onsale_filter=1` → `filter[on_sale]=yes`); a different page is a 301.
+  - `facet_values => ['size' => 400]`: values listed per facet (default 100).
+  - `max_docs => 5000`: the best matches a search with words ranks, sorts and
+    counts over (default 500): a large catalog's first page then matches an
+    exhaustive search.
 
 ## Templates
 
@@ -126,10 +154,47 @@ Alpine.data("archive", (options) => archive({ ...options, itemClass: "flex flex-
 - A field the form shouldn't send leaks in as a console warning "Parameters
   this endpoint doesn't read".
 
+## Moving from fuzor-wp
+
+fuzor-wp sites (`fuzor_*()`, `window.Fuzor`, `data-fuzor-*`; `doctor` lists
+them) move to `config/search.php` in the same deploy that switches the plugin:
+gaffer-search has no `fuzor_`/`gaffer_search_` theme API. Stage the theme
+(`cp -r theme theme-stage`, see `gaffer-migrate`): `php gaffer` in the copy runs
+it as the active theme without the object cache, and builds the index before
+the switch with `wp --require=vendor/onstage2426/gaffer/bin/stage.php
+gaffer-search rebuild`. Snapshot the live site first (`render:snapshot
+--from`), compare searches and archive counts after.
+
+| fuzor-wp | config/search.php |
+|---|---|
+| `fuzor_register_index()` on `fuzor_register_indexes`, builder options | `indexes.{name}` with `type` and the same keys: `searchable`, `facets`, `sortable`, `meta`, `taxonomy` → `taxonomies`, `synonyms` (`oneWay` → `one_way`), `thumbnail_size`, `variation_price` |
+| builder `language` | `language`: keep the old index's (`wp fuzor describe`; often `''`), or every search changes |
+| builder `directTerms` | `direct_terms` |
+| `fuzor_index_document` adding the card | `card` (+ `card_context`, `card_variants`/`card_variant`) |
+| `fuzor_index_document` adding other fields, `fuzor_index_schema` | `document` + `fields` |
+| `fuzor_index_version` | nothing: Gaffer versions the definition, card and methods |
+| `fuzor_archive()` | `Search::archive()` with `archive` config |
+| token `limit` / `limits` | `archive.per_page` / `archive.limits` |
+| token `facet_values` | `archive.facet_values` |
+| token `max_docs` | `archive.max_docs` |
+| `fuzor_archive_indexable_page_size` | `archive.index_pages` |
+| `fuzor_archive_indexable_facets` | `archive.indexable_filters` |
+| `fuzor_archive_url_params` | `archive.base_params` |
+| `fuzor_redirect_archive_query` | `archive.redirect_params` |
+| `fuzor_search()` for sliders | `Search::cards()` |
+| searchbar token | `Search::searchbar()` |
+| `window.Fuzor`, `data-fuzor-*` | `@gaffer/search.js`, `data-gaffer-search-*` |
+| token `views` (a list layout) | not supported: one card per index; a list view is CSS on that card |
+| a token with `filter[id]` open (recently viewed) | not supported: an ajax action that renders the card template for the IDs |
+| token `bounds` (a range over the whole archive) | not supported: `facetStats` are over the results |
+| facet search tokens | not supported: `facet_values` and filtering the list in the browser |
+| `fuzor_audience_filter` | not supported: `card_variants` for prices per customer group |
+
 ## Checking
 
-- `php gaffer doctor --wp`: the plugin, the definitions, every index built and
-  current, one card rendered with strict variables, old plugin API calls.
+- `php gaffer doctor --wp`: the plugin (and the features the config needs),
+  the definitions, every index built and current, one card rendered with
+  strict variables, old plugin API calls (gaffer-search's and fuzor-wp's).
 - `gaffer-search` (MCP): search an index (query, filter, facets) and see its
   status: for synonyms, facets, "why isn't X found".
 - `php gaffer render:screenshot / --fill='#search=…'` and on an archive

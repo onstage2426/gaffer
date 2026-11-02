@@ -19,7 +19,7 @@ use Gaffer\Search\Indexes;
  */
 final class SearchCheck implements Check
 {
-    private const array ARCHIVE_KEYS = ['index', 'per_page', 'sorts', 'default_sort', 'facets', 'redirect_search'];
+    private const array ARCHIVE_KEYS = ['index', 'per_page', 'sorts', 'default_sort', 'facets', 'redirect_search', 'limits', 'facet_values', 'max_docs', 'index_pages', 'indexable_filters', 'base_params', 'redirect_params'];
 
     #[\Override]
     public function run(Report $report): void
@@ -32,7 +32,7 @@ final class SearchCheck implements Check
             if ($card !== null && (!is_string($card) || !isset($templates[$card]))) {
                 $report->error('search', "Index \"{$name}\": card " . (is_string($card) ? "\"{$card}\" is not a template in views/" : 'must be a template name'), $file);
             }
-            foreach (['card_context', 'card_variant'] as $key) {
+            foreach (['card_context', 'card_variant', 'document'] as $key) {
                 if (isset($definition[$key]) && !is_callable($definition[$key])) {
                     $report->error('search', "Index \"{$name}\": {$key} is not callable", $file, null, 'Use [Theme\\Class::class, \'method\'] with a public static method.');
                 }
@@ -59,10 +59,57 @@ final class SearchCheck implements Check
                 $suggestion = ConfigStubs::did_you_mean((string) $key, self::ARCHIVE_KEYS);
                 $report->error('search', "archive: unknown key \"{$key}\"" . ($suggestion !== null ? " (did you mean \"{$suggestion}\"?)" : ''), $file);
             }
+            foreach (self::archive_problems($archive) as $problem) {
+                $report->error('search', "archive: {$problem}", $file);
+            }
         }
 
         $this->old_api($report);
         $this->unavailable($report);
+    }
+
+    /**
+     * The shapes of the archive's optional keys (the engine ignores a request key it can't read,
+     * so a wrong shape would silently do nothing).
+     *
+     * @param array<mixed> $archive
+     * @return list<string>
+     */
+    private static function archive_problems(array $archive): array
+    {
+        $problems = [];
+        $ints = static fn(mixed $list): bool => is_array($list) && array_is_list($list) && $list !== [] && array_filter($list, is_int(...)) === $list;
+        if (isset($archive['limits'])) {
+            if (!$ints($archive['limits'])) {
+                $problems[] = 'limits must be a list of page sizes (ints)';
+            } elseif (!in_array((int) ($archive['per_page'] ?? 24), $archive['limits'], true)) {
+                $problems[] = 'limits must include per_page (' . (int) ($archive['per_page'] ?? 24) . '): the first page uses it';
+            }
+        }
+        if (isset($archive['facet_values']) && (!is_array($archive['facet_values']) || array_filter($archive['facet_values'], is_int(...)) !== $archive['facet_values'] || array_is_list($archive['facet_values']))) {
+            $problems[] = 'facet_values must map a field to a number of values';
+        }
+        if (isset($archive['max_docs']) && !is_int($archive['max_docs'])) {
+            $problems[] = 'max_docs must be an int';
+        }
+        if (isset($archive['index_pages']) && !is_bool($archive['index_pages'])) {
+            $problems[] = 'index_pages must be true or false';
+        }
+        if (isset($archive['indexable_filters']) && (!is_array($archive['indexable_filters']) || array_is_list($archive['indexable_filters'])
+            || array_filter($archive['indexable_filters'], static fn(mixed $values): bool => is_array($values) && array_is_list($values) && array_filter($values, is_string(...)) === $values) !== $archive['indexable_filters'])) {
+            $problems[] = 'indexable_filters must map a field to a list of values (strings), e.g. [\'on_sale\' => [\'yes\']]';
+        }
+        if (isset($archive['base_params']) && (!is_array($archive['base_params']) || !array_is_list($archive['base_params']) || array_filter($archive['base_params'], is_string(...)) !== $archive['base_params'])) {
+            $problems[] = 'base_params must be a list of query param names';
+        }
+        foreach (array_intersect((array) ($archive['base_params'] ?? []), ['q', 'filter', 'sort', 'offset', 'limit']) as $param) {
+            $problems[] = "base_params can't name the archive's own param \"{$param}\"";
+        }
+        if (isset($archive['redirect_params']) && !is_callable($archive['redirect_params'])) {
+            $problems[] = 'redirect_params is not callable: use [Theme\\Class::class, \'method\'] with a public static method';
+        }
+
+        return $problems;
     }
 
     /**

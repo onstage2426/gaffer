@@ -101,10 +101,17 @@ final class Search
         return self::archive_index() !== null && function_exists('is_shop') && function_exists('is_product_taxonomy') && (\is_shop() || \is_product_taxonomy());
     }
 
-    /** @internal The archive's first page for this request, without any query. */
+    /**
+     * @internal The archive's first page for this request: without a query, except the params
+     * `base_params` names (a category's `?show=all` is another page than the category).
+     */
     public static function archive_base(): string
     {
-        return (string) strtok(\get_pagenum_link(1, false), '?');
+        $base = (string) strtok(\get_pagenum_link(1, false), '?');
+        $own = array_intersect_key((array) \wp_unslash($_GET), array_flip(array_map(strval(...), (array) Config::get('search.archive.base_params'))));
+        $own = array_filter($own, static fn(mixed $value): bool => is_scalar($value) && (string) $value !== '');
+
+        return $own !== [] ? $base . '?' . http_build_query($own, '', '&', PHP_QUERY_RFC3986) : $base;
     }
 
     /** @internal */
@@ -147,6 +154,7 @@ final class Search
             'attributes' => ['id', ...($field !== null ? [$field] : [])],
             'default_sort' => array_values(array_map(strval(...), (array) ($config['default_sort'] ?? []))),
             'facets' => array_values(array_map(strval(...), (array) ($config['facets'] ?? []))),
+            ...array_intersect_key($config, array_flip(['limits', 'facet_values', 'max_docs', 'index_pages', 'indexable_filters'])),
             ...($term !== null ? ['term' => $term->id()] : []),
             // A variant's page (business prices) is that visitor's: its token stops working after a day.
             ...(Indexes::variant($definition) !== null ? ['ttl' => DAY_IN_SECONDS] : []),

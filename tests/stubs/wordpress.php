@@ -13,6 +13,13 @@ if (!function_exists('get_pagenum_link')) {
     }
 }
 
+if (!function_exists('wp_unslash')) {
+    function wp_unslash(mixed $value): mixed
+    {
+        return $value;
+    }
+}
+
 // Nothing exists in unit tests: lookups find nothing (the 404 path).
 if (!function_exists('get_post')) {
     function get_post(mixed $post = null): null

@@ -555,6 +555,25 @@ final class ChecksTest extends TestCase
         self::assertStringStartsWith('window.Fuzor:', (string) $findings['assets/js/app.js']['hint']);
     }
 
+    public function test_search_archive_keys(): void
+    {
+        file_put_contents("{$this->theme}/config/search.php", <<<'PHP'
+            <?php return [
+                'indexes' => ['products' => ['type' => 'products', 'document' => 'nope']],
+                'archive' => ['index' => 'products', 'per_page' => 24, 'limits' => [12, 48], 'facet_values' => ['size' => '400'], 'max_docs' => 5000,
+                    'index_pages' => 'yes', 'indexable_filters' => ['on_sale' => 'yes'], 'base_params' => ['show', 'offset'], 'redirect_params' => 'nope'],
+            ];
+            PHP);
+        Config::load("{$this->theme}/config");
+
+        $messages = $this->messages(new SearchCheck());
+        foreach (['document is not callable', 'limits must include per_page (24)', 'facet_values must map', 'index_pages must be', 'indexable_filters must map',
+            'base_params can\'t name the archive\'s own param "offset"', 'redirect_params is not callable'] as $expected) {
+            self::assertStringContainsString($expected, $messages);
+        }
+        self::assertStringNotContainsString('max_docs', $messages);
+    }
+
     private function messages(Check $check): string
     {
         return implode("\n", array_column($this->findings($check), 'message'));

@@ -1,0 +1,73 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "limit": 2,
+            "limits": [
+                4
+            ],
+            "attributes": [
+                "id"
+            ],
+            "default_sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "query": {
+        "limit": "4"
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 12,
+            "offset": 0,
+            "limit": 4,
+            "view": null,
+            "results": [
+                {
+                    "id": 1,
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 2,
+                    "formatted": {
+                        "title": "Blauwe jurk",
+                        "snippet": "Een korte blauwe jurk."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 3,
+                    "formatted": {
+                        "title": "Jurk &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                        "snippet": "Feestelijke jurk met kant."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 4,
+                    "formatted": {
+                        "title": "Witte sluier",
+                        "snippet": "Sluier van tule, drie meter lang."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": [],
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

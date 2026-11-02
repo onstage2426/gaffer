@@ -70,8 +70,10 @@ After `composer update onstage2426/gaffer`, read the entries in
 `vendor/onstage2426/gaffer/CHANGELOG.md` since the previous version (the date
 of the old commit in `composer.lock`'s history, or `git diff composer.lock`)
 and do what they say: each names how to find the affected code and what to
-check. (`composer update` runs `php gaffer ai:update` itself, so these
-guidelines are already the new version's.) Then the checks below.
+check. (`composer update` runs `php gaffer ai:update` through the theme's
+`post-update-cmd` script, so these guidelines are already the new version's;
+without that script, `doctor` warns: run `php gaffer ai:update` yourself.)
+Then the checks below.
 
 ### Check your work
 

@@ -15,7 +15,7 @@ use Gaffer\Search\Indexes;
 /**
  * config/search.php as far as Gaffer reads it (the card and its variants, the archive; the
  * engine's own keys are WordPressCheck::search()'s, the engine checks them), and theme code still
- * calling the gaffer-search plugin's theme API from before Gaffer\Search.
+ * calling a search plugin's own theme API: gaffer-search's from before Gaffer\Search, or fuzor-wp's.
  */
 final class SearchCheck implements Check
 {
@@ -84,14 +84,25 @@ final class SearchCheck implements Check
             '{% if not search.available %}…{% endif %} in the archive template, e.g. "Products can\'t be shown right now".');
     }
 
-    /** gaffer_search_*() calls, its hooks and window.GafferSearch: replaced by config/search.php and Gaffer\Search. */
+    /**
+     * The plugins' own theme APIs, replaced by config/search.php and Gaffer\Search: gaffer-search's
+     * (gaffer_search_*() and its hooks, window.GafferSearch) and fuzor-wp's (fuzor_*() and its
+     * hooks, window.Fuzor, data-fuzor-* attributes, FuzorSearch\ classes).
+     */
     private function old_api(Report $report): void
     {
+        $plugins = [
+            'gaffer-search' => '/\bgaffer_search_\w+|window\.GafferSearch\b|\bGafferSearch\.\w+\(/',
+            'fuzor-wp' => '/\bfuzor_\w+|window\.Fuzor\b|\bFuzor\.\w+\(|\bdata-fuzor-[\w-]+|\bFuzorSearch\\\\/',
+        ];
         foreach (ThemeFiles::find(['php', 'twig', 'js']) as $file) {
             $code = (string) file_get_contents($file);
-            if (preg_match('/\bgaffer_search_\w+|window\.GafferSearch\b|\bGafferSearch\.\w+\(/', $code, $match, PREG_OFFSET_CAPTURE)) {
-                $report->warning('search', 'Uses the gaffer-search plugin\'s theme API from before Gaffer\\Search', $file, substr_count($code, "\n", 0, $match[0][1]) + 1,
-                    "{$match[0][0]}: move to config/search.php, Gaffer\\Search\\Search and resources/js/search.js (see the gaffer-search skill and CHANGELOG.md).");
+            foreach ($plugins as $plugin => $pattern) {
+                if (preg_match_all($pattern, $code, $matches, PREG_OFFSET_CAPTURE) > 0) {
+                    $first = $matches[0][0];
+                    $report->warning('search', "Uses the {$plugin} plugin's own theme API (replaced by Gaffer\\Search)", $file, substr_count($code, "\n", 0, $first[1]) + 1,
+                        "{$first[0]}" . (count($matches[0]) > 1 ? ' and ' . (count($matches[0]) - 1) . ' more' : '') . ': move to config/search.php, Gaffer\\Search\\Search and resources/js/search.js (see the gaffer-search skill and CHANGELOG.md).');
+                }
             }
         }
     }

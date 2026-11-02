@@ -16,6 +16,7 @@ use Gaffer\Console\Checks\ConfigCheck;
 use Gaffer\Console\Checks\GuidelinesCheck;
 use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
+use Gaffer\Console\Checks\SearchCheck;
 use Gaffer\Console\Checks\SourceCheck;
 use Gaffer\Console\Checks\TemplateGlobalsCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
@@ -58,6 +59,11 @@ final class ChecksTest extends TestCase
 
         file_put_contents("{$this->theme}/composer.json", '{"autoload": {"psr-4": {"Theme\\\\": "app/"}}}');
         self::assertStringNotContainsString('autoload', $this->messages(new ConfigCheck()));
+
+        file_put_contents("{$this->theme}/config/ai.php", '<?php return [];');
+        self::assertStringContainsString('doesn\'t run ai:update', $this->messages(new ConfigCheck()));
+        file_put_contents("{$this->theme}/composer.json", '{"autoload": {"psr-4": {"Theme\\\\": "app/"}}, "scripts": {"post-update-cmd": ["@php gaffer ai:update --ansi"]}}');
+        self::assertStringNotContainsString('ai:update', $this->messages(new ConfigCheck()));
     }
 
     public function test_fields_functions_php_never_reads_are_reported(): void
@@ -531,6 +537,22 @@ final class ChecksTest extends TestCase
         } catch (\RuntimeException $e) {
             self::assertStringContainsString('no site at localhost/', $e->getMessage());
         }
+    }
+
+    public function test_search_plugins_own_theme_apis(): void
+    {
+        mkdir("{$this->theme}/inc", 0755, true);
+        mkdir("{$this->theme}/assets/js", 0755, true);
+        file_put_contents("{$this->theme}/inc/search.php", "<?php\nuse FuzorSearch\\IndexDefinition;\nadd_action('fuzor_register_indexes', fn() => fuzor_register_index(\$d));\n");
+        file_put_contents("{$this->theme}/assets/js/search.js", "window.GafferSearch.archive();\n");
+        file_put_contents("{$this->theme}/assets/js/app.js", "const archive = window.Fuzor.archive(el);\n");
+
+        $findings = array_column($this->findings(new SearchCheck()), null, 'file');
+        self::assertSame(2, $findings['inc/search.php']['line']);
+        self::assertStringContainsString('fuzor-wp', $findings['inc/search.php']['message']);
+        self::assertStringStartsWith('FuzorSearch\\ and 2 more', (string) $findings['inc/search.php']['hint']);
+        self::assertStringContainsString('gaffer-search', $findings['assets/js/search.js']['message']);
+        self::assertStringStartsWith('window.Fuzor:', (string) $findings['assets/js/app.js']['hint']);
     }
 
     private function messages(Check $check): string

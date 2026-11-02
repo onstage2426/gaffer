@@ -37,6 +37,10 @@ return [
 ];
 ```
 
+- `language` sets the stemming (`'nl'` finds "tegels" for "tegel"), so it
+  changes which products a search finds and their order. Moving a site from
+  another index (fuzor-wp), keep the old index's language (`wp fuzor describe`;
+  often `''`) and compare searches before changing it.
 - The right-hand side of `meta`/`taxonomies` is the field name everywhere:
   `filter[category]`, facets, sorts, the JS. Prices and stock come from `meta`.
   Only fields the index declares sort and filter; text sorts on

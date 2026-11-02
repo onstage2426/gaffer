@@ -13,7 +13,8 @@ use Gaffer\Types\Term;
 
 /**
  * Unknown config keys, classes in types/terms/twig_extensions that don't exist,
- * and composer.json autoloading app/ as the Theme\ namespace.
+ * composer.json autoloading app/ as the Theme\ namespace, and running ai:update after
+ * `composer update` in a theme that uses the AI files.
  */
 final class ConfigCheck implements Check
 {
@@ -68,6 +69,13 @@ final class ConfigCheck implements Check
         if (rtrim((string) ($composer['autoload']['psr-4']['Theme\\'] ?? ''), '/') !== 'app') {
             $report->error('config', 'composer.json doesn\'t autoload "Theme\\\\": "app/"', $file, null,
                 'Replace the Theme\\Twig\\ / Theme\\Types\\ entries with "Theme\\\\": "app/" and run `composer dump-autoload`.');
+        }
+
+        // The guidelines tell agents that an update brings the new version's guidelines along.
+        $scripts = implode(' ', array_filter((array) ($composer['scripts']['post-update-cmd'] ?? []), is_string(...)));
+        if (is_file(Paths::base('config/ai.php')) && !str_contains($scripts, 'gaffer ai:update')) {
+            $report->warning('config', 'composer.json doesn\'t run ai:update after `composer update`: the AI guidelines stay the old version\'s', $file, null,
+                'Add "scripts": { "post-update-cmd": ["@php gaffer ai:update --ansi"] }, and run `php gaffer ai:update` now.');
         }
     }
 }

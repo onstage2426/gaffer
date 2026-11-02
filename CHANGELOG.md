@@ -42,10 +42,13 @@ Search, the shop archive and product sliders are now configured in
 the cards into the index, rebuilds it when the card template (or anything it
 includes) changes, and adds the archive's redirects, canonical URL and robots.
 The plugin's own theme API (`gaffer_search_*()`, its hooks,
-`window.GafferSearch`) still works, but goes away once sites have moved.
+`window.GafferSearch`) is gone from the plugin (its `docs/migration.md`), and so
+is fuzor-wp's under its new name: the theme moves to `config/search.php` in the
+same deploy that switches the plugin.
 
-Only for sites with gaffer-search (sites still on fuzor-wp: nothing to do).
-Find: `grep -rnE "gaffer_search_|GafferSearch" app inc views assets woocommerce *.php`
+For sites on gaffer-search or on fuzor-wp (`fuzor_*()`, `window.Fuzor`): a
+site staying on fuzor-wp has nothing to do until it switches.
+Find: `grep -rnE "gaffer_search_|GafferSearch|fuzor_|Fuzor|data-fuzor-" app inc views assets woocommerce *.php`
 (`php gaffer doctor` lists them too).
 
 Before (`inc/…` and `Theme\Search`):

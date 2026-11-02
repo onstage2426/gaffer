@@ -8,6 +8,8 @@ final class Gaffer\Ajax
 abstract class Gaffer\AjaxAction
   const METHOD = 'POST'
   const SHORTINIT = false
+final class Gaffer\Blocks
+  static markup(string $block, array $values): string
 final class Gaffer\Config
   static get(string $key): mixed
 final class Gaffer\Console\Console

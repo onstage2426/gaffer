@@ -94,3 +94,10 @@ means migrating that content with the `migrate:*` commands (dry run, then
 in place only when the stored value still means the same (text → wysiwyg,
 select → radio, image → file); otherwise add a field with a new name. Never
 write a converter or a throwaway script that writes content.
+- **Content written by code** (demo and launch pages, seeds) goes through
+  `Gaffer\Blocks::markup('acf/name', [field => value])`, never hand-written
+  block comments: it adds every derived key and refuses an unknown field or a
+  value the field can't take (repeater rows are lists of arrays by sub field
+  name, true/false a bool, images their ID, links `['title', 'url', 'target']`).
+  `wp_insert_post()`/`wp_update_post()` unslash their input: pass
+  `wp_slash($content)`, or the JSON's escapes lose their backslashes.

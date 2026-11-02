@@ -9,6 +9,15 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-02
 
+### New: `Blocks::markup()` for content written by code
+
+`Gaffer\Blocks::markup('acf/content-faq', ['titel' => …, 'vragen' => [['vraag' => …]]])` gives
+the block comment WordPress stores, with every derived field key, checked against the block's
+`fields.php` (an unknown field or a value the field can't take throws). Nothing to change; replace
+hand-written block comments in seeds and scripts.
+Find: `grep -rn "wp:acf/" app inc *.php` (outside templates). Write with
+`wp_update_post(['ID' => $id, 'post_content' => wp_slash($content)])`: WordPress unslashes it.
+
 ### Search: card methods rebuild, `search.available`, the `@gaffer` alias
 
 For sites on `config/search.php` (gaffer-search). A change to the file of a `card_context` or

@@ -63,6 +63,9 @@ the questions below.
 `SHORTINIT`; `run()` with the documented parameter types (scalars, `array`,
 `Post`/`Term`/`Image` and theme subclasses, nullable, defaults).
 
+**Blocks**: `Blocks::markup(string $block, array $values)` (an ACF block's comment for
+content written by code).
+
 **Forms**: extend `Forms\FormAction` (one `Form` action); `Forms\FormState`:
 `blank()`, `name`, `sent`, `message`, `failed`, `value()`, `checked()`, `error()`.
 

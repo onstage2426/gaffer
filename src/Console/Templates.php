@@ -6,6 +6,7 @@ namespace Gaffer\Console;
 
 use Gaffer\Paths;
 use Gaffer\View;
+use Twig\Environment;
 use Twig\Error\Error as TwigError;
 use Twig\Loader\FilesystemLoader;
 use Twig\Node\EmbedNode;
@@ -62,11 +63,12 @@ final class Templates
     }
 
     /**
-     * The parsed template, or null when it doesn't compile (twig:lint reports that).
+     * The parsed template, or null when it doesn't compile (twig:lint reports that). $env:
+     * another environment to parse with (parsing initializes an environment's extensions).
      */
-    public static function parse(string $name): ?ModuleNode
+    public static function parse(string $name, ?Environment $env = null): ?ModuleNode
     {
-        $env = View::env();
+        $env ??= View::env();
         try {
             return $env->parse($env->tokenize($env->getLoader()->getSourceContext($name)));
         } catch (TwigError) {

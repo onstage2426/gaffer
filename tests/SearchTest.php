@@ -74,6 +74,8 @@ final class SearchTest extends TestCase
             ['badges.twig', 'card.twig', 'icons/a.svg', 'icons/b.svg', 'price.twig'],
             array_map(static fn(string $file): string => substr($file, strlen("{$theme}/views/product/")), array_keys(Cards::files('product/card.twig'))),
         );
+        View::env()->addExtension(new \Twig\Extension\StringLoaderExtension());
+        self::assertTrue(View::env()->hasExtension(\Twig\Extension\StringLoaderExtension::class), 'the main environment still takes extensions');
         $before = Cards::version('product/card.twig');
         file_put_contents("{$theme}/views/product/price.twig", 'price, changed');
         self::assertNotSame($before, Cards::version('product/card.twig'), 'a change two includes deep');

@@ -8,6 +8,7 @@ use Gaffer\Console\Templates;
 use Gaffer\Paths;
 use Gaffer\Types\Post;
 use Gaffer\View;
+use Twig\Environment;
 
 /**
  * Cards rendered into index documents, so the server's first page and the browser's later ones
@@ -78,6 +79,7 @@ final class Cards
         $files = [];
         $queue = [$template];
         $seen = [];
+        $parser = self::parser();
         while ($queue !== []) {
             $name = array_shift($queue);
             if (isset($seen[$name])) {
@@ -92,7 +94,7 @@ final class Cards
             if (!str_ends_with($name, '.twig')) {
                 continue;
             }
-            foreach (($node = Templates::parse($name)) !== null ? Templates::references($node) : [] as $reference) {
+            foreach (($node = Templates::parse($name, $parser)) !== null ? Templates::references($node) : [] as $reference) {
                 if ($reference['template'] !== null) {
                     $queue[] = $reference['template'];
                 } elseif ($reference['pattern'] !== null) {
@@ -105,6 +107,24 @@ final class Cards
         ksort($files);
 
         return $files;
+    }
+
+    /**
+     * An environment to parse with, with the theme's loader and extensions: parsing with
+     * View::env() itself would initialize its extensions, and this runs while Gaffer boots,
+     * before others may add theirs (doctor's render adds a profiler).
+     */
+    private static function parser(): Environment
+    {
+        $main = View::env();
+        $env = new Environment($main->getLoader());
+        foreach ($main->getExtensions() as $class => $extension) {
+            if (!$env->hasExtension($class)) {
+                $env->addExtension($extension);
+            }
+        }
+
+        return $env;
     }
 
     /** @param array<mixed> $files file => modification time */

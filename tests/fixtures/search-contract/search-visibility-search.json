@@ -1,0 +1,120 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "visibility": "search",
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 11,
+        "offset": 0,
+        "limit": 20,
+        "view": null,
+        "results": [
+            {
+                "id": 1,
+                "formatted": {
+                    "title": "Rode jurk",
+                    "snippet": "Een lange rode jurk van zijde."
+                },
+                "labels": []
+            },
+            {
+                "id": 2,
+                "formatted": {
+                    "title": "Blauwe jurk",
+                    "snippet": "Een korte blauwe jurk."
+                },
+                "labels": []
+            },
+            {
+                "id": 3,
+                "formatted": {
+                    "title": "Jurk &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                    "snippet": "Feestelijke jurk met kant."
+                },
+                "labels": []
+            },
+            {
+                "id": 4,
+                "formatted": {
+                    "title": "Witte sluier",
+                    "snippet": "Sluier van tule, drie meter lang."
+                },
+                "labels": []
+            },
+            {
+                "id": 5,
+                "formatted": {
+                    "title": "Rode schoenen",
+                    "snippet": "Pumps met een lage hak."
+                },
+                "labels": []
+            },
+            {
+                "id": 6,
+                "formatted": {
+                    "title": "Zwarte schoenen",
+                    "snippet": "Sneakers voor de hele dag."
+                },
+                "labels": []
+            },
+            {
+                "id": 7,
+                "formatted": {
+                    "title": "Tiara",
+                    "snippet": "Tiara met kristallen."
+                },
+                "labels": []
+            },
+            {
+                "id": 8,
+                "formatted": {
+                    "title": "Clutch",
+                    "snippet": "Kleine tas voor het feest."
+                },
+                "labels": []
+            },
+            {
+                "id": 9,
+                "formatted": {
+                    "title": "Bolero",
+                    "snippet": "Kanten bolero voor koude dagen."
+                },
+                "labels": []
+            },
+            {
+                "id": 10,
+                "formatted": {
+                    "title": "Gouden jurk",
+                    "snippet": "Een glanzende gouden jurk."
+                },
+                "labels": []
+            },
+            {
+                "id": 12,
+                "formatted": {
+                    "title": "Verborgen tiara",
+                    "snippet": "Niet in de catalogus."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

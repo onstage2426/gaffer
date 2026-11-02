@@ -1,0 +1,24 @@
+{
+    "call": "url",
+    "args": [
+        "https://shop.test/winkel/",
+        {
+            "q": " jurk ",
+            "offset": "0",
+            "filter": {
+                "color": [
+                    "wit",
+                    "rood"
+                ],
+                "brand": ""
+            },
+            "sort": [
+                "price:asc",
+                ""
+            ],
+            "utm_source": "x",
+            "token": "abc"
+        }
+    ],
+    "expect": "https://shop.test/winkel/?q=jurk&filter%5Bcolor%5D%5B%5D=rood&filter%5Bcolor%5D%5B%5D=wit&sort%5B%5D=price%3Aasc"
+}

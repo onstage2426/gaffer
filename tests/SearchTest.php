@@ -32,6 +32,7 @@ final class SearchTest extends TestCase
 
     public function test_definitions_leave_gaffer_keys_out_and_add_version_and_document(): void
     {
+        self::boot_fixture();
         $definitions = Indexes::definitions([
             'news' => ['type' => 'posts', 'post_types' => ['post']],
             'products' => ['type' => 'products', 'card_variants' => ['business' => [self::class, 'excl']], 'card_variant' => [self::class, 'business'], 'card_context' => [self::class, 'context']],
@@ -83,6 +84,24 @@ final class SearchTest extends TestCase
         exec('rm -rf ' . escapeshellarg($theme));
     }
 
+    public function test_a_change_to_a_card_method_changes_the_version(): void
+    {
+        $theme = (string) realpath(sys_get_temp_dir()) . '/gaffer-search-' . bin2hex(random_bytes(4));
+        mkdir("{$theme}/app", 0777, true);
+        $class = 'CardMethods' . bin2hex(random_bytes(4));
+        file_put_contents("{$theme}/app/{$class}.php", "<?php final class {$class} { public static function wrap(\\Closure \$r): string { return \$r(); } }");
+        require "{$theme}/app/{$class}.php";
+        Paths::set_base($theme);
+
+        $before = Cards::code_version([[$class, 'wrap']]);
+        file_put_contents("{$theme}/app/{$class}.php", "<?php // changed\n", FILE_APPEND);
+
+        self::assertNotSame($before, Cards::code_version([[$class, 'wrap']]));
+        self::assertSame(Cards::code_version([]), Cards::code_version([[self::class, 'excl']]), 'files outside the theme don\'t count');
+
+        exec('rm -rf ' . escapeshellarg($theme));
+    }
+
     public function test_answers_in_an_unexpected_shape_become_empty_results(): void
     {
         $response = Engine::response(['total' => '3', 'results' => [['id' => 1], 'junk'], 'warnings' => ['x', ['y']], 'time' => '1ms']);
@@ -113,6 +132,8 @@ final class SearchTest extends TestCase
         self::assertFalse(Search::available());
         self::assertSame([], Search::cards('products', 4));
         self::assertFalse(Search::searchbar('products')->available);
+        $archive = \Gaffer\Search\Archive::unavailable();
+        self::assertSame([0, 0, []], [$archive->results['offset'], $archive->results['total'], $archive->results['results']], 'the response shape, so templates read it as usual');
     }
 
     /** @param array<string, mixed> $search */

@@ -36,7 +36,7 @@ final readonly class Archive
     /** @internal Without the search plugin: no cards, nothing to search. */
     public static function unavailable(): self
     {
-        return new self(false, '', '', '', 0, [], [], [], '', 'card');
+        return new self(false, '', '', '', 0, [], Engine::response(null), [], '', 'card');
     }
 
     /**

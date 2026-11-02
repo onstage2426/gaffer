@@ -1,0 +1,69 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "filter": {
+                "brand": "stella"
+            }
+        }
+    ],
+    "query": {
+        "filter": {
+            "brand": "pumpkin",
+            "color": [
+                "rood"
+            ]
+        },
+        "sort": [
+            "price:asc"
+        ]
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 2,
+            "offset": 0,
+            "limit": 20,
+            "view": null,
+            "results": [
+                {
+                    "id": 1,
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 11,
+                    "formatted": {
+                        "title": "Geheime jurk",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": {
+                "brand": {
+                    "stella": "Stella"
+                },
+                "color": {
+                    "rood": "Rood"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

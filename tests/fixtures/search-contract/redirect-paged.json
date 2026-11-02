@@ -1,0 +1,11 @@
+{
+    "call": "redirect",
+    "args": [
+        "products",
+        [],
+        3,
+        24,
+        "https://shop.test/winkel/"
+    ],
+    "expect": "https://shop.test/winkel/?offset=48"
+}

@@ -87,13 +87,19 @@ final class Indexes
         return is_string($variant) && isset(((array) ($definition['card_variants'] ?? []))[$variant]) ? $variant : null;
     }
 
-    /** @param array<string, mixed> $definition */
+    /**
+     * Changes with the definition, the card's templates and the files of the methods that shape
+     * a card (card_context, card_variants: what the documents hold; card_variant only picks one).
+     *
+     * @param array<string, mixed> $definition
+     */
     private static function version(array $definition): string
     {
         $card = is_string($definition['card'] ?? null) ? $definition['card'] : null;
         $plain = array_diff_key($definition, array_flip(['card_context', 'card_variant']));
         $plain['card_variants'] = array_keys((array) ($definition['card_variants'] ?? []));
+        $methods = [$definition['card_context'] ?? null, ...array_values((array) ($definition['card_variants'] ?? []))];
 
-        return md5((string) json_encode([self::RENDERING, $plain, $card !== null ? Cards::version($card) : null], JSON_PARTIAL_OUTPUT_ON_ERROR));
+        return md5((string) json_encode([self::RENDERING, $plain, $card !== null ? Cards::version($card) : null, Cards::code_version($methods)], JSON_PARTIAL_OUTPUT_ON_ERROR));
     }
 }

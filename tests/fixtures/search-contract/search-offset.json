@@ -1,0 +1,48 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "offset": 10,
+            "limit": 5,
+            "attributes": [
+                "id"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 12,
+        "offset": 10,
+        "limit": 5,
+        "view": null,
+        "results": [
+            {
+                "id": 11,
+                "formatted": {
+                    "title": "Geheime jurk",
+                    "snippet": "Alleen in de winkel."
+                },
+                "labels": []
+            },
+            {
+                "id": 12,
+                "formatted": {
+                    "title": "Verborgen tiara",
+                    "snippet": "Niet in de catalogus."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

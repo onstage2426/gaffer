@@ -1,0 +1,12 @@
+{
+    "call": "status",
+    "expect": {
+        "products": {
+            "built": true,
+            "documents": 12,
+            "version": null,
+            "building": false,
+            "error": null
+        }
+    }
+}

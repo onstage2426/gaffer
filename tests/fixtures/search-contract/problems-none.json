@@ -1,0 +1,30 @@
+{
+    "call": "problems",
+    "args": [
+        {
+            "news": {
+                "type": "posts",
+                "post_types": [
+                    "post"
+                ],
+                "searchable": [
+                    "title",
+                    "content"
+                ],
+                "sortable": [
+                    "title"
+                ],
+                "meta": {
+                    "_subtitle": "subtitle"
+                },
+                "facets": [
+                    "subtitle"
+                ],
+                "rebuild": "daily",
+                "version": "1",
+                "label": "News"
+            }
+        }
+    ],
+    "expect": []
+}

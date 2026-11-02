@@ -62,6 +62,26 @@ final class SearchCheck implements Check
         }
 
         $this->old_api($report);
+        $this->unavailable($report);
+    }
+
+    /**
+     * Without the plugin, Search::archive() is an unavailable state: no products, and nothing
+     * says why unless a template reads `available`.
+     */
+    private function unavailable(Report $report): void
+    {
+        $callers = array_values(array_filter(ThemeFiles::find(['php']), static fn(string $file): bool => str_contains((string) file_get_contents($file), 'Search::archive(')));
+        if ($callers === []) {
+            return;
+        }
+        foreach (Templates::all() as $file) {
+            if (preg_match('/\.available\b/', (string) file_get_contents($file))) {
+                return;
+            }
+        }
+        $report->warning('search', 'No template reads search.available: without the gaffer-search plugin the shop shows no products and nothing says why', $callers[0], null,
+            '{% if not search.available %}…{% endif %} in the archive template, e.g. "Products can\'t be shown right now".');
     }
 
     /** gaffer_search_*() calls, its hooks and window.GafferSearch: replaced by config/search.php and Gaffer\Search. */

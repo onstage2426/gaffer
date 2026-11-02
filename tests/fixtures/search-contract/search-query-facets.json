@@ -1,0 +1,104 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "query": "jurk",
+            "limit": 5,
+            "attributes": [
+                "id",
+                "title"
+            ],
+            "facets": [
+                "brand",
+                "price"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "jurk",
+        "total": 5,
+        "offset": 0,
+        "limit": 5,
+        "view": null,
+        "results": [
+            {
+                "id": 1,
+                "title": "Rode jurk",
+                "formatted": {
+                    "title": "Rode <mark>jurk</mark>",
+                    "snippet": "Een lange rode <mark>jurk</mark> van zijde."
+                },
+                "labels": []
+            },
+            {
+                "id": 2,
+                "title": "Blauwe jurk",
+                "formatted": {
+                    "title": "Blauwe <mark>jurk</mark>",
+                    "snippet": "Een korte blauwe <mark>jurk</mark>."
+                },
+                "labels": []
+            },
+            {
+                "id": 3,
+                "title": "Jurk <b>deluxe</b> & co",
+                "formatted": {
+                    "title": "<mark>Jurk</mark> &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                    "snippet": "Feestelijke <mark>jurk</mark> met kant."
+                },
+                "labels": []
+            },
+            {
+                "id": 10,
+                "title": "Gouden jurk",
+                "formatted": {
+                    "title": "Gouden <mark>jurk</mark>",
+                    "snippet": "Een glanzende gouden <mark>jurk</mark>."
+                },
+                "labels": []
+            },
+            {
+                "id": 11,
+                "title": "Geheime jurk",
+                "formatted": {
+                    "title": "Geheime <mark>jurk</mark>",
+                    "snippet": "Alleen in de winkel."
+                },
+                "labels": []
+            }
+        ],
+        "facets": {
+            "brand": {
+                "stella": 4,
+                "rosa-clara": 1
+            },
+            "price": {
+                "129.95": 1,
+                "150": 1,
+                "199": 1,
+                "249": 1,
+                "89.5": 1
+            }
+        },
+        "facetStats": {
+            "price": {
+                "min": 89.5,
+                "max": 249.0
+            }
+        },
+        "labels": {
+            "brand": {
+                "stella": "Stella",
+                "rosa-clara": "Rosa Clará"
+            }
+        },
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

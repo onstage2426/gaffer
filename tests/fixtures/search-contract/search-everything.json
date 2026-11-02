@@ -1,0 +1,59 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "limit": 3,
+            "attributes": [
+                "id",
+                "title"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 12,
+        "offset": 0,
+        "limit": 3,
+        "view": null,
+        "results": [
+            {
+                "id": 1,
+                "title": "Rode jurk",
+                "formatted": {
+                    "title": "Rode jurk",
+                    "snippet": "Een lange rode jurk van zijde."
+                },
+                "labels": []
+            },
+            {
+                "id": 2,
+                "title": "Blauwe jurk",
+                "formatted": {
+                    "title": "Blauwe jurk",
+                    "snippet": "Een korte blauwe jurk."
+                },
+                "labels": []
+            },
+            {
+                "id": 3,
+                "title": "Jurk <b>deluxe</b> & co",
+                "formatted": {
+                    "title": "Jurk &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                    "snippet": "Feestelijke jurk met kant."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

@@ -1,0 +1,83 @@
+{
+    "call": "archive",
+    "args": [
+        "products",
+        {
+            "limit": 4,
+            "attributes": [
+                "id"
+            ],
+            "default_sort": [
+                "id:asc"
+            ]
+        },
+        {
+            "offset": "4"
+        },
+        "https://shop.test/winkel/"
+    ],
+    "expect": {
+        "token": {
+            "index": "products",
+            "limit": 4,
+            "default_sort": [
+                "id:asc"
+            ],
+            "attributes": [
+                "id"
+            ],
+            "site": 1,
+            "c": 1
+        },
+        "results": {
+            "query": "",
+            "total": 12,
+            "offset": 4,
+            "limit": 4,
+            "view": null,
+            "results": [
+                {
+                    "id": 5,
+                    "formatted": {
+                        "title": "Rode schoenen",
+                        "snippet": "Pumps met een lage hak."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 6,
+                    "formatted": {
+                        "title": "Zwarte schoenen",
+                        "snippet": "Sneakers voor de hele dag."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 7,
+                    "formatted": {
+                        "title": "Tiara",
+                        "snippet": "Tiara met kristallen."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 8,
+                    "formatted": {
+                        "title": "Clutch",
+                        "snippet": "Kleine tas voor het feest."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": [],
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": []
+        },
+        "url": "https://shop.test/winkel/?offset=4",
+        "indexable": false
+    }
+}

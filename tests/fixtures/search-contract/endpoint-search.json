@@ -1,0 +1,70 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "limit": 2,
+            "attributes": [
+                "id",
+                "title"
+            ],
+            "facets": [
+                "brand"
+            ]
+        }
+    ],
+    "query": {
+        "q": "jurk",
+        "sort": [
+            "id:asc"
+        ]
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "jurk",
+            "total": 5,
+            "offset": 0,
+            "limit": 2,
+            "view": null,
+            "results": [
+                {
+                    "id": 1,
+                    "title": "Rode jurk",
+                    "formatted": {
+                        "title": "Rode <mark>jurk</mark>",
+                        "snippet": "Een lange rode <mark>jurk</mark> van zijde."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 2,
+                    "title": "Blauwe jurk",
+                    "formatted": {
+                        "title": "Blauwe <mark>jurk</mark>",
+                        "snippet": "Een korte blauwe <mark>jurk</mark>."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": {
+                "brand": {
+                    "stella": 4,
+                    "rosa-clara": 1
+                }
+            },
+            "facetStats": [],
+            "labels": {
+                "brand": {
+                    "stella": "Stella",
+                    "rosa-clara": "Rosa Clará"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

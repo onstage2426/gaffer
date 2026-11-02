@@ -1,0 +1,72 @@
+/**
+ * Reference styling for the optional dual-range slider enhancement
+ * (GafferSearch.createDualRangeSlider — see docs/js.md).
+ *
+ * NOT loaded by the plugin — copy this into your own theme stylesheet and
+ * adjust. Fuzor ships no markup or styling of its own: your <form>, your
+ * class names, your layout. This covers only the structural CSS the slider
+ * actually depends on to work — positioning, hit targets, drag reliability —
+ * not colors, thickness, or shape, which are entirely your call.
+ */
+
+/* Highlight tags from search.php's highlight_pre_tag/highlight_post_tag (default <mark>) */
+mark { background: #fef08a; border-radius: 2px; }
+
+.gaffer-search-sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ── Dual-range slider ───────────────────────────────────────────
+   GafferSearch.createDualRangeSlider(minInput, maxInput, options) enhances two real
+   form <input> fields — those two inputs are the no-JS fallback, so they're
+   visually hidden here (not type="hidden", to keep validation/SR semantics),
+   not removed. The rail/fill/thumb below are plain divs the slider itself
+   creates and classes (see range-slider.js) — position/centering/touch-action
+   is what makes them actually work; everything else about how they look is
+   yours to decide. */
+
+.gaffer-search-range-input--enhanced {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.gaffer-search-range-track {
+    position: relative; /* positioning context for rail/thumb below */
+    height: 20px; /* needs enough height for the track's own pointerdown handling to have a hit area — adjust freely */
+}
+.gaffer-search-range-rail {
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 4px; /* your call — just keep it matching .gaffer-search-range-fill's */
+}
+.gaffer-search-range-fill {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 4px; /* match .gaffer-search-range-rail's height */
+    /* left/width are set inline by the slider itself at runtime — only
+       vertical centering is this file's concern */
+}
+.gaffer-search-range-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px; /* needs a real hit target size — exact value is yours */
+    touch-action: none; /* required for reliable pointer-drag on touch devices — don't drop this one */
+}
+.gaffer-search-range-thumb:focus-visible {
+    outline: 2px solid; /* don't ship with no focus indicator at all — color/width is yours */
+    outline-offset: 2px;
+}

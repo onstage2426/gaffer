@@ -1,0 +1,59 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "sort": [
+                "price:desc"
+            ],
+            "limit": 3,
+            "attributes": [
+                "id",
+                "price"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 12,
+        "offset": 0,
+        "limit": 3,
+        "view": null,
+        "results": [
+            {
+                "id": 3,
+                "price": 249,
+                "formatted": {
+                    "title": "Jurk &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                    "snippet": "Feestelijke jurk met kant."
+                },
+                "labels": []
+            },
+            {
+                "id": 10,
+                "price": 199,
+                "formatted": {
+                    "title": "Gouden jurk",
+                    "snippet": "Een glanzende gouden jurk."
+                },
+                "labels": []
+            },
+            {
+                "id": 11,
+                "price": 150,
+                "formatted": {
+                    "title": "Geheime jurk",
+                    "snippet": "Alleen in de winkel."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

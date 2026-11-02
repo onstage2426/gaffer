@@ -1,0 +1,78 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "limit": 5,
+            "attributes": [
+                "id"
+            ]
+        }
+    ],
+    "query": {
+        "offset": "5",
+        "sort": [
+            "id:asc"
+        ]
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 12,
+            "offset": 5,
+            "limit": 5,
+            "view": null,
+            "results": [
+                {
+                    "id": 6,
+                    "formatted": {
+                        "title": "Zwarte schoenen",
+                        "snippet": "Sneakers voor de hele dag."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 7,
+                    "formatted": {
+                        "title": "Tiara",
+                        "snippet": "Tiara met kristallen."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 8,
+                    "formatted": {
+                        "title": "Clutch",
+                        "snippet": "Kleine tas voor het feest."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 9,
+                    "formatted": {
+                        "title": "Bolero",
+                        "snippet": "Kanten bolero voor koude dagen."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 10,
+                    "formatted": {
+                        "title": "Gouden jurk",
+                        "snippet": "Een glanzende gouden jurk."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": [],
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

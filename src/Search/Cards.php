@@ -69,6 +69,29 @@ final class Cards
     }
 
     /**
+     * A hash of the theme files that define these callables ([class, method]), by content and
+     * relative to the theme: a change to a card method rebuilds the index like a template does.
+     *
+     * @param list<mixed> $callables
+     */
+    public static function code_version(array $callables): string
+    {
+        $files = [];
+        foreach ($callables as $callable) {
+            if (!is_array($callable) || !is_string($callable[0] ?? null) || !is_string($callable[1] ?? null) || !method_exists($callable[0], $callable[1])) {
+                continue;
+            }
+            $file = (string) realpath((string) new \ReflectionMethod($callable[0], $callable[1])->getFileName());
+            if (str_starts_with($file, self::root() . '/')) {
+                $files[substr($file, strlen(self::root()) + 1)] = md5_file($file);
+            }
+        }
+        ksort($files);
+
+        return md5((string) json_encode($files));
+    }
+
+    /**
      * The files a template is made of: itself, what it includes (recursively) and the files it
      * reads with source(); a computed name counts every file its pattern matches. Relative to the
      * theme: the same theme is often seen through two paths (a web server in a container, the

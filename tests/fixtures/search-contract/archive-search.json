@@ -1,0 +1,88 @@
+{
+    "call": "archive",
+    "args": [
+        "products",
+        {
+            "limit": 4,
+            "attributes": [
+                "id"
+            ],
+            "visibility": "catalog"
+        },
+        {
+            "q": "jurk",
+            "sort": [
+                "price:asc"
+            ]
+        },
+        "https://shop.test/winkel/"
+    ],
+    "expect": {
+        "token": {
+            "index": "products",
+            "limit": 4,
+            "attributes": [
+                "id"
+            ],
+            "filter": {
+                "visibility": {
+                    "not": [
+                        "exclude-from-catalog"
+                    ]
+                }
+            },
+            "site": 1,
+            "c": 1
+        },
+        "results": {
+            "query": "jurk",
+            "total": 5,
+            "offset": 0,
+            "limit": 4,
+            "view": null,
+            "results": [
+                {
+                    "id": 2,
+                    "formatted": {
+                        "title": "Blauwe <mark>jurk</mark>",
+                        "snippet": "Een korte blauwe <mark>jurk</mark>."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 1,
+                    "formatted": {
+                        "title": "Rode <mark>jurk</mark>",
+                        "snippet": "Een lange rode <mark>jurk</mark> van zijde."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 11,
+                    "formatted": {
+                        "title": "Geheime <mark>jurk</mark>",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 10,
+                    "formatted": {
+                        "title": "Gouden <mark>jurk</mark>",
+                        "snippet": "Een glanzende gouden <mark>jurk</mark>."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": [],
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": []
+        },
+        "url": "https://shop.test/winkel/?q=jurk&sort%5B%5D=price%3Aasc",
+        "indexable": false
+    }
+}

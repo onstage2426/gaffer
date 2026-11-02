@@ -1,0 +1,96 @@
+{
+    "setup": {
+        "terms": [
+            {
+                "id": 5,
+                "taxonomy": "product_cat",
+                "name": "Jurken",
+                "slug": "jurken"
+            }
+        ]
+    },
+    "call": "archive",
+    "args": [
+        "products",
+        {
+            "limit": 24,
+            "attributes": [
+                "id"
+            ],
+            "term": 5,
+            "default_sort": [
+                "id:asc"
+            ]
+        },
+        {
+            "filter": {
+                "color": [
+                    "rood"
+                ],
+                "brand": "stella"
+            }
+        },
+        "https://shop.test/winkel/"
+    ],
+    "expect": {
+        "token": {
+            "index": "products",
+            "limit": 24,
+            "default_sort": [
+                "id:asc"
+            ],
+            "attributes": [
+                "id"
+            ],
+            "filter": {
+                "category": "jurken"
+            },
+            "site": 1,
+            "c": 1
+        },
+        "results": {
+            "query": "",
+            "total": 2,
+            "offset": 0,
+            "limit": 24,
+            "view": null,
+            "results": [
+                {
+                    "id": 1,
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 11,
+                    "formatted": {
+                        "title": "Geheime jurk",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": {
+                "brand": {
+                    "stella": "Stella"
+                },
+                "category": {
+                    "jurken": "Jurken"
+                },
+                "color": {
+                    "rood": "Rood"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": []
+        },
+        "url": "https://shop.test/winkel/?filter%5Bbrand%5D=stella&filter%5Bcolor%5D%5B%5D=rood",
+        "indexable": false
+    }
+}

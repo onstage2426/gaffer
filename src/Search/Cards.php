@@ -60,7 +60,7 @@ final class Cards
         }
 
         $files = self::files($template);
-        $hash = md5(implode("\0", array_map(static fn(string $file): string => $file . "\0" . md5_file($file), array_keys($files))));
+        $hash = md5(implode("\0", array_map(static fn(string $file): string => $file . "\0" . md5_file(Paths::base($file)), array_keys($files))));
         if (function_exists('set_transient')) {
             \set_transient($key, ['files' => $files, 'hash' => $hash], WEEK_IN_SECONDS);
         }
@@ -70,9 +70,11 @@ final class Cards
 
     /**
      * The files a template is made of: itself, what it includes (recursively) and the files it
-     * reads with source(); a computed name counts every file its pattern matches.
+     * reads with source(); a computed name counts every file its pattern matches. Relative to the
+     * theme: the same theme is often seen through two paths (a web server in a container, the
+     * CLI on the host), which must agree on the version.
      *
-     * @return array<string, int> file => modification time, sorted
+     * @return array<string, int> file (relative to the theme) => modification time, sorted
      */
     public static function files(string $template): array
     {
@@ -90,7 +92,7 @@ final class Cards
             if ($file === null) {
                 continue;
             }
-            $files[$file] = (int) filemtime($file);
+            $files[substr($file, strlen(self::root()) + 1)] = (int) filemtime($file);
             if (!str_ends_with($name, '.twig')) {
                 continue;
             }
@@ -127,11 +129,12 @@ final class Cards
         return $env;
     }
 
-    /** @param array<mixed> $files file => modification time */
+    /** @param array<mixed> $files file (relative to the theme) => modification time */
     private static function unchanged(array $files): bool
     {
         foreach ($files as $file => $mtime) {
-            if (!is_file((string) $file) || filemtime((string) $file) !== $mtime) {
+            $path = Paths::base((string) $file);
+            if (!is_file($path) || filemtime($path) !== $mtime) {
                 return false;
             }
         }
@@ -147,7 +150,16 @@ final class Cards
             return null;
         }
 
-        return $path !== '' && is_file($path) ? $path : null;
+        // Only files inside the theme count (and can be named relative to it).
+        $path = $path !== '' ? (string) realpath($path) : '';
+
+        return $path !== '' && str_starts_with($path, self::root() . '/') ? $path : null;
+    }
+
+    /** The theme folder as the filesystem has it (realpath): template paths resolve to it. */
+    private static function root(): string
+    {
+        return (string) (realpath(Paths::base()) ?: Paths::base());
     }
 
     /**

@@ -59,7 +59,7 @@ final class SearchTest extends TestCase
 
     public function test_a_cards_files_are_it_and_everything_it_includes(): void
     {
-        $theme = sys_get_temp_dir() . '/gaffer-search-' . bin2hex(random_bytes(4));
+        $theme = (string) realpath(sys_get_temp_dir()) . '/gaffer-search-' . bin2hex(random_bytes(4));
         mkdir("{$theme}/views/product/icons", 0777, true);
         file_put_contents("{$theme}/views/product/card.twig", "{{ include('product/badges.twig') }}{{ source('product/icons/' ~ icon ~ '.svg') }}{% include 'product/badges.twig' %}");
         file_put_contents("{$theme}/views/product/badges.twig", "{{ include('product/price.twig', with_context = false) }}");
@@ -72,7 +72,7 @@ final class SearchTest extends TestCase
 
         self::assertSame(
             ['badges.twig', 'card.twig', 'icons/a.svg', 'icons/b.svg', 'price.twig'],
-            array_map(static fn(string $file): string => substr($file, strlen("{$theme}/views/product/")), array_keys(Cards::files('product/card.twig'))),
+            array_map(static fn(string $file): string => substr($file, strlen('views/product/')), array_keys(Cards::files('product/card.twig'))),
         );
         View::env()->addExtension(new \Twig\Extension\StringLoaderExtension());
         self::assertTrue(View::env()->hasExtension(\Twig\Extension\StringLoaderExtension::class), 'the main environment still takes extensions');

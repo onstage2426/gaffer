@@ -265,8 +265,12 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   is blueprint's own repo; before-state tagged
   `pre-gaffer-search` in its theme repo, files + DB dump in
   `~/backups/verdemare-wp-2026-11-02-pre-gaffer-search/`), then blueprint and blueprint-base;
-  then the plugin's old theme API and its general dashboard go (`design.md` step 5) and Gaffer's
-  `plugins/fuzor` guideline/skill with them. The Fuzor library itself stays standalone.
+  the plugin's old theme API and its general dashboard are gone (2026-11-02); Gaffer's
+  `plugins/fuzor` guideline/skill stays until blueprint and blueprint-base have switched. The
+  Fuzor library itself stays standalone. **Pending:** a Claude Code on another server (a
+  multisite on fuzor-wp and an old Gaffer) got a gaffer-search zip and a prompt
+  (`~/handoff/gaffer-search-2026-11-02/`) to integrate and write a feedback report: work on that
+  report when the user brings it (questions to the user, verify on verdemare, then a new zip).
 
 ## Open
 

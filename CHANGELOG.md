@@ -7,6 +7,43 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-02
+
+### New: `Gaffer\Search` for the gaffer-search plugin
+
+Search, the shop archive and product sliders are now configured in
+`config/search.php` and come to templates from `Gaffer\Search\Search`
+(`archive()`, `cards()`, `searchbar()`); the browser side is Gaffer's
+`resources/js/search.js`, imported into the theme's components. Gaffer renders
+the cards into the index, rebuilds it when the card template (or anything it
+includes) changes, and adds the archive's redirects, canonical URL and robots.
+The plugin's own theme API (`gaffer_search_*()`, its hooks,
+`window.GafferSearch`) still works, but goes away once sites have moved.
+
+Only for sites with gaffer-search (sites still on fuzor-wp: nothing to do).
+Find: `grep -rnE "gaffer_search_|GafferSearch" app inc views assets woocommerce *.php`
+(`php gaffer doctor` lists them too).
+
+Before (`inc/…` and `Theme\Search`):
+
+```php
+add_action('gaffer_search_register_indexes', fn() => gaffer_search_register_index(new IndexDefinition(...), new ProductIndexBuilder(...)));
+add_filter('gaffer_search_index_document', Search::with_cards(...), 10, 2);
+$archive = gaffer_search_archive('products', [...]);
+```
+
+After (`config/search.php`, then `Search::archive()` in the template file):
+
+```php
+'indexes' => ['products' => ['type' => 'products', 'searchable' => [...], 'card' => 'product/card.twig']],
+'archive' => ['index' => 'products', 'per_page' => 24, 'sorts' => [...]],
+```
+
+The `gaffer-search` skill has the whole mapping (card variants, the searchbar,
+the JavaScript). Check: `php gaffer doctor --wp` shows no `search` errors or
+old-API warnings; `render:diff` against a snapshot from before shows the same
+products; `render:screenshot` of the searchbar and an archive sort.
+
 ## 2026-11-01
 
 ### New: `ajax:call` / `ajax:end`, and `--session` for screenshots

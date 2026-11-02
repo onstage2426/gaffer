@@ -12,6 +12,7 @@ use Gaffer\Mcp\Tools\Forms;
 use Gaffer\Mcp\Tools\LastErrors;
 use Gaffer\Mcp\Tools\Render;
 use Gaffer\Mcp\Tools\Screenshot;
+use Gaffer\Mcp\Tools\Search;
 use Gaffer\Paths;
 use RuntimeException;
 
@@ -66,7 +67,7 @@ final class Mcp
                 'gaffer',
                 'mcp',
                 'Gaffer',
-                'Development tools for this Gaffer theme: block usage, doctor, rendering and screenshotting pages, recent errors' . (class_exists('GFAPI') ? ', Gravity Forms forms' : '') . '.',
+                'Development tools for this Gaffer theme: block usage, doctor, rendering and screenshotting pages, searching indexes, recent errors' . (class_exists('GFAPI') ? ', Gravity Forms forms' : '') . '.',
                 '1.0.0',
                 [], // no transport: STDIO through `wp mcp-adapter serve` only, no REST endpoint
                 null,
@@ -163,7 +164,7 @@ final class Mcp
     public static function tools(): array
     {
         return array_values(array_filter(
-            [new BlockUsage(), new Doctor(), new Render(), new Screenshot(), new LastErrors(), new Forms()],
+            [new BlockUsage(), new Doctor(), new Render(), new Screenshot(), new Search(), new LastErrors(), new Forms()],
             static fn(Tool $tool): bool => $tool->available(),
         ));
     }

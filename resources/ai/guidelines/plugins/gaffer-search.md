@@ -1,0 +1,25 @@
+## Search (gaffer-search)
+
+The gaffer-search plugin is active: search, faceted archives and product
+sliders from its own index, through Gaffer. Before changing search, a
+searchbar, an archive or `config/search.php`, follow the `gaffer-search` skill.
+Always:
+
+- **Configured, not coded:** indexes and the shop archive are
+  `config/search.php`; templates get their data from
+  `Gaffer\Search\Search` (`archive()`, `cards()`, `searchbar()`). Never call
+  the plugin itself (`gaffer_search_*()`, its hooks, `window.GafferSearch`):
+  that API goes away, and `doctor` flags it.
+- **Cards are rendered into the index** from the `card` template: they come
+  back as trusted markup (`{{ card }}`, no `|raw`). A changed card template, or
+  anything it includes, rebuilds the index by itself.
+- **Values are term slugs, shown as labels:** filters, facet keys and URLs use
+  slugs; responses carry the names (`labels`). Never show a slug.
+- **The browser continues the server's page** with Gaffer's JavaScript
+  (`vendor/onstage2426/gaffer/resources/js/search.js`, imported into the
+  theme's own components): components add only UI state.
+- **Cards with forms stay outside the search form:** the component sits on a
+  wrapper around form, list and pages.
+- **Check it:** `php gaffer doctor --wp` (index built and current, one card
+  rendered with strict variables), `gaffer-search` (MCP) to search an index,
+  `render:screenshot` with `--fill`/`--click` for the browser side.

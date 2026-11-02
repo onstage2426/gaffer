@@ -42,6 +42,7 @@ final class AiUpdate extends Command
             'acf' => class_exists('ACF'),
             'gravityforms' => class_exists('GFAPI'),
             'fuzor' => function_exists('fuzor_archive'),
+            'gaffer-search' => \Gaffer\Search\Engine::find() !== null,
             'mcp-adapter' => Mcp::enabled(),
         ]));
 

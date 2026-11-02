@@ -16,6 +16,10 @@ use Gaffer\Forms\GravityForm;
 use Gaffer\Mcp\Mcp;
 use Gaffer\Mcp\Tool;
 use Gaffer\Paths;
+use Gaffer\Search\Cards;
+use Gaffer\Search\Engine as SearchEngine;
+use Gaffer\Search\Indexes;
+use Gaffer\View;
 use Gaffer\Types\Image;
 use RuntimeException;
 use WP_Block_Type_Registry;
@@ -39,6 +43,7 @@ final class WordPressCheck implements Check
         $this->field_groups($report);
         $this->woocommerce_templates($report);
         $this->forms($report);
+        $this->search($report);
         $this->menus($report);
         $this->image_sizes($report);
         $this->mcp($report);
@@ -531,6 +536,73 @@ final class WordPressCheck implements Check
             foreach ($gravity->unnamed() as $field) {
                 $report->warning('forms', "{$gravity->title()}: field \"{$field->label}\" has no Admin Field Label, so the theme can't send it", $file);
             }
+        }
+    }
+
+    /**
+     * The search as the engine sees it: config/search.php's definitions (the engine's problems()),
+     * every index built and from the current definition, and one real card rendered with strict
+     * variables, the way the index renders them.
+     */
+    private function search(Report $report): void
+    {
+        $indexes = Indexes::all();
+        if ($indexes === []) {
+            return;
+        }
+        $file = Paths::base('config/search.php');
+        $engine = SearchEngine::find();
+        if ($engine === null) {
+            $report->error('search', 'config/search.php defines indexes, but the gaffer-search plugin isn\'t active (or doesn\'t speak contract ' . SearchEngine::CONTRACT . ')', $file, null,
+                'Activate gaffer-search (or update it); until then search shows nothing.');
+            return;
+        }
+        $definitions = Indexes::definitions($indexes);
+        foreach ($engine->problems($definitions) as $problem) {
+            $report->error('search', $problem, $file);
+        }
+
+        $status = $engine->status();
+        foreach ($definitions as $name => $definition) {
+            $state = $status[$name] ?? null;
+            if ($state === null) {
+                $report->error('search', "Index \"{$name}\" isn't defined in the engine", $file, null, 'Its definition has problems (above), or Gaffer didn\'t boot.');
+                continue;
+            }
+            if ($state['error'] !== null) {
+                $report->error('search', "Index \"{$name}\": the last build failed: {$state['error']}", $file);
+            }
+            if (!$state['built']) {
+                $report->error('search', "Index \"{$name}\" isn't built" . ($state['building'] ? ' yet (building now)' : ''), $file, null, 'wp gaffer-search rebuild, or Settings → Gaffer Search.');
+                continue;
+            }
+            if ($state['version'] !== $definition['version']) {
+                $report->warning('search', "Index \"{$name}\" was built from an older definition or card template" . ($state['building'] ? ' (rebuilding now)' : ''), $file, null,
+                    'It rebuilds in the background (WP-cron); wp gaffer-search rebuild does it now.');
+            }
+            $this->search_card($report, $engine, $name);
+        }
+    }
+
+    private function search_card(Report $report, SearchEngine $engine, string $index): void
+    {
+        $definition = Indexes::get($index) ?? [];
+        if (!is_string($definition['card'] ?? null)) {
+            return;
+        }
+        $id = (int) ($engine->search($index, ['limit' => 1, 'attributes' => ['id']])['results'][0]['id'] ?? 0);
+        if ($id === 0) {
+            return;
+        }
+        View::env()->enableStrictVariables();
+        try {
+            $fields = Cards::fields($index, $id);
+            if ($fields === []) {
+                $report->warning('search', "Index \"{$index}\": no card for document {$id}", Paths::base('config/search.php'), null, 'Post::from() found no post for it.');
+            }
+        } catch (\Throwable $e) {
+            $report->error('search', "Index \"{$index}\": the card doesn't render for document {$id}: " . ($e instanceof \Twig\Error\Error ? $e->getRawMessage() : $e->getMessage()),
+                $e instanceof \Twig\Error\Error ? $e->getSourceContext()?->getPath() : $e->getFile(), $e instanceof \Twig\Error\Error ? $e->getTemplateLine() : $e->getLine());
         }
     }
 

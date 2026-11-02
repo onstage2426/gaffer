@@ -101,6 +101,17 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
   live theme: staged against live, before switching. No throwaway compare
   scripts. A redesign changes every page, so the diff says nothing there:
   compare `render:screenshot` (with `--theme=theme-stage`) instead.
+- **Running from the copy:** `php gaffer` in `theme-stage` (when the copy
+  has the active theme's `Theme Name`) loads WordPress with the copy as the
+  active theme, the live theme's menus and customizer settings, and no
+  persistent object cache (Redis): `doctor --wp`, `render:*` and
+  `config:show` see the copy, and nothing it computes lands in the live
+  site's cache. For WP-CLI (building search indexes before the switch) the
+  same with `wp --require=vendor/onstage2426/gaffer/bin/stage.php …`, checked
+  by `wp --require=… eval 'echo get_stylesheet();'`. `migrate:* --run` is
+  refused there (the live cache wouldn't see the writes): run migrations
+  from the active theme, after the deploy. The live site keeps the active
+  theme until you switch.
 - Make a database backup first on a live site, and run it right after
   deploying the code (until then a renamed field shows empty).
 - Page caches: the write bypasses `wp_update_post()`, so only cache plugins

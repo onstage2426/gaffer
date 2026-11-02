@@ -14,6 +14,9 @@ final class WordPress
 {
     private static bool $loaded = false;
 
+    /** @var string|false|null the active theme this one is a staged copy of; false: not a copy, null: not looked up yet */
+    private static string|false|null $staged_from = null;
+
     public static function load(?string $url = null): void
     {
         if (self::$loaded) {
@@ -33,13 +36,15 @@ final class WordPress
     }
 
     /**
-     * Everything before wp-load.php: the fake request, no page cache drop-in, a clear error
-     * for an unknown multisite site, the admin memory limit, fatal errors on the terminal.
+     * Everything before wp-load.php: the fake request, no page cache drop-in, a staged copy
+     * loaded as the active theme, a clear error for an unknown multisite site, the admin memory
+     * limit, fatal errors on the terminal.
      */
     public static function prepare(?string $url): void
     {
         self::fake_request($url ?? Env::get('SITE_URL'));
         self::skip_page_cache();
+        self::as_this_theme();
         self::fail_on_unknown_site();
         self::raise_memory_limit();
         self::report_fatal();
@@ -106,6 +111,92 @@ final class WordPress
             'function' => static fn(): bool => false,
             'accepted_args' => 1,
         ];
+    }
+
+    /**
+     * Run from a staged copy of the active theme (`cp -r theme theme-stage` next to it, vendor/
+     * included; see staged_from()), WordPress loads the copy instead, with the active theme's
+     * theme mods (menu locations and customizer settings are stored per theme), and without the
+     * persistent object cache: the copy's values (WooCommerce caches template paths, without
+     * the theme in the key) would end up in the live site's cache. Run from the active theme,
+     * or on a site whose theme isn't a copy of this one, nothing changes. Hooked before
+     * WordPress loads, like skip_page_cache().
+     */
+    public static function as_this_theme(): void
+    {
+        if (function_exists('add_filter')) {
+            return;
+        }
+        $slug = basename(Paths::base());
+        $GLOBALS['wp_filter']['enable_loading_object_cache_dropin'][PHP_INT_MAX][] = [
+            'function' => static fn(bool $enabled): bool => $enabled && self::staged_from() === null,
+            'accepted_args' => 1,
+        ];
+        foreach (['stylesheet', 'template'] as $hook) {
+            $GLOBALS['wp_filter'][$hook][PHP_INT_MAX][] = [
+                'function' => static fn(string $current): string => $current !== '' && $current === self::staged_from() ? $slug : $current,
+                'accepted_args' => 1,
+            ];
+        }
+        $GLOBALS['wp_filter']["pre_option_theme_mods_{$slug}"][10][] = [
+            'function' => static fn(mixed $value): mixed => self::staged_from() !== null ? \get_option('theme_mods_' . self::staged_from()) : $value,
+            'accepted_args' => 1,
+        ];
+    }
+
+    /**
+     * The directory name of the active theme when this theme is a staged copy of it: another
+     * Gaffer theme in the same themes folder with the same Theme Name in style.css. Read from
+     * the database, as the object cache is decided before WordPress reads any option (on a
+     * multisite, the site from the request's host and path, as WordPress picks it).
+     */
+    public static function staged_from(): ?string
+    {
+        if (self::$staged_from === null) {
+            self::$staged_from = false;
+            $active = self::active_stylesheet();
+            $dir = dirname(Paths::base()) . "/{$active}";
+            if ($active !== null && $active !== basename(Paths::base()) && is_file("{$dir}/gaffer")
+                && self::theme_name("{$dir}/style.css") !== null && self::theme_name("{$dir}/style.css") === self::theme_name(Paths::base('style.css'))) {
+                self::$staged_from = $active;
+            }
+        }
+
+        return self::$staged_from !== false ? self::$staged_from : null;
+    }
+
+    private static function active_stylesheet(): ?string
+    {
+        $wpdb = $GLOBALS['wpdb'] ?? null;
+        if (!$wpdb instanceof \wpdb) {
+            return null;
+        }
+        $table = $wpdb->options;
+        if (\is_multisite()) {
+            $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+            $uri = strtolower((string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH));
+            $site = null;
+            foreach ((array) $wpdb->get_results($wpdb->prepare("SELECT blog_id, path FROM {$wpdb->blogs} WHERE domain = %s", $host)) as $row) {
+                $path = strtolower((string) $row->path);
+                if (str_starts_with(rtrim($uri, '/') . '/', $path) && ($site === null || strlen($path) > strlen($site->path))) {
+                    $site = $row;
+                }
+            }
+            if ($site === null) {
+                return null; // WordPress reports the unknown site itself (fail_on_unknown_site())
+            }
+            $table = $wpdb->get_blog_prefix((int) $site->blog_id) . 'options';
+        }
+        $value = $wpdb->get_var("SELECT option_value FROM {$table} WHERE option_name = 'stylesheet'");
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    private static function theme_name(string $style): ?string
+    {
+        $head = is_file($style) ? (string) file_get_contents($style, false, null, 0, 8192) : '';
+
+        return preg_match('/^[ \t\/*#@]*Theme Name:(.*)$/mi', $head, $match) ? (trim($match[1]) ?: null) : null;
     }
 
     /**

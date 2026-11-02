@@ -9,6 +9,7 @@ use Gaffer\Console\Command;
 use Gaffer\Console\Migrate\ContentStore;
 use Gaffer\Console\Migrate\Location;
 use Gaffer\Console\Migrate\Migration;
+use Gaffer\Console\WordPress;
 use RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -42,6 +43,11 @@ abstract class MigrateCommand extends Command
             $this->plan($migration, $input);
         } catch (RuntimeException $e) {
             $migration->problem($e->getMessage());
+        }
+        $staged = WordPress::staged_from();
+        if ($staged !== null && $input->getOption('run')) {
+            // Without the persistent object cache (WordPress::as_this_theme()), the live site's cache wouldn't see the change.
+            $migration->problem("This is a staged copy of the active theme \"{$staged}\": run migrations from the active theme, after the deploy (a dry run here is fine)");
         }
 
         return $migration->finish($output, (bool) $input->getOption('run'));

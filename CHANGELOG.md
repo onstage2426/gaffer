@@ -9,6 +9,27 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-02
 
+### `php gaffer` from a staged copy loads the copy
+
+Run from a full copy of the active theme next to it (`cp -r theme theme-stage`, same `Theme Name`
+in `style.css`), every command loads WordPress with the copy as the active theme (the live theme's
+menus and customizer settings) and without the persistent object cache (Redis): before, the live
+theme loaded too (`Cannot redeclare class ComposerAutoloader…`) and renders could put the copy's
+values in the live site's cache. For WP-CLI from the copy:
+`wp --require=vendor/onstage2426/gaffer/bin/stage.php <command>`. `migrate:* --run` is refused
+from a copy (run migrations from the active theme, after the deploy).
+Nothing to change. Check: in the copy, `wp --require=vendor/onstage2426/gaffer/bin/stage.php eval
+'echo get_stylesheet();'` prints the copy's directory name.
+
+### `doctor`: fuzor-wp's API, `ai:update` after `composer update`
+
+`doctor` lists fuzor-wp's theme API (`fuzor_*()` and its hooks, `window.Fuzor`, `data-fuzor-*`,
+`FuzorSearch\`) like gaffer-search's old one: a site on fuzor-wp gets these warnings until it
+moves to `config/search.php` (baseline them until then: `php gaffer doctor --baseline`). It also
+warns when a theme with `config/ai.php` doesn't run `ai:update` from Composer.
+Find: `grep -n post-update-cmd composer.json`. After: `"scripts": { "post-update-cmd": ["@php
+gaffer ai:update --ansi"] }`. Check: `php gaffer doctor` has no `config` warning.
+
 ### New: `Blocks::markup()` for content written by code
 
 `Gaffer\Blocks::markup('acf/content-faq', ['titel' => …, 'vragen' => [['vraag' => …]]])` gives

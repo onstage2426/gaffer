@@ -230,7 +230,9 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   - verdemare-wp (theme `blueprint`: a full copy of blueprint, code and
     database, made into a WooCommerce site by its own Claude Code; its field
     report of 2026-10-31 drove the memory, `SITE_URL`, `remove-field`, spam
-    header and `|raw` trust changes; not ours to commit);
+    header and `|raw` trust changes; the user's demo site: we may change and
+    commit there, never push (its `origin` is blueprint's repo); the search
+    test site);
   - a live site on another server (no WooCommerce, forms or Fuzor; WP Rocket);
   - Bestratingsmarkt, a large live WooCommerce multisite (WP Rocket, Redis,
     YITH filters, Gravity Forms shortcodes) converted to Gaffer by its own
@@ -256,10 +258,11 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   every clone class>` and the theme's `gaffer` entry pointed at the clone
   temporarily (`git checkout gaffer` afterwards).
 - **Search:** gaffer-search (`~/workspace/gaffer-search`, private repo
-  `onstage2426/gaffer-search`, the user pushes it) continues fuzor-wp (frozen) as Gaffer's
+  `onstage2426/gaffer-search`; push it when a change is verified, the user tags releases) continues fuzor-wp (frozen) as Gaffer's
   search engine behind a data-only contract (`docs/contract.md` there, frozen fixtures);
   `Gaffer\Search` is the theme side (see Architecture). Sites move from fuzor-wp / the plugin's
-  old theme API to `config/search.php`: verdemare done 2026-11-02 (uncommitted there; before-state tagged
+  old theme API to `config/search.php`: verdemare done 2026-11-02 (committed there as `e167806`, never pushed: its `origin`
+  is blueprint's own repo; before-state tagged
   `pre-gaffer-search` in its theme repo, files + DB dump in
   `~/backups/verdemare-wp-2026-11-02-pre-gaffer-search/`), then blueprint and blueprint-base;
   then the plugin's old theme API and its general dashboard go (`design.md` step 5) and Gaffer's

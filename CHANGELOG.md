@@ -9,6 +9,21 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-02
 
+### Search: card methods rebuild, `search.available`, the `@gaffer` alias
+
+For sites on `config/search.php` (gaffer-search). A change to the file of a `card_context` or
+`card_variants` method now rebuilds the index like a template change. `doctor` warns when a
+theme uses `Search::archive()` but no template reads `search.available` (without the plugin the
+shop would show no products and nothing says why). The unavailable archive's `results` is the
+normal empty response now (a template reading `search.results.offset` no longer fails).
+
+Find: `grep -rn "vendor/onstage2426/gaffer/resources/js" assets`.
+Before: `import { archive } from "../../../vendor/onstage2426/gaffer/resources/js/search.js";`
+After: in `vite.config.js` `resolve: { alias: { "@gaffer": path.resolve("vendor/onstage2426/gaffer/resources/js") } }`,
+then `import { archive } from "@gaffer/search.js";`. Check: `npm run build`; `php gaffer doctor`
+has no `search` warning (add `{% if not search.available %}…{% endif %}` to the archive template
+and leave the searchbar out when it's unavailable).
+
 ### New: `Gaffer\Search` for the gaffer-search plugin
 
 Search, the shop archive and product sliders are now configured in

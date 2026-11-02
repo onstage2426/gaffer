@@ -16,8 +16,9 @@ Always:
 - **Values are term slugs, shown as labels:** filters, facet keys and URLs use
   slugs; responses carry the names (`labels`). Never show a slug.
 - **The browser continues the server's page** with Gaffer's JavaScript
-  (`vendor/onstage2426/gaffer/resources/js/search.js`, imported into the
-  theme's own components): components add only UI state.
+  (`@gaffer/search.js`, the Vite alias for
+  `vendor/onstage2426/gaffer/resources/js`): components add only UI state.
+- **Without the plugin** templates get `available` false: say so, never break.
 - **Cards with forms stay outside the search form:** the component sits on a
   wrapper around form, list and pages.
 - **Check it:** `php gaffer doctor --wp` (index built and current, one card

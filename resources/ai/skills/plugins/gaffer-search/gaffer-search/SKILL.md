@@ -52,8 +52,9 @@ return [
   display filter around it) and `card_variant => [Theme\Business::class,
   'variant']` (returns `'business'` or null for this visitor). Each variant is
   a field of its own (`card_business`); its visitors' tokens expire after a
-  day, so such pages mustn't be cached for others. A change to these methods
-  (not the templates) doesn't rebuild by itself: `wp gaffer-search rebuild`.
+  day, so such pages mustn't be cached for others. A change to the card
+  template, anything it includes, or the files of `card_context`/variant
+  methods rebuilds the index by itself.
 - **The archive** (`archive`): the shop, product categories and the shop's
   search results (`?q=`). Gaffer adds the redirects (`/page/N/` → `offset`,
   WooCommerce's `orderby`/`min_price`/`filter_*`), the canonical URL and robots
@@ -81,8 +82,10 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
 </div>
 ```
 
-- `search.available` is false without the plugin: show the page without
-  products rather than an error.
+- `search.available` is false without the plugin (or when it doesn't speak
+  Gaffer's contract): say so in the archive (`{% if not search.available %}`
+  "products can't be shown right now"; `doctor` warns when no template reads
+  it) and leave the searchbar out (`Search::searchbar()` has `available` too).
 - Sliders: `Search::cards('products', 10, ['total_sales:desc'], $category, except: $post)`.
 - A searchbar: `Search::searchbar('products', 8, facets: ['price', 'category'],
   attributes: ['id', 'url', 'thumbnail', 'price', 'category'])` gives
@@ -94,9 +97,15 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
 
 ## JavaScript
 
+The theme's `vite.config.js` gets an alias for Gaffer's JavaScript:
+
+```js
+resolve: { alias: { "@gaffer": path.resolve("vendor/onstage2426/gaffer/resources/js") } },
+```
+
 ```js
 import htmx from "htmx.org";
-import { archive } from "../../../vendor/onstage2426/gaffer/resources/js/search.js";
+import { archive } from "@gaffer/search.js";
 
 Alpine.data("archive", (options) => archive({ ...options, itemClass: "flex flex-col", onRender: (list) => htmx.process(list) }));
 ```
@@ -106,7 +115,8 @@ Alpine.data("archive", (options) => archive({ ...options, itemClass: "flex flex-
 - A searchbar spreads `createAlpineSearch({ minQueryLength: 1 })` and adds its
   UI state; `getFacetOptions()`, `formatCurrency()`,
   `createDualRangeSlider()` (`slider.syncFromStats(data.facetStats.price)`),
-  `getPageNumbers()` are there too. Filters, pages, back/forward and the
+  `getPageNumbers()` are there too (starting styles for the slider:
+  `vendor/onstage2426/gaffer/resources/js/search/range-slider.css`). Filters, pages, back/forward and the
   request are the helpers': don't rebuild them. Hooks as methods
   (`onSuccess(data) { this.… }`), not arrow functions.
 - A field the form shouldn't send leaks in as a console warning "Parameters

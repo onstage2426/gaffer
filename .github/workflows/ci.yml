@@ -21,3 +21,7 @@ jobs:
       # PHPUnit, including the public API snapshot (tests/ApiTest.php vs api.txt)
       - run: composer test
       - run: composer phpstan -- --no-progress
+
+      # The search JavaScript (resources/js/search/), tests/js
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install && bun test

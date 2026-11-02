@@ -2,3 +2,4 @@
 /tmp/
 .phpactor.json
 .phpunit.result.cache
+/node_modules/

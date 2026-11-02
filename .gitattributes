@@ -4,3 +4,6 @@
 /phpunit.xml.dist export-ignore
 /phpstan.neon export-ignore
 /AGENTS_DEV.md export-ignore
+/package.json export-ignore
+/bun.lock export-ignore
+/bunfig.toml export-ignore

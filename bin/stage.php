@@ -6,12 +6,20 @@
  * object cache, as `php gaffer` does from there (Gaffer\Console\WordPress::as_this_theme()).
  * From the active theme it changes nothing.
  *
+ * Only Gaffer's own classes are loaded here: the theme's Composer autoloader (its functions.php
+ * loads it) would win over WP-CLI's bundled libraries (Symfony) before WordPress loads.
+ *
  * @internal
  */
 
 declare(strict_types=1);
 
-require_once dirname(__DIR__, 3) . '/autoload.php';
+spl_autoload_register(static function (string $class): void {
+    $file = dirname(__DIR__) . '/src/' . str_replace('\\', '/', substr($class, strlen('Gaffer\\'))) . '.php';
+    if (str_starts_with($class, 'Gaffer\\') && is_file($file)) {
+        require $file;
+    }
+});
 
 Gaffer\Gaffer::configure(dirname(__DIR__, 4));
 Gaffer\Console\WordPress::as_this_theme();

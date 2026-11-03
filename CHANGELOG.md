@@ -20,7 +20,8 @@ For sites on `config/search.php`:
 - `Search::archive_url($term, ['show' => 'all', 'filter' => …])` keeps the `urls.base_params`
   you pass (before: dropped, so an overview page's filter links lost `?show=all`).
 - A submit of the archive form without JavaScript (its hidden `token` and empty fields in the URL)
-  301s to the normalized URL of the same search.
+  301s to the normalized URL of the same search, without the default page size (`limit` equal to
+  `per_page`), so a sale filter lands on the indexable sale page.
 - `doctor` no longer calls a `cards` template unused (a list layout no PHP renders).
 - With the gaffer-search plugin `0.0.0+f39884a` or newer, the live theme's requests no longer
   empty the search endpoint's index list while a staged copy is checked (searches from the stage

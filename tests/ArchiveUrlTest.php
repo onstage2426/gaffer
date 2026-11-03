@@ -122,6 +122,8 @@ final class ArchiveUrlTest extends TestCase
             '/afwatering/?show=all&filter%5Bbrand%5D%5B%5D=x&view=list',
             ArchiveUrl::redirect(self::PRODUCTS, ['token' => 'abc', 'show' => 'all', 'q' => '', 'offset' => '0', 'sort' => [''], 'filter' => ['brand' => ['x'], 'price' => ['min' => '', 'max' => '']], 'view' => 'list'], 0, 24, '/afwatering/?show=all'),
         );
+        self::assertSame('/assortiment/?filter%5Bon_sale%5D=yes', ArchiveUrl::redirect(self::PRODUCTS, ['token' => 'abc', 'filter' => ['on_sale' => 'yes'], 'limit' => '24'], 0, 24, '/assortiment/'), 'the default page size goes: the indexable sale page');
+        self::assertSame('/assortiment/?filter%5Bon_sale%5D=yes&limit=48', ArchiveUrl::redirect(self::PRODUCTS, ['token' => 'abc', 'filter' => ['on_sale' => 'yes'], 'limit' => '48'], 0, 24, '/assortiment/'), 'a chosen one stays');
     }
 
     public function test_the_urls_params_as_the_search_request(): void

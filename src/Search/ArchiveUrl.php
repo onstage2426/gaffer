@@ -98,6 +98,10 @@ final class ArchiveUrl
             // in the URL. The normalized URL of the same search instead (base params are in
             // $base, the layout kept).
             $view = is_scalar($translated['view'] ?? null) ? (string) $translated['view'] : '';
+            // The form's own page size is the default: without it, the indexable page (a sale page).
+            if (is_numeric($translated['limit'] ?? null) && (int) $translated['limit'] === $per_page) {
+                unset($translated['limit']);
+            }
             $url = self::url($base, $translated);
 
             return $view !== '' ? $url . (str_contains($url, '?') ? '&' : '?') . 'view=' . rawurlencode($view) : $url;

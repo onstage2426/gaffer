@@ -18,7 +18,7 @@ use Gaffer\Types\Post;
 final class Indexes
 {
     /** Keys Gaffer handles itself; every other key goes to the engine as it is. */
-    public const array OWN_KEYS = ['card', 'cards', 'card_context', 'card_variants', 'card_variant', 'document'];
+    public const array OWN_KEYS = ['cards', 'card_context', 'card_variants', 'card_variant', 'document'];
 
     /** Bumped when Gaffer renders cards differently, so indexes rebuild. */
     private const string RENDERING = '2';
@@ -52,7 +52,7 @@ final class Indexes
         foreach ($indexes as $name => $definition) {
             $engine = array_diff_key($definition, array_flip(self::OWN_KEYS));
             $fields = $definition['document'] ?? null;
-            if (is_string($definition['card'] ?? null) || is_callable($fields)) {
+            if (self::templates($definition) !== [] || is_callable($fields)) {
                 $engine['document'] = static function (array $document, string $index) use ($fields): array {
                     $id = (int) ($document['id'] ?? 0);
                     $post = is_callable($fields) && $id > 0 ? Post::from($id) : null;
@@ -68,42 +68,49 @@ final class Indexes
     }
 
     /**
-     * The document field with the card this visitor gets in this view (null: the main card, or
-     * one of `cards`): "card" or "card_{view}", with "_{variant}" when the index's card_variant
-     * names one of its card_variants. Null for an index without a card or that view.
+     * The document field with the card this visitor gets in this view (a key of `cards`; null:
+     * the first, the default): "card" or "card_{view}", with "_{variant}" when the index's
+     * card_variant names one of its card_variants. Null for an index without cards or that view.
      */
     public static function card_field(string $index, ?string $view = null): ?string
     {
-        $definition = self::get($index);
-        if ($definition === null || !is_string($definition['card'] ?? null) || ($view !== null && !isset(self::templates($definition)[$view]))) {
+        $definition = self::get($index) ?? [];
+        $templates = self::templates($definition);
+        $view ??= array_key_first($templates);
+        if ($view === null || !isset($templates[$view])) {
             return null;
         }
 
-        return self::field($view, self::variant($definition));
+        return self::field($definition, $view, self::variant($definition));
     }
 
     /**
-     * The card templates of an index: '' => `card`, then `cards` (view => template).
+     * The card templates of an index (`cards`: view => template), the default first.
      *
      * @param array<string, mixed> $definition
      * @return array<string, string>
      */
     public static function templates(array $definition): array
     {
-        $templates = is_string($definition['card'] ?? null) ? ['' => $definition['card']] : [];
-        foreach ((array) ($definition['cards'] ?? []) as $view => $template) {
-            if (is_string($template) && $view !== '') {
-                $templates[(string) $view] = $template;
+        $templates = [];
+        foreach (is_array($definition['cards'] ?? null) ? $definition['cards'] : [] as $view => $template) {
+            if (is_string($template) && is_string($view) && $view !== '') {
+                $templates[$view] = $template;
             }
         }
 
         return $templates;
     }
 
-    /** The document field of a view's card ('' or null: the main card) for a variant (or none). */
-    public static function field(?string $view, ?string $variant): string
+    /**
+     * The document field of a view's card for a variant (or none): "card" for the default view,
+     * "card_{view}" for the others, with "_{variant}".
+     *
+     * @param array<string, mixed> $definition
+     */
+    public static function field(array $definition, string $view, ?string $variant): string
     {
-        return 'card' . ($view !== null && $view !== '' ? "_{$view}" : '') . ($variant !== null ? "_{$variant}" : '');
+        return 'card' . ($view !== array_key_first(self::templates($definition)) ? "_{$view}" : '') . ($variant !== null ? "_{$variant}" : '');
     }
 
     /**
@@ -133,9 +140,6 @@ final class Indexes
         $plain['card_variants'] = array_keys((array) ($definition['card_variants'] ?? []));
         $methods = [$definition['card_context'] ?? null, $definition['document'] ?? null, ...array_values((array) ($definition['card_variants'] ?? []))];
 
-        // One card as before (its hash, not a map), so adding `cards` is what rebuilds, not the update.
-        $card = count($cards) === 1 ? reset($cards) : ($cards !== [] ? $cards : null);
-
-        return md5((string) json_encode([self::RENDERING, $plain, $card, Cards::code_version($methods)], JSON_PARTIAL_OUTPUT_ON_ERROR));
+        return md5((string) json_encode([self::RENDERING, $plain, $cards, Cards::code_version($methods)], JSON_PARTIAL_OUTPUT_ON_ERROR));
     }
 }

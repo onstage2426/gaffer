@@ -24,7 +24,7 @@ return [
             'synonyms' => ['equivalences' => [['garnalen', 'gamba', 'scampi']]],
             'variation_price' => 'default',       // cards show the default variation's price
             'rebuild' => 'twicedaily',
-            'card' => 'product/card.twig',        // rendered into every document, with `post`
+            'cards' => ['grid' => 'product/card.twig'], // rendered into every document, with `post`
         ],
     ],
     'archive' => [
@@ -32,7 +32,7 @@ return [
         'per_page' => 24,
         'sorts' => ['' => 'Populair', 'price:asc' => 'Prijs oplopend', 'price:desc' => 'Prijs aflopend'],
         'default_sort' => ['total_sales:desc', 'title_sort:asc'],
-        'redirect_search' => true,                // WordPress's ?s= opens the shop's results
+        'urls' => ['redirect_search' => true],    // WordPress's ?s= opens the shop's results
     ],
 ];
 ```
@@ -47,7 +47,8 @@ return [
   `{field}_sort` (`sortable`), products also on `menu_order` and
   `total_sales` (popularity). `doctor --wp` asks the engine what's wrong with
   a definition (an unknown field, with a suggestion).
-- **Cards:** `card` is rendered with `post` (the theme's type for it).
+- **Cards:** `cards` maps a layout to its template; the first is the
+  default. Each is rendered with `post` (the theme's type for it).
   `card_context` (`[Theme\X::class, 'method']`, gets the post, returns the
   template's variables) prepares it differently (a default size).
   **Variants** (prices excl. VAT for business customers):
@@ -66,12 +67,13 @@ return [
   null for a product without one. Its file counts in the version like a card
   method.
 - **More layouts** (a list view with other markup than the grid card):
-  `cards => ['list' => 'product/list-item.twig']` renders a second card per
-  document (`card_list`, also per variant). The archive at `?view=list` is that
-  layout's page: its cards and token use `card_list`, the canonical is the page
-  without `view`, and it's noindex. `search.views` lists the layouts
-  (`name`, `url`, `current`; `''` is the main card) and `search.view` is the
-  current one; link with `:href="viewUrl(v.name)" href="{{ v.url }}"` (the
+  `cards => ['grid' => 'product/card.twig', 'list' => 'product/list-item.twig']`
+  renders a second card per document (`card_list`, also per variant; the
+  default's field is `card`). The archive at `?view=list` is that layout's
+  page: its cards and token use `card_list`, the canonical is the page without
+  `view`, and it's noindex. `search.views` lists the layouts (`name`, `value`
+  (the `?view=`, `''` for the default), `url`, `current`) and `search.view` is
+  the current one; link with `:href="viewUrl('{{ v.value }}')" href="{{ v.url }}"` (the
   component's `viewUrl()` keeps the visitor's current filters). A layout
   that's only CSS needs no second card: a class from `search.view`. Each card
   costs index size and build time.
@@ -88,22 +90,23 @@ return [
   - `limits => [12, 24, 48]`: page sizes the visitor picks (`<select
     name="limit">` in the form; `per_page` must be one); the canonical leaves
     `limit` out.
-  - `index_pages => true`: later pages are indexable too (offsets that are
-    multiples of the page size).
-  - `indexable_filters => ['on_sale' => ['yes']]`: a filtered shop page search
-    engines may index (the sale page); on categories and brands it stays
-    noindex.
-  - `bounds => ['price']`: `search.bounds.price` (`{min, max}`) over the whole
-    archive, for a price slider's ends (`facetStats` follow the results).
-  - `base_params => ['show']`: params that make another page
-    (`/category/?show=all`), kept in the canonical and page links.
-  - `redirect_params => [Theme\X::class, 'method']`: gets the query, returns it
-    with the theme's old params translated (a former filter plugin's
-    `?onsale_filter=1` → `filter[on_sale]=yes`); a different page is a 301.
   - `facet_values => ['size' => 400]`: values listed per facet (default 100).
   - `max_docs => 5000`: the best matches a search with words ranks, sorts and
     counts over (default 500): a large catalog's first page then matches an
     exhaustive search.
+  - `bounds => ['price']`: `search.bounds.price` (`{min, max}`) over the whole
+    archive, for a price slider's ends (`facetStats` follow the results).
+  - `seo => ['index_pages' => true]`: later pages are indexable too (offsets
+    that are multiples of the page size).
+  - `seo => ['indexable_filters' => ['on_sale' => ['yes']]]`: a filtered shop
+    page search engines may index (the sale page); on categories and brands it
+    stays noindex.
+  - `urls => ['base_params' => ['show']]`: params that make another page
+    (`/category/?show=all`), kept in the canonical and page links.
+  - `urls => ['redirect_params' => [Theme\X::class, 'method']]`: gets the
+    query, returns it with the theme's old params translated (a former filter
+    plugin's `?onsale_filter=1` → `filter[on_sale]=yes`); a different page is
+    a 301.
 
 ## Templates
 
@@ -183,21 +186,21 @@ gaffer-search rebuild`. Snapshot the live site first (`render:snapshot
 | `fuzor_register_index()` on `fuzor_register_indexes`, builder options | `indexes.{name}` with `type` and the same keys: `searchable`, `facets`, `sortable`, `meta`, `taxonomy` → `taxonomies`, `synonyms` (`oneWay` → `one_way`), `thumbnail_size`, `variation_price` |
 | builder `language` | `language`: keep the old index's (`wp fuzor describe`; often `''`), or every search changes |
 | builder `directTerms` | `direct_terms` |
-| `fuzor_index_document` adding the card | `card` (+ `card_context`, `card_variants`/`card_variant`) |
+| `fuzor_index_document` adding the card | `cards` (+ `card_context`, `card_variants`/`card_variant`) |
 | `fuzor_index_document` adding other fields, `fuzor_index_schema` | `document` + `fields` |
 | `fuzor_index_version` | nothing: Gaffer versions the definition, card and methods |
 | `fuzor_archive()` | `Search::archive()` with `archive` config |
 | token `limit` / `limits` | `archive.per_page` / `archive.limits` |
 | token `facet_values` | `archive.facet_values` |
 | token `max_docs` | `archive.max_docs` |
-| `fuzor_archive_indexable_page_size` | `archive.index_pages` |
-| `fuzor_archive_indexable_facets` | `archive.indexable_filters` |
-| `fuzor_archive_url_params` | `archive.base_params` |
-| `fuzor_redirect_archive_query` | `archive.redirect_params` |
+| `fuzor_archive_indexable_page_size` | `archive.seo.index_pages` |
+| `fuzor_archive_indexable_facets` | `archive.seo.indexable_filters` (the shop only) |
+| `fuzor_archive_url_params` | `archive.urls.base_params` |
+| `fuzor_redirect_archive_query` | `archive.urls.redirect_params` |
 | `fuzor_search()` for sliders | `Search::cards()` |
 | searchbar token | `Search::searchbar()` |
 | `window.Fuzor`, `data-fuzor-*` | `@gaffer/search.js`, `data-gaffer-search-*` |
-| token `views` (a list layout) | `cards => ['list' => …]`, the page at `?view=list` (or CSS on one card) |
+| token `views` (a list layout) | `cards => ['grid' => …, 'list' => …]`, the page at `?view=list` (or CSS on one card) |
 | a token with `filter[id]` open (recently viewed) | not supported: an ajax action that renders the card template for the IDs |
 | token `bounds` (a range over the whole archive) | `archive.bounds`, read as `search.bounds` |
 | facet search tokens | not supported: `facet_values` and filtering the list in the browser |

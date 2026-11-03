@@ -7,7 +7,6 @@ namespace Gaffer\Console\Checks;
 use Closure;
 use Gaffer\BlockFields;
 use Gaffer\FieldGroups;
-use Gaffer\Config;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
 use Gaffer\Console\WordPress;
@@ -561,14 +560,6 @@ final class WordPressCheck implements Check
         foreach ($engine->problems($definitions) as $problem) {
             $report->error('search', $problem, $file);
         }
-        // Archive keys the engine reads only with a feature: an older plugin ignores them.
-        $features = ['limits' => 'limits', 'facet_values' => 'facet_values', 'max_docs' => 'max_docs', 'index_pages' => 'archive_indexing', 'indexable_filters' => 'archive_indexing'];
-        foreach (array_intersect_key($features, (array) Config::get('search.archive')) as $key => $feature) {
-            if (!$engine->supports($feature)) {
-                $report->error('search', "archive: {$key} needs a gaffer-search version with the feature \"{$feature}\"", $file, null, 'Update the plugin; until then it\'s ignored.');
-            }
-        }
-
         $status = $engine->status();
         foreach ($definitions as $name => $definition) {
             $state = $status[$name] ?? null;
@@ -594,7 +585,7 @@ final class WordPressCheck implements Check
     private function search_card(Report $report, SearchEngine $engine, string $index): void
     {
         $definition = Indexes::get($index) ?? [];
-        if (!is_string($definition['card'] ?? null)) {
+        if (Indexes::templates($definition) === []) {
             return;
         }
         $id = (int) ($engine->search($index, ['limit' => 1, 'attributes' => ['id']])['results'][0]['id'] ?? 0);

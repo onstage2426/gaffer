@@ -21,9 +21,7 @@ final class SearchContractTest extends TestCase
     private const string DIR = __DIR__ . '/fixtures/search-contract';
 
     /** The request keys of contract 1 (docs/contract.md, "Request"). */
-    private const array REQUEST_KEYS = ['query', 'limit', 'offset', 'sort', 'default_sort', 'filter', 'visibility', 'term', 'facets', 'attributes', 'ttl',
-        // features (docs/contract.md, "Features")
-        'limits', 'facet_values', 'max_docs', 'index_pages', 'indexable_filters'];
+    private const array REQUEST_KEYS = ['query', 'limit', 'offset', 'sort', 'default_sort', 'filter', 'visibility', 'term', 'facets', 'attributes', 'ttl', 'limits', 'facet_values', 'max_docs'];
 
     #[\Override]
     protected function setUp(): void
@@ -45,7 +43,6 @@ final class SearchContractTest extends TestCase
             $case = (array) json_decode((string) file_get_contents($file), true);
             $answer = match ($case['call'] ?? null) {
                 'search' => $case['expect'] ?? null,
-                'archive' => $case['expect']['results'] ?? null,
                 'endpoint' => ($case['expect']['status'] ?? 0) === 200 ? $case['expect']['body'] ?? null : null,
                 default => null,
             };
@@ -76,7 +73,7 @@ final class SearchContractTest extends TestCase
         foreach (glob(self::DIR . '/*.json') ?: [] as $file) {
             $case = (array) json_decode((string) file_get_contents($file), true);
             $request = match ($case['call'] ?? null) {
-                'search', 'token', 'archive' => $case['args'][1] ?? [],
+                'search', 'token' => $case['args'][1] ?? [],
                 'endpoint' => $case['token'][1] ?? [],
                 default => [],
             };
@@ -87,7 +84,7 @@ final class SearchContractTest extends TestCase
     public function test_the_requests_gaffer_builds_use_only_contract_keys(): void
     {
         new \ReflectionProperty(Config::class, 'config')->setValue(null, ['search' => ['indexes' => [
-            'products' => ['type' => 'products', 'card' => 'card.twig'],
+            'products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig']],
             'news' => ['type' => 'posts'],
         ]]]);
         $engine = new RecordingEngine();

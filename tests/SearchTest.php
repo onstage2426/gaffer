@@ -46,13 +46,15 @@ final class SearchTest extends TestCase
     public function test_extra_card_templates_are_views_with_their_own_fields(): void
     {
         self::config(['indexes' => [
-            'products' => ['type' => 'products', 'card' => 'card.twig', 'cards' => ['list' => 'list.twig'], 'card_variants' => ['business' => [self::class, 'excl']], 'card_variant' => [self::class, 'business']],
-            'plain' => ['type' => 'products', 'card' => 'card.twig', 'cards' => ['list' => 'list.twig']],
+            'products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig', 'list' => 'list.twig'], 'card_variants' => ['business' => [self::class, 'excl']], 'card_variant' => [self::class, 'business']],
+            'plain' => ['type' => 'products', 'cards' => ['grid' => 'card.twig', 'list' => 'list.twig']],
         ]]);
 
-        self::assertSame(['' => 'card.twig', 'list' => 'list.twig'], Indexes::templates((array) Indexes::get('plain')));
+        self::assertSame(['grid' => 'card.twig', 'list' => 'list.twig'], Indexes::templates((array) Indexes::get('plain')));
         self::assertSame('card_list', Indexes::card_field('plain', 'list'));
-        self::assertSame('card', Indexes::card_field('plain'));
+        self::assertSame('card', Indexes::card_field('plain'), 'the first layout is the default: its field is card');
+        self::assertSame('card', Indexes::card_field('plain', 'grid'));
+        self::assertSame('card_business', Indexes::card_field('products'));
         self::assertNull(Indexes::card_field('plain', 'table'), 'not one of its views');
         self::assertSame('card_list_business', Indexes::card_field('products', 'list'), 'the visitor\'s variant of the view\'s card');
     }
@@ -76,7 +78,7 @@ final class SearchTest extends TestCase
     public function test_the_archive_base_keeps_the_params_that_make_another_page(): void
     {
         $_GET = ['show' => 'all', 'offset' => '24', 'utm_source' => 'x'];
-        self::config(['archive' => ['base_params' => ['show']]]);
+        self::config(['archive' => ['urls' => ['base_params' => ['show']]]]);
         self::assertSame('/page/1/?show=all', Search::archive_base());
 
         self::config(['archive' => []]);
@@ -87,9 +89,9 @@ final class SearchTest extends TestCase
     public function test_the_card_field_follows_the_visitors_variant(): void
     {
         self::config(['indexes' => [
-            'products' => ['type' => 'products', 'card' => 'card.twig', 'card_variants' => ['business' => [self::class, 'excl']], 'card_variant' => [self::class, 'business']],
-            'plain' => ['type' => 'products', 'card' => 'card.twig'],
-            'unknown' => ['type' => 'products', 'card' => 'card.twig', 'card_variant' => [self::class, 'business']],
+            'products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig'], 'card_variants' => ['business' => [self::class, 'excl']], 'card_variant' => [self::class, 'business']],
+            'plain' => ['type' => 'products', 'cards' => ['grid' => 'card.twig']],
+            'unknown' => ['type' => 'products', 'cards' => ['grid' => 'card.twig'], 'card_variant' => [self::class, 'business']],
             'none' => ['type' => 'posts'],
         ]]);
 
@@ -156,7 +158,7 @@ final class SearchTest extends TestCase
 
     public function test_cards_search_the_index_and_return_the_visitors_cards(): void
     {
-        self::config(['indexes' => ['products' => ['type' => 'products', 'card' => 'card.twig']]]);
+        self::config(['indexes' => ['products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig']]]]);
         $engine = new FakeEngine([['id' => 1, 'card' => '<article>1</article>'], ['id' => 2]]);
         Engine::reset(new Engine($engine));
 
@@ -168,7 +170,7 @@ final class SearchTest extends TestCase
 
     public function test_without_the_plugin_templates_get_empty_states(): void
     {
-        self::config(['indexes' => ['products' => ['type' => 'products', 'card' => 'card.twig']]]);
+        self::config(['indexes' => ['products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig']]]]);
 
         self::assertFalse(Search::available());
         self::assertSame([], Search::cards('products', 4));

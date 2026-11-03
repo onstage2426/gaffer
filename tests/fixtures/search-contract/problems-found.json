@@ -22,6 +22,12 @@
             }
         }
     ],
+    "expect_contains": [
+        "lowercase",
+        "type must be",
+        "unknown key \"facet\"",
+        "did you mean \"title\""
+    ],
     "expect": [
         "lowercase",
         "type must be",

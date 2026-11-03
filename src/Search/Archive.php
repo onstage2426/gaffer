@@ -17,8 +17,9 @@ final readonly class Archive
      * @param list<Markup> $cards the first page, rendered at index time
      * @param array<string, mixed> $results the search response for this URL
      * @param list<array{value: string, label: string}> $sorts
-     * @param list<array{name: string, url: string, current: bool}> $views the layouts to switch to (the
-     *        index's `cards`; '' the main card), each this page's search in it; empty with one card
+     * @param list<array{name: string, value: string, url: string, current: bool}> $views the layouts to
+     *        switch to (the index's `cards`; `value` is the ?view= param, '' for the default), each
+     *        this page's search in it; empty with one layout
      * @param array<string, mixed> $bounds field => {min, max} over the whole archive (`bounds`)
      *
      * @internal

@@ -9,6 +9,32 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-03
 
+### Search: `cards` replaces `card`, the archive's `seo` and `urls` groups; archive URLs are Gaffer's
+
+Breaking, for sites on `config/search.php`. Update the gaffer-search plugin in the same deploy:
+Gaffer no longer asks it for archive URLs (it computes the canonical, `noindex` and the redirects
+itself) and the plugin no longer answers those calls.
+
+Find: `grep -nE "'card'|index_pages|indexable_filters|base_params|redirect_params|redirect_search" config/search.php`.
+Before:
+
+```php
+'products' => [..., 'card' => 'product/card.twig', 'cards' => ['list' => 'product/list-item.twig']],
+'archive' => [..., 'redirect_search' => true, 'index_pages' => true, 'indexable_filters' => [...], 'base_params' => ['show'], 'redirect_params' => [...]],
+```
+
+After (the first of `cards` is the default layout; its field stays `card`):
+
+```php
+'products' => [..., 'cards' => ['grid' => 'product/card.twig', 'list' => 'product/list-item.twig']],
+'archive' => [..., 'seo' => ['index_pages' => true, 'indexable_filters' => [...]], 'urls' => ['redirect_search' => true, 'base_params' => ['show'], 'redirect_params' => [...]]],
+```
+
+`search.views` names the default layout too now (`grid`, not `''`); its new `value` is the
+`?view=` param (`''` for the default): link with `viewUrl('{{ v.value }}')`. Check: `php gaffer doctor` (it says where each moved key
+belongs), then `doctor --wp`; `render:diff` against a snapshot from before shows no changes to
+canonicals, robots or redirects.
+
 ### Search: list layouts, archive bounds; `indexable_filters` on the shop only
 
 For sites on `config/search.php`. New, optional: `cards => ['list' => 'product/list-item.twig']`

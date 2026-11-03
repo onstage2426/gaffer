@@ -13,8 +13,8 @@ import { createAlpineSearch } from "./alpine-search.js";
  *   item      — the element around each card, default "li", with class `itemClass`
  *   onRender  — called with the list after new cards are in (e.g. list => htmx.process(list))
  *
- * viewUrl(name) is this page's current search (from the address bar, first page) in another
- * layout (archive.views: the index's `cards`; "" the main card): a link that loads that page.
+ * viewUrl(value) is this page's current search (from the address bar, first page) in another
+ * layout (a view's `value` in archive.views: "" for the default): a link that loads that page.
  *
  * Everything else (minQueryLength, onBeforeRun, onSuccess) goes to createAlpineSearch().
  */

@@ -98,38 +98,6 @@ final class Engine
         return (string) $this->call('token', $index, $request);
     }
 
-    /**
-     * @param array<string, mixed> $request
-     * @param array<string, mixed> $query
-     * @return array{endpoint: string, token: string, results: array{query: string, total: int, offset: int, limit: int, results: list<array<string, mixed>>, facets: array<string, mixed>, facetStats: array<string, mixed>, labels: array<string, mixed>, warnings: list<string>}, url: string, indexable: bool}
-     */
-    public function archive(string $index, array $request, array $query, string $base): array
-    {
-        $archive = (array) $this->call('archive', $index, $request, $query, $base);
-
-        return [
-            'endpoint' => (string) ($archive['endpoint'] ?? ''),
-            'token' => (string) ($archive['token'] ?? ''),
-            'results' => self::response($archive['results'] ?? null),
-            'url' => (string) ($archive['url'] ?? $base),
-            'indexable' => ($archive['indexable'] ?? false) === true,
-        ];
-    }
-
-    /** @param array<string, mixed> $query */
-    public function url(string $base, array $query): string
-    {
-        return (string) $this->call('url', $base, $query);
-    }
-
-    /** @param array<string, mixed> $query */
-    public function redirect(string $index, array $query, int $paged, int $per_page, string $base): ?string
-    {
-        $url = $this->call('redirect', $index, $query, $paged, $per_page, $base);
-
-        return is_string($url) && $url !== '' ? $url : null;
-    }
-
     private function call(string $method, mixed ...$arguments): mixed
     {
         $callable = [$this->engine, $method];

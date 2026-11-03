@@ -10,7 +10,7 @@ Always:
   `Gaffer\Search\Search` (`archive()`, `cards()`, `searchbar()`). Never call
   the plugin itself (`gaffer_search_*()`, its hooks, `window.GafferSearch`):
   that API goes away, and `doctor` flags it.
-- **Cards are rendered into the index** from the `card` template: they come
+- **Cards are rendered into the index** from the `cards` templates: they come
   back as trusted markup (`{{ card }}`, no `|raw`). A changed card template, or
   anything it includes, rebuilds the index by itself.
 - **Values are term slugs, shown as labels:** filters, facet keys and URLs use

@@ -32,6 +32,9 @@ function archive({ form = "#archive-form", list = "#archive-list", initial = "#a
         form,
         initial: initialData ?? undefined,
         onSuccess(data) {
+            // The address bar is written before the results arrive (syncUrl): keep it here,
+            // reactive, so links built from it (pageUrl, viewUrl) follow every search.
+            this.address = location.search;
             this.showCards(data);
             onSuccess?.call(this, data);
         },
@@ -39,6 +42,9 @@ function archive({ form = "#archive-form", list = "#archive-list", initial = "#a
 
     return {
         ...(fields ? createFilterForm(fields, options) : createAlpineSearch(options)),
+
+        // location.search as of the last search: Alpine re-evaluates :href bindings that read it.
+        address: location.search,
 
         showCards(data) {
             const element = listElement();
@@ -53,7 +59,7 @@ function archive({ form = "#archive-form", list = "#archive-list", initial = "#a
         },
 
         pageUrl(page) {
-            const params = new URLSearchParams(location.search);
+            const params = new URLSearchParams(this.address);
             const offset = (Math.max(1, page) - 1) * (this.limit || 1);
             if (offset > 0) params.set("offset", String(offset));
             else params.delete("offset");
@@ -62,7 +68,7 @@ function archive({ form = "#archive-form", list = "#archive-list", initial = "#a
         },
 
         viewUrl(name) {
-            const params = new URLSearchParams(location.search);
+            const params = new URLSearchParams(this.address);
             params.delete("offset");
             if (name) params.set("view", name);
             else params.delete("view");

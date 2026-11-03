@@ -17,7 +17,9 @@ From a fuzor-wp site's switch. All but one are additions:
   current search for page links the component renders. Find:
   `grep -rn "createFilterForm\|pageUrl" assets/js`: a hand-made combination of
   `createFilterForm()` and `archive()`, or an own `pageUrl()`, can become
-  `archive({ fields, … })`.
+  `archive({ fields, … })`. `pageUrl()` and `viewUrl()` follow every search (also a filter
+  changed on page 1: before, their links kept the old filters until the page changed). Check:
+  `npm run build`, then change a filter and look at a page link's `href`.
 - `archive.eager` now makes only a card's first `loading="lazy"` eager (its main image), not every
   image in it (a hover image stays lazy). Check: the main image comes first in the card template.
 - `render:snapshot` refuses to save when most pages redirect to one URL (a login, maintenance or

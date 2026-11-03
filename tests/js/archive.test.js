@@ -45,7 +45,23 @@ describe("archive", () => {
 
         expect(c.viewUrl("list")).toBe("/winkel/?filter%5Bon_sale%5D=yes&show=all&view=list");
         history.replaceState(null, "", "/winkel/?view=list&q=tegel");
-        expect(c.viewUrl("")).toBe("/winkel/?q=tegel");
+        expect(archive().viewUrl("")).toBe("/winkel/?q=tegel");
+    });
+
+    test("links follow a filter changed on page 1, before any paging", async () => {
+        mockFetch(() => response({ total: 5, limit: 2, offset: 0, results: [{ id: 3, card: "<a>3</a>" }] }));
+        const c = archive();
+        const form = document.querySelector("#archive-form");
+        form.dataset.gafferSearchHistory = "push";
+        form.elements.offset.dataset.gafferSearchDefault = "0"; // as the skill's template has it
+        form.insertAdjacentHTML("beforeend", '<input type="checkbox" name="filter[on_sale]" value="yes" checked>');
+
+        expect(c.pageUrl(2)).toBe("/winkel/?offset=2");
+        await c.run();
+
+        expect(location.search).toBe("?filter%5Bon_sale%5D=yes");
+        expect(c.pageUrl(2)).toBe("/winkel/?filter%5Bon_sale%5D=yes&offset=2");
+        expect(c.viewUrl("list")).toBe("/winkel/?filter%5Bon_sale%5D=yes&view=list");
     });
 
     test("starts from the page's own results without a request", () => {

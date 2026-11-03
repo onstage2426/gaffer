@@ -284,6 +284,43 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Open
 
+- **gaffer-search before its first tag** (agreed 2026-11-03, not started; the contract only grows
+  from the tag on):
+  1. Products' standard fields (`price`, `regular_price`, `sale_price`, `stock_status`, `sku`,
+     `rating`) built in from `WC_Product`, so themes stop mapping `_price`/`_stock_status` meta:
+     the contract mustn't depend on WooCommerce keeping products in post meta (its product
+     tables). Breaking for every `config/search.php` (remove those `meta` lines).
+  2. Fixtures for what the contract promises but only checks the shape of: `direct_terms` (a
+     category search without its children's products), `fields` (typed values in results),
+     `facet_values` and `max_docs` honored by `search()`, `limits` in `search()`.
+  3. Delete dead internals: `Audience` (customer groups, decided against) and fuzor-wp's global
+     helpers in `Functions.php` (into classes).
+  The browser side (endpoint params, token, error codes) freezes with it: cached pages keep old
+  JS and tokens for days.
+- **Why gaffer-search, not a general fuzor-wp** (the user asked; answer of 2026-11-03): each
+  fuzor-wp theme wrote its own glue (tokens, SEO/redirect hooks); with gaffer-search it's config.
+  Evidence, Bestratingsmarkt round 4: all 2,081 archives, canonicals, robots and redirects
+  identical to live, its SEO hooks 91 → 24 lines. Cost: four rounds and ~25 changes on our side,
+  and it only serves Gaffer themes (the Fuzor library stays general).
+- **After the last fuzor-wp site has switched** (blueprint and blueprint-base too), purge the
+  migration-only parts. Gaffer: the `plugins/fuzor` guideline and skill and `ai:update`'s fuzor
+  detection; `SearchCheck`'s old-API warnings (fuzor-wp's and gaffer-search's pre-`Gaffer\Search`
+  API) and `fuzor_`/`gaffer_search_` in `AppCheck`; the skill's "Moving from fuzor-wp" section;
+  `doctor`'s moved-key messages ("card is now cards", "belongs in seo now"); the deprecated
+  `console.raw_baseline`; fuzor leftovers in `range-slider.css`; the CHANGELOG starts fresh at 1.0;
+  this file's history condensed. gaffer-search: `docs/migration.md` starts fresh at the first tag.
+  Stays: staged-copy tooling, `verify --fix`, `migrate:*`.
+- **Customer groups and prices** (a Bestratingsmarkt client's request, 2026-11-03; only an
+  answer so far): groups, group prices and discounts, personal price agreements, and a periodic
+  job moving customers to another group by revenue over a period. WooCommerce B2B work (a B2B
+  plugin, or theme code: a group on the user, prices per group, the price filters, an Action
+  Scheduler job that sums completed orders and logs the moves). Search side: a few groups = card
+  variants (one stored card per group, ~30 MB each there; their tokens already expire after a
+  day); sorting/filtering by a group's price needs a price field per variant in Gaffer (not when a
+  group's discount is one percentage on everything: same order); personal prices can't be
+  indexed (per customer): product page, cart, or loaded into the card per visitor. Open questions
+  for the client: how many groups, percentage or per-product prices, personal prices on
+  archives or only product page/cart, the exact move condition.
 - **Standalone documents** (thenewbride's print page, with its own `<html>`):
   `doctor` warns "HTML in PHP"; accepted there (its `site.md` says why).
   Decided: no convention for one case. Revisit when a second site needs a

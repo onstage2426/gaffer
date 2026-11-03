@@ -9,6 +9,25 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-03
 
+### Search: `archive({ fields })` and `pageUrl()`; `eager` on the main image only; checks
+
+From a fuzor-wp site's switch. All but one are additions:
+- `archive({ fields: [...] })` is a filter form too (`filters`, `options()`, `activeFilters()`,
+  `removeFilter()`, as `createFilterForm()`), and `pageUrl(n)` gives page n of the visitor's
+  current search for page links the component renders. Find:
+  `grep -rn "createFilterForm\|pageUrl" assets/js`: a hand-made combination of
+  `createFilterForm()` and `archive()`, or an own `pageUrl()`, can become
+  `archive({ fields, … })`.
+- `archive.eager` now makes only a card's first `loading="lazy"` eager (its main image), not every
+  image in it (a hover image stays lazy). Check: the main image comes first in the card template.
+- `render:snapshot` refuses to save when most pages redirect to one URL (a login, maintenance or
+  geo plugin: `--user=<id>` or turn it off), and `render:diff` says so.
+- `doctor --wp` warns about a product taxonomy with used archive pages the archive's index
+  doesn't store: each of its pages showed the whole shop.
+- The MCP server (`.mcp.json`) starts with WordPress's admin memory limit, like Gaffer's own CLI:
+  run `php gaffer ai:update`. With fuzor-wp and gaffer-search both active, `ai:update` writes both
+  skills (fuzor-wp's is `fuzor-search` now; they overwrote each other).
+
 ### Search: page and archive links, slider filters, eager first row; the form works without JavaScript
 
 New, optional: `search.page_url(n)` (a crawlable link to page n of the archive's search, with its

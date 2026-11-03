@@ -88,8 +88,10 @@ final class WordPressCheck implements Check
         try {
             $served = Mcp::served_tools();
         } catch (RuntimeException $e) {
-            $report->error('mcp', $e->getMessage(), null, null,
-                'Agents get no gaffer tools. Check that `wp` runs from the theme directory; after an MCP Adapter update, check its changelog for create_server() changes.');
+            $memory = (bool) preg_match('/Allowed memory size|critical error|kritieke fout/i', $e->getMessage());
+            $report->error('mcp', $e->getMessage(), null, null, 'Agents get no gaffer tools. ' . ($memory
+                ? 'A fatal error while WordPress loaded, most often memory: raise memory_limit in the CLI\'s php.ini (or WP_MAX_MEMORY_LIMIT, which `php gaffer ai:update` writes into .mcp.json\'s command), then `php gaffer ai:update`.'
+                : 'Check that `wp` runs from the theme directory; after an MCP Adapter update, check its changelog for create_server() changes.'));
             return;
         }
 
@@ -560,6 +562,8 @@ final class WordPressCheck implements Check
         foreach ($engine->problems($definitions) as $problem) {
             $report->error('search', $problem, $file);
         }
+        $this->search_taxonomies($report, $file);
+
         $status = $engine->status();
         foreach ($definitions as $name => $definition) {
             $state = $status[$name] ?? null;
@@ -582,6 +586,31 @@ final class WordPressCheck implements Check
                 $report->info('search', "Index \"{$name}\": built and current, {$state['documents']} documents", $file);
             }
             $this->search_card($report, $engine, $name);
+        }
+    }
+
+    /**
+     * Product taxonomies with archive pages the archive's index doesn't store: their pages are
+     * archives (Search::on_archive()), but nothing locks them to the term, so each shows the
+     * whole shop.
+     */
+    private function search_taxonomies(Report $report, string $file): void
+    {
+        $index = \Gaffer\Search\Search::archive_index();
+        if ($index === null || !function_exists('WC')) {
+            return;
+        }
+        $stored = array_keys((array) (Indexes::get($index)['taxonomies'] ?? []));
+        foreach (\get_object_taxonomies('product', 'objects') as $taxonomy) {
+            if (!$taxonomy->public || !$taxonomy->publicly_queryable || $taxonomy->rewrite === false || in_array($taxonomy->name, $stored, true)) {
+                continue;
+            }
+            // Unused (WooCommerce's brands on a shop without any): no pages to show.
+            $used = \wp_count_terms(['taxonomy' => $taxonomy->name, 'hide_empty' => true]);
+            if (is_numeric($used) && (int) $used > 0) {
+                $report->warning('search', "Product taxonomy \"{$taxonomy->name}\" has archive pages, but index \"{$index}\" doesn't store it: each of its pages shows the whole shop", $file, null,
+                    "Add it to the index's taxonomies ('{$taxonomy->name}' => 'field'), or turn its archives off (an attribute's \"Enable archives\").");
+            }
         }
     }
 

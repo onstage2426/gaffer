@@ -74,8 +74,8 @@ final class SearchTest extends TestCase
     {
         $card = '<article><img class="a" src="x.jpg" loading="lazy"><img src="y.jpg" loading=\'lazy\'></article>';
 
-        self::assertSame('<article><img fetchpriority="high" class="a" src="x.jpg" loading="eager"><img src="y.jpg" loading=\'eager\'></article>', Cards::eager($card, true));
-        self::assertSame('<article><img class="a" src="x.jpg" loading="eager"><img src="y.jpg" loading=\'eager\'></article>', Cards::eager($card));
+        self::assertSame('<article><img fetchpriority="high" class="a" src="x.jpg" loading="eager"><img src="y.jpg" loading=\'lazy\'></article>', Cards::eager($card, true));
+        self::assertSame('<article><img class="a" src="x.jpg" loading="eager"><img src="y.jpg" loading=\'lazy\'></article>', Cards::eager($card), 'a hover image stays lazy');
         self::assertSame('<img fetchpriority="low" loading="eager">', Cards::eager('<img fetchpriority="low" loading="lazy">', true), 'the template\'s own fetchpriority stays');
     }
 

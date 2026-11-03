@@ -82,6 +82,12 @@ final class RenderSnapshot extends Command
             : array_map(Snapshot::page(...), $rendered);
         RenderDiff::warn_without_engine($rendered, $output);
 
+        $redirected = Snapshot::redirected($pages);
+        if ($redirected !== null) {
+            $output->writeln("<error>Most pages redirect to {$redirected}: not saved.</error> A login, maintenance or geo plugin answers instead of the site, so a comparison against this snapshot would compare nothing. Render as a user it lets through (--user=<id>), or turn it off while you snapshot.");
+            return self::FAILURE;
+        }
+
         new Snapshot($name, is_string($from) ? $from : 'rendered' . ($entry !== null ? ' with ' . basename(dirname($entry)) : '') . ($visitor !== [] ? ' ' . implode(' ', $visitor) : ''), gmdate('c'), $pages, $visitor)->save();
 
         foreach ($pages as $path => $page) {

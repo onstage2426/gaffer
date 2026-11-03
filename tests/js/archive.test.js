@@ -22,6 +22,23 @@ function archive(options = {}) {
 beforeEach(() => history.replaceState(null, "", "/winkel/"));
 
 describe("archive", () => {
+    test("pageUrl is page n of the current search", () => {
+        history.replaceState(null, "", "/winkel/?filter%5Bon_sale%5D=yes&offset=2&view=list");
+        const c = archive();
+
+        expect(c.pageUrl(3)).toBe("/winkel/?filter%5Bon_sale%5D=yes&offset=4&view=list");
+        expect(c.pageUrl(1)).toBe("/winkel/?filter%5Bon_sale%5D=yes&view=list");
+    });
+
+    test("with fields it is a filter form too", () => {
+        history.replaceState(null, "", "/winkel/?filter%5Bbrand%5D%5B%5D=stella");
+        const c = archive({ fields: [{ field: "brand", type: "multi" }] });
+
+        expect(c.filters.brand).toEqual(["stella"]);
+        expect(typeof c.activeFilters).toBe("function");
+        expect(typeof c.showCards).toBe("function");
+    });
+
     test("viewUrl is the current search on its first page in another layout", () => {
         history.replaceState(null, "", "/winkel/?filter%5Bon_sale%5D=yes&offset=24&show=all");
         const c = archive();

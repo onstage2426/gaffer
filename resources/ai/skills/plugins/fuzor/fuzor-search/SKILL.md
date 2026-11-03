@@ -1,5 +1,5 @@
 ---
-name: gaffer-search
+name: fuzor-search
 description: Build or change search, a searchbar or a faceted archive with the Fuzor plugin in a Gaffer theme (inc/fuzor.php index, Theme\Search tokens and fuzor_archive(), Alpine components on window.Fuzor, archive URLs and SEO). Use before touching any of them.
 ---
 

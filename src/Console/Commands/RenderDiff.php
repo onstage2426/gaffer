@@ -72,6 +72,12 @@ final class RenderDiff extends Command
         };
         $now = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $snapshot->visitor, $entry)->render(array_keys($snapshot->pages), true);
         self::warn_without_engine($now, $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output);
+        foreach (['the snapshot' => $snapshot->pages, 'this render' => array_map(Snapshot::page(...), $now)] as $side => $pages) {
+            $redirected = Snapshot::redirected($pages);
+            if ($redirected !== null) {
+                ($output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output)->writeln("<error>In {$side} most pages redirect to {$redirected}</error> (a login, maintenance or geo plugin?): the comparison says little.");
+            }
+        }
 
         // The same change on many pages (a header, a footer) is shown once, with its pages.
         $hide = (bool) $input->getOption('hide-reorders');

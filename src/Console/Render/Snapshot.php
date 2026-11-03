@@ -88,4 +88,21 @@ final class Snapshot
 
         return ['http' => $result['http'], 'redirect' => $result['redirect'], 'error' => $result['error'], 'html' => $result['html'] ?? ''];
     }
+
+    /**
+     * Where most pages redirect to, when they do (more than half of three or more pages, to one
+     * URL apart from its query): a login, maintenance or geo plugin answering instead of the
+     * site, which would make every comparison empty. Null when the pages are the site's own.
+     *
+     * @param array<string, array{http: int, redirect: ?string, error: ?string, html: string}> $pages
+     */
+    public static function redirected(array $pages): ?string
+    {
+        $targets = array_count_values(array_map(static fn(array $page): string => (string) strtok((string) $page['redirect'], '?'),
+            array_filter($pages, static fn(array $page): bool => is_string($page['redirect']) && $page['redirect'] !== '')));
+        arsort($targets);
+        $target = array_key_first($targets);
+
+        return $target !== null && count($pages) >= 3 && $targets[$target] * 2 > count($pages) ? $target : null;
+    }
 }

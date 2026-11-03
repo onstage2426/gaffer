@@ -51,12 +51,13 @@ final class Cards
     }
 
     /**
-     * A stored card for the top of a page (the archive's first row, the LCP): its images'
-     * loading="lazy" as loading="eager", and with $priority fetchpriority="high" on the first.
+     * A stored card for the top of a page (the archive's first row, the LCP): its first
+     * loading="lazy" (the card's main image comes first) as loading="eager", and with $priority
+     * fetchpriority="high" on its first img. Later images (a hover image) stay lazy.
      */
     public static function eager(string $html, bool $priority = false): string
     {
-        $html = (string) preg_replace('/\bloading=(["\'])lazy\1/i', 'loading=$1eager$1', $html);
+        $html = (string) preg_replace('/\bloading=(["\'])lazy\1/i', 'loading=$1eager$1', $html, 1);
         if ($priority && !preg_match('/\bfetchpriority=/i', $html)) {
             $html = (string) preg_replace('/<img\b/i', '<img fetchpriority="high"', $html, 1);
         }

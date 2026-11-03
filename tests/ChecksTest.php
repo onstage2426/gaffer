@@ -576,6 +576,16 @@ final class ChecksTest extends TestCase
         self::assertStringNotContainsString('max_docs', $messages);
     }
 
+    public function test_unavailable_archive_only_for_gaffers_search(): void
+    {
+        mkdir("{$this->theme}/app", 0755, true);
+        file_put_contents("{$this->theme}/app/Search.php", "<?php\nnamespace Theme;\nfinal class Search { public static function x() { return Search::archive('products'); } }\n");
+        self::assertStringNotContainsString('search.available', $this->messages(new SearchCheck()), 'a theme\'s own Search class (fuzor-wp) isn\'t Gaffer\'s');
+
+        file_put_contents("{$this->theme}/app/Shop.php", "<?php\nnamespace Theme;\nuse Gaffer\\Search\\Search;\nfinal class Shop { public static function x() { return Search::archive(); } }\n");
+        self::assertStringContainsString('search.available', $this->messages(new SearchCheck()));
+    }
+
     private function messages(Check $check): string
     {
         return implode("\n", array_column($this->findings($check), 'message'));

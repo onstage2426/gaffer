@@ -248,4 +248,16 @@ final class AiTest extends TestCase
 
         self::assertSame('pick(int $id, ?string $note = null, array $tags = [], bool ...$flags): ?Image', Signature::of(new ReflectionFunction($fn), 'pick'));
     }
+
+    public function test_every_shipped_skill_has_its_own_name(): void
+    {
+        $names = [];
+        foreach (glob(dirname(__DIR__) . '/resources/ai/skills/{*,plugins/*/*}/SKILL.md', GLOB_BRACE) ?: [] as $file) {
+            preg_match('/^name:\s*(\S+)/m', (string) file_get_contents($file), $match);
+            self::assertSame(basename(dirname($file)), $match[1] ?? null, "{$file}: its name is its folder's");
+            $names[] = $match[1];
+        }
+        self::assertNotEmpty($names);
+        self::assertSame(array_unique($names), $names, 'two skills with one name: when both plugins are active, one overwrites the other');
+    }
 }

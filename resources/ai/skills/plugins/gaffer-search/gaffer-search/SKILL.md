@@ -130,7 +130,7 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
         {% endfor %}
     </form>
     <ul id="archive-list">{% for card in search.cards %}<li>{{ card }}</li>{% endfor %}</ul>
-    {# pages: x-for over pageNumbers(), @click.prevent="goTo(page)", href from search.page_url(n) #}
+    {# pages: x-for over pageNumbers(), :href="pageUrl(page)", @click.prevent="goTo(page)" (server render: search.page_url(n)) #}
 </div>
 ```
 
@@ -145,10 +145,11 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
   ['brand' => ['x']]])` (PHP prepares them; null for the shop's own when the
   theme has no archive); `Search::archive_url(null, ['filter' => ['on_sale' =>
   'yes']])` is the shop's sale page.
-- **The first row:** `archive.eager => 4` makes the first 4 stored cards'
-  images `loading="eager"` (the first also `fetchpriority="high"`) on page 1,
-  so the LCP image isn't lazy. It rewrites the card template's own
-  `loading="lazy"`: write it as a literal attribute there.
+- **The first row:** `archive.eager => 4` makes the main image of the first 4
+  stored cards `loading="eager"` (the first also `fetchpriority="high"`) on
+  page 1, so the LCP image isn't lazy. It rewrites the card template's first
+  `loading="lazy"`: put the main image first and write the attribute literally;
+  later images (a hover image) stay lazy.
 
 - `search.available` is false without the plugin (or when it doesn't speak
   Gaffer's contract): say so in the archive (`{% if not search.available %}`
@@ -177,11 +178,21 @@ resolve: { alias: { "@gaffer": path.resolve("vendor/onstage2426/gaffer/resources
 import htmx from "htmx.org";
 import { archive } from "@gaffer/search.js";
 
-Alpine.data("archive", (options) => archive({ ...options, itemClass: "flex flex-col", onRender: (list) => htmx.process(list) }));
+Alpine.data("archive", (options) => archive({
+    ...options,
+    fields: [{ field: "brand", type: "multi" }, { field: "price", type: "range" }, { field: "on_sale", type: "toggle" }],
+    itemClass: "flex flex-col",
+    onRender: (list) => htmx.process(list),
+}));
 ```
 
 - `archive()` fills `#archive-list` with each response's cards and calls
   `onRender` (htmx for the cards' forms); `goTo(page)` pages and scrolls.
+  With `fields` it's a filter form too: `filters`, `options(field)`,
+  `activeFilters()`, `removeFilter()` (the same fields as `createFilterForm()`).
+- Page links: `<a :href="pageUrl(page)" href="{{ search.page_url(n) }}"
+  @click.prevent="goTo(page)">`: `pageUrl()` follows the visitor's search after
+  paging and filtering, `search.page_url()` is the server's first render.
 - A searchbar spreads `createAlpineSearch({ minQueryLength: 1 })` and adds its
   UI state; `getFacetOptions()`, `formatCurrency()`,
   `createDualRangeSlider()` (`slider.syncFromStats(data.facetStats.price)`),
@@ -209,6 +220,9 @@ isn't tracked (the plugin isn't active for the live theme yet): right after the
 switch, `wp gaffer-search verify --fix` updates what differs (one full
 verify, then only the fixed documents are checked again). Snapshot the live
 site first (`render:snapshot --from`), compare searches and archive counts after.
+Back up fuzor-wp's index with SQLite's `VACUUM INTO` (a `tar` of a live index with
+WAL can be torn) through PHP when the system `sqlite3` is old: `php -r '(new
+PDO("sqlite:/path/index.db"))->exec("VACUUM INTO \"/backup/index.db\"");'`.
 
 | fuzor-wp | config/search.php |
 |---|---|
@@ -218,6 +232,12 @@ site first (`render:snapshot --from`), compare searches and archive counts after
 | `fuzor_index_document` adding the card | `cards` (+ `card_context`, `card_variants`/`card_variant`) |
 | `fuzor_index_document` adding other fields, `fuzor_index_schema` | `document` + `fields` |
 | `fuzor_index_version` | nothing: Gaffer versions the definition, card and methods |
+| builder `rebuildInterval` | `rebuild` |
+| builder `chunkSize` | nothing: the plugin's own batch size |
+| `fuzor_index_document` adding fields only the card shows (a hover image) | nothing: the card template reads them from the post |
+| `meta` mapped only for cards rendered from hits | drop it: cards are stored, rendered from the post |
+| `fuzor_visibility_filter('search' / 'catalog')` | nothing: `Search::searchbar()` hides what search hides, the archive and `Search::cards()` what the catalog hides |
+| `fuzor_redirect_archive_params()` on `template_redirect` | nothing: Gaffer's archive redirects (`/page/N/`, WooCommerce's params) |
 | `fuzor_archive()` | `Search::archive()` with `archive` config |
 | token `limit` / `limits` | `archive.per_page` / `archive.limits` |
 | token `facet_values` | `archive.facet_values` |

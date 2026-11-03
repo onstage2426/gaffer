@@ -173,7 +173,12 @@ final class SearchCheck implements Check
      */
     private function unavailable(Report $report): void
     {
-        $callers = array_values(array_filter(ThemeFiles::find(['php']), static fn(string $file): bool => str_contains((string) file_get_contents($file), 'Search::archive(')));
+        // Gaffer's Search::archive(), not a theme's own class of that name (Theme\Search on fuzor-wp).
+        $callers = array_values(array_filter(ThemeFiles::find(['php']), static function (string $file): bool {
+            $code = (string) file_get_contents($file);
+
+            return str_contains($code, 'Search::archive(') && preg_match('/Gaffer\\\\Search\\\\Search\b/', $code) === 1;
+        }));
         if ($callers === []) {
             return;
         }

@@ -91,8 +91,11 @@ final class Mcp
         $url = Env::get('SITE_URL');
         $args = ['mcp-adapter', 'serve', '--server=' . self::SERVER, ...($url !== null ? ["--url={$url}"] : [])];
         $wp = self::wp_cli();
+        // WordPress's admin memory limit, as Gaffer's own CLI raises it: the CLI php.ini's (often
+        // 128M) isn't enough for WooCommerce and friends, and the server then dies with a fatal.
+        $memory = defined('WP_MAX_MEMORY_LIMIT') ? (string) constant('WP_MAX_MEMORY_LIMIT') : '256M';
 
-        return $wp !== null ? ['command' => PHP_BINARY, 'args' => [$wp, ...$args]] : ['command' => 'wp', 'args' => $args];
+        return $wp !== null ? ['command' => PHP_BINARY, 'args' => ['-d', "memory_limit={$memory}", $wp, ...$args]] : ['command' => 'wp', 'args' => $args];
     }
 
     /** The first `wp` on the PATH when it's a PHP file, resolved; null otherwise. */

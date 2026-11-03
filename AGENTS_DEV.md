@@ -274,7 +274,12 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   `indexable_filters`/`base_params`/`redirect_params`, compact cards). Round 2 (2026-11-03):
   `indexable_filters` shop only, `cards` (list layouts at `?view=`, server-picked, no contract
   change), `archive.bounds` (an extra search for the whole archive's facetStats). Decided out:
-  cards-by-ID tokens (an ajax action renders them), facet search, audiences. The skill's "Moving from fuzor-wp"
+  cards-by-ID tokens (an ajax action renders them), facet search, audiences.
+  Overhaul 2026-11-03 (before either first release): archive URLs/SEO moved from the plugin to
+  `Gaffer\Search\ArchiveUrl`, contract 1 reset (no `archive()`/`url()`/`redirect()`/`view`,
+  fixtures re-recorded, no features yet), `cards` replaces `card`, archive `seo`/`urls` groups.
+  Verified on verdemare: same pages, canonicals, robots and redirects as before. Bestratingsmarkt's
+  staged `config/search.php` needs the new shape (CHANGELOG 2026-11-03). The skill's "Moving from fuzor-wp"
   table is what such a site reads first.
 
 ## Open

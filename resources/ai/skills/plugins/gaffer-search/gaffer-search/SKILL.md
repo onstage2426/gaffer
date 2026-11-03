@@ -65,6 +65,16 @@ return [
   'float']`) and they work in `facets`, `sortable` and `searchable`. Return
   null for a product without one. Its file counts in the version like a card
   method.
+- **More layouts** (a list view with other markup than the grid card):
+  `cards => ['list' => 'product/list-item.twig']` renders a second card per
+  document (`card_list`, also per variant). The archive at `?view=list` is that
+  layout's page: its cards and token use `card_list`, the canonical is the page
+  without `view`, and it's noindex. `search.views` lists the layouts
+  (`name`, `url`, `current`; `''` is the main card) and `search.view` is the
+  current one; link with `:href="viewUrl(v.name)" href="{{ v.url }}"` (the
+  component's `viewUrl()` keeps the visitor's current filters). A layout
+  that's only CSS needs no second card: a class from `search.view`. Each card
+  costs index size and build time.
 - **Hierarchical taxonomies** store a term's ancestors too: a parent
   category's archive shows its children's products. `direct_terms =>
   ['product_cat']` keeps each category to its own products (WooCommerce with
@@ -80,8 +90,11 @@ return [
     `limit` out.
   - `index_pages => true`: later pages are indexable too (offsets that are
     multiples of the page size).
-  - `indexable_filters => ['on_sale' => ['yes']]`: a filtered page search
-    engines may index (a sale page).
+  - `indexable_filters => ['on_sale' => ['yes']]`: a filtered shop page search
+    engines may index (the sale page); on categories and brands it stays
+    noindex.
+  - `bounds => ['price']`: `search.bounds.price` (`{min, max}`) over the whole
+    archive, for a price slider's ends (`facetStats` follow the results).
   - `base_params => ['show']`: params that make another page
     (`/category/?show=all`), kept in the canonical and page links.
   - `redirect_params => [Theme\X::class, 'method']`: gets the query, returns it
@@ -184,9 +197,9 @@ gaffer-search rebuild`. Snapshot the live site first (`render:snapshot
 | `fuzor_search()` for sliders | `Search::cards()` |
 | searchbar token | `Search::searchbar()` |
 | `window.Fuzor`, `data-fuzor-*` | `@gaffer/search.js`, `data-gaffer-search-*` |
-| token `views` (a list layout) | not supported: one card per index; a list view is CSS on that card |
+| token `views` (a list layout) | `cards => ['list' => …]`, the page at `?view=list` (or CSS on one card) |
 | a token with `filter[id]` open (recently viewed) | not supported: an ajax action that renders the card template for the IDs |
-| token `bounds` (a range over the whole archive) | not supported: `facetStats` are over the results |
+| token `bounds` (a range over the whole archive) | `archive.bounds`, read as `search.bounds` |
 | facet search tokens | not supported: `facet_values` and filtering the list in the browser |
 | `fuzor_audience_filter` | not supported: `card_variants` for prices per customer group |
 

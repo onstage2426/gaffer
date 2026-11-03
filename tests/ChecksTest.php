@@ -559,16 +559,17 @@ final class ChecksTest extends TestCase
     {
         file_put_contents("{$this->theme}/config/search.php", <<<'PHP'
             <?php return [
-                'indexes' => ['products' => ['type' => 'products', 'document' => 'nope']],
+                'indexes' => ['products' => ['type' => 'products', 'document' => 'nope', 'cards' => ['List' => 'x.twig', 'grid' => 'missing.twig']]],
                 'archive' => ['index' => 'products', 'per_page' => 24, 'limits' => [12, 48], 'facet_values' => ['size' => '400'], 'max_docs' => 5000,
-                    'index_pages' => 'yes', 'indexable_filters' => ['on_sale' => 'yes'], 'base_params' => ['show', 'offset'], 'redirect_params' => 'nope'],
+                    'index_pages' => 'yes', 'indexable_filters' => ['on_sale' => 'yes'], 'base_params' => ['show', 'offset'], 'redirect_params' => 'nope', 'bounds' => 'price'],
             ];
             PHP);
         Config::load("{$this->theme}/config");
 
         $messages = $this->messages(new SearchCheck());
         foreach (['document is not callable', 'limits must include per_page (24)', 'facet_values must map', 'index_pages must be', 'indexable_filters must map',
-            'base_params can\'t name the archive\'s own param "offset"', 'redirect_params is not callable'] as $expected) {
+            'base_params can\'t name the archive\'s own param "offset"', 'redirect_params is not callable', 'bounds must be a list', 'cards maps a view name',
+            'cards "grid" "missing.twig" is not a template', 'do nothing without a card'] as $expected) {
             self::assertStringContainsString($expected, $messages);
         }
         self::assertStringNotContainsString('max_docs', $messages);

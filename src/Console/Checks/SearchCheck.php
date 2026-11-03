@@ -19,7 +19,7 @@ use Gaffer\Search\Indexes;
  */
 final class SearchCheck implements Check
 {
-    private const array ARCHIVE_KEYS = ['index', 'per_page', 'sorts', 'default_sort', 'facets', 'redirect_search', 'limits', 'facet_values', 'max_docs', 'index_pages', 'indexable_filters', 'base_params', 'redirect_params'];
+    private const array ARCHIVE_KEYS = ['index', 'per_page', 'sorts', 'default_sort', 'facets', 'redirect_search', 'limits', 'facet_values', 'max_docs', 'index_pages', 'indexable_filters', 'base_params', 'redirect_params', 'bounds'];
 
     #[\Override]
     public function run(Report $report): void
@@ -42,8 +42,18 @@ final class SearchCheck implements Check
                     $report->error('search', "Index \"{$name}\": card variant \"{$variant}\" is not callable", $file);
                 }
             }
-            if ((isset($definition['card_variants']) || isset($definition['card_context'])) && $card === null) {
-                $report->warning('search', "Index \"{$name}\": card_variants and card_context do nothing without a card", $file);
+            $cards = $definition['cards'] ?? [];
+            foreach (is_array($cards) ? $cards : [0 => $cards] as $view => $template) {
+                if (!is_string($view) || !preg_match('/^[a-z0-9_]+$/', $view)) {
+                    $report->error('search', "Index \"{$name}\": cards maps a view name ([a-z0-9_]+, ?view=) to a template", $file, null, "'cards' => ['list' => 'product/list-item.twig']");
+                } elseif (!is_string($template) || !isset($templates[$template])) {
+                    $report->error('search', "Index \"{$name}\": cards \"{$view}\" " . (is_string($template) ? "\"{$template}\" is not a template in views/" : 'must be a template name'), $file);
+                } elseif (isset(((array) ($definition['card_variants'] ?? []))[$view])) {
+                    $report->error('search', "Index \"{$name}\": \"{$view}\" is a view in cards and a card variant: their fields would be the same (card_{$view})", $file);
+                }
+            }
+            if ((isset($definition['card_variants']) || isset($definition['card_context']) || isset($definition['cards'])) && $card === null) {
+                $report->warning('search', "Index \"{$name}\": cards, card_variants and card_context do nothing without a card", $file);
             }
         }
 
@@ -104,6 +114,9 @@ final class SearchCheck implements Check
         }
         foreach (array_intersect((array) ($archive['base_params'] ?? []), ['q', 'filter', 'sort', 'offset', 'limit']) as $param) {
             $problems[] = "base_params can't name the archive's own param \"{$param}\"";
+        }
+        if (isset($archive['bounds']) && (!is_array($archive['bounds']) || !array_is_list($archive['bounds']) || array_filter($archive['bounds'], is_string(...)) !== $archive['bounds'])) {
+            $problems[] = 'bounds must be a list of numeric fields, e.g. [\'price\']';
         }
         if (isset($archive['redirect_params']) && !is_callable($archive['redirect_params'])) {
             $problems[] = 'redirect_params is not callable: use [Theme\\Class::class, \'method\'] with a public static method';

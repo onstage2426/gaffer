@@ -43,6 +43,20 @@ final class SearchTest extends TestCase
         self::assertNotSame($definitions['news']['version'], Indexes::definitions(['news' => ['type' => 'posts', 'post_types' => ['page']]])['news']['version']);
     }
 
+    public function test_extra_card_templates_are_views_with_their_own_fields(): void
+    {
+        self::config(['indexes' => [
+            'products' => ['type' => 'products', 'card' => 'card.twig', 'cards' => ['list' => 'list.twig'], 'card_variants' => ['business' => [self::class, 'excl']], 'card_variant' => [self::class, 'business']],
+            'plain' => ['type' => 'products', 'card' => 'card.twig', 'cards' => ['list' => 'list.twig']],
+        ]]);
+
+        self::assertSame(['' => 'card.twig', 'list' => 'list.twig'], Indexes::templates((array) Indexes::get('plain')));
+        self::assertSame('card_list', Indexes::card_field('plain', 'list'));
+        self::assertSame('card', Indexes::card_field('plain'));
+        self::assertNull(Indexes::card_field('plain', 'table'), 'not one of its views');
+        self::assertSame('card_list_business', Indexes::card_field('products', 'list'), 'the visitor\'s variant of the view\'s card');
+    }
+
     public function test_the_themes_document_method_adds_fields(): void
     {
         self::boot_fixture();

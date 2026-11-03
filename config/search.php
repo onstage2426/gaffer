@@ -17,7 +17,9 @@ return [
     | 'string'|'int'|'float': what `document` adds), synonyms (equivalences,
     | one_way), rebuild, thumbnail_size and variation_price (products),
     | post_types (posts); doctor checks them against the engine. Gaffer's own
-    | keys: card (a template rendered into each document with `post`),
+    | keys: card (a template rendered into each document with `post`), cards
+    | (view => template: more layouts of the card, e.g. ['list' => …], which
+    | the archive shows at ?view=list),
     | card_context ([class, method]: the template's variables for a post),
     | card_variants (variant => [class, method] wrapping the render, e.g. prices
     | excl. VAT), card_variant ([class, method] returning the visitor's variant
@@ -56,8 +58,10 @@ return [
     | among them), facet_values (field => how many values to list, default
     | 100), max_docs (best matches a search ranks over, default 500, at most
     | 5000), index_pages (true: later pages are indexable too),
-    | indexable_filters (field => values: a filtered page search engines may
-    | index, e.g. ['on_sale' => ['yes']]), base_params (query params that make
+    | indexable_filters (field => values: a filtered shop page search engines
+    | may index, e.g. ['on_sale' => ['yes']]; on categories it stays noindex),
+    | bounds (numeric fields whose range over the whole archive the template
+    | gets as search.bounds, e.g. a price slider's ends), base_params (query params that make
     | another page, kept in the canonical and page links, e.g. ['show']) and
     | redirect_params ([class, method]: gets the query, returns it with the
     | theme's old params translated; a different page is a 301).

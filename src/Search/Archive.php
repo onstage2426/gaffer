@@ -17,6 +17,9 @@ final readonly class Archive
      * @param list<Markup> $cards the first page, rendered at index time
      * @param array<string, mixed> $results the search response for this URL
      * @param list<array{value: string, label: string}> $sorts
+     * @param list<array{name: string, url: string, current: bool}> $views the layouts to switch to (the
+     *        index's `cards`; '' the main card), each this page's search in it; empty with one card
+     * @param array<string, mixed> $bounds field => {min, max} over the whole archive (`bounds`)
      *
      * @internal
      */
@@ -31,6 +34,9 @@ final readonly class Archive
         public array $sorts,
         public string $sort,
         public string $card_field,
+        public string $view = '',
+        public array $views = [],
+        public array $bounds = [],
     ) {}
 
     /** @internal Without the search plugin: no cards, nothing to search. */

@@ -45,6 +45,9 @@ final class Gaffer\Search\Archive
   readonly array $sorts
   readonly string $sort
   readonly string $card_field
+  readonly string $view
+  readonly array $views
+  readonly array $bounds
   initial(): Twig\Markup
 final class Gaffer\Search\Search
   static archive(): ?Gaffer\Search\Archive

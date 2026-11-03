@@ -22,6 +22,15 @@ function archive(options = {}) {
 beforeEach(() => history.replaceState(null, "", "/winkel/"));
 
 describe("archive", () => {
+    test("viewUrl is the current search on its first page in another layout", () => {
+        history.replaceState(null, "", "/winkel/?filter%5Bon_sale%5D=yes&offset=24&show=all");
+        const c = archive();
+
+        expect(c.viewUrl("list")).toBe("/winkel/?filter%5Bon_sale%5D=yes&show=all&view=list");
+        history.replaceState(null, "", "/winkel/?view=list&q=tegel");
+        expect(c.viewUrl("")).toBe("/winkel/?q=tegel");
+    });
+
     test("starts from the page's own results without a request", () => {
         const calls = mockFetch();
         const c = archive();

@@ -18,7 +18,7 @@ use Gaffer\Types\Post;
 final class Indexes
 {
     /** Keys Gaffer handles itself; every other key goes to the engine as it is. */
-    public const array OWN_KEYS = ['card', 'card_context', 'card_variants', 'card_variant', 'document'];
+    public const array OWN_KEYS = ['card', 'cards', 'card_context', 'card_variants', 'card_variant', 'document'];
 
     /** Bumped when Gaffer renders cards differently, so indexes rebuild. */
     private const string RENDERING = '2';
@@ -68,18 +68,42 @@ final class Indexes
     }
 
     /**
-     * The document field with the card this visitor gets: "card", or "card_{variant}" when the
-     * index's card_variant names one of its card_variants. Null for an index without a card.
+     * The document field with the card this visitor gets in this view (null: the main card, or
+     * one of `cards`): "card" or "card_{view}", with "_{variant}" when the index's card_variant
+     * names one of its card_variants. Null for an index without a card or that view.
      */
-    public static function card_field(string $index): ?string
+    public static function card_field(string $index, ?string $view = null): ?string
     {
         $definition = self::get($index);
-        if (!is_string($definition['card'] ?? null)) {
+        if ($definition === null || !is_string($definition['card'] ?? null) || ($view !== null && !isset(self::templates($definition)[$view]))) {
             return null;
         }
-        $variant = self::variant($definition);
 
-        return $variant !== null ? "card_{$variant}" : 'card';
+        return self::field($view, self::variant($definition));
+    }
+
+    /**
+     * The card templates of an index: '' => `card`, then `cards` (view => template).
+     *
+     * @param array<string, mixed> $definition
+     * @return array<string, string>
+     */
+    public static function templates(array $definition): array
+    {
+        $templates = is_string($definition['card'] ?? null) ? ['' => $definition['card']] : [];
+        foreach ((array) ($definition['cards'] ?? []) as $view => $template) {
+            if (is_string($template) && $view !== '') {
+                $templates[(string) $view] = $template;
+            }
+        }
+
+        return $templates;
+    }
+
+    /** The document field of a view's card ('' or null: the main card) for a variant (or none). */
+    public static function field(?string $view, ?string $variant): string
+    {
+        return 'card' . ($view !== null && $view !== '' ? "_{$view}" : '') . ($variant !== null ? "_{$variant}" : '');
     }
 
     /**
@@ -104,11 +128,14 @@ final class Indexes
      */
     private static function version(array $definition): string
     {
-        $card = is_string($definition['card'] ?? null) ? $definition['card'] : null;
+        $cards = array_map(Cards::version(...), self::templates($definition));
         $plain = array_diff_key($definition, array_flip(['card_context', 'card_variant', 'document']));
         $plain['card_variants'] = array_keys((array) ($definition['card_variants'] ?? []));
         $methods = [$definition['card_context'] ?? null, $definition['document'] ?? null, ...array_values((array) ($definition['card_variants'] ?? []))];
 
-        return md5((string) json_encode([self::RENDERING, $plain, $card !== null ? Cards::version($card) : null, Cards::code_version($methods)], JSON_PARTIAL_OUTPUT_ON_ERROR));
+        // One card as before (its hash, not a map), so adding `cards` is what rebuilds, not the update.
+        $card = count($cards) === 1 ? reset($cards) : ($cards !== [] ? $cards : null);
+
+        return md5((string) json_encode([self::RENDERING, $plain, $card, Cards::code_version($methods)], JSON_PARTIAL_OUTPUT_ON_ERROR));
     }
 }

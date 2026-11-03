@@ -7,6 +7,20 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-03
+
+### Search: list layouts, archive bounds; `indexable_filters` on the shop only
+
+For sites on `config/search.php`. New, optional: `cards => ['list' => 'product/list-item.twig']`
+in an index renders more layouts of the card; the archive at `?view=list` shows that one
+(`search.view`, `search.views` for the switch, `viewUrl()` in the archive component; canonical
+without `view`, noindex). `archive.bounds => ['price']` gives `search.bounds` (the range over the
+whole archive). `indexable_filters` now applies on the shop only: a category or brand page with
+that filter is noindex again. `bin/stage.php` also loads the theme's `Theme\` classes, so config
+files may use their constants.
+Find: `grep -n indexable_filters config/search.php`. Check: `php gaffer doctor --wp`; a
+category with `?filter[on_sale]=yes` renders `noindex`, the shop's sale page `index`.
+
 ## 2026-11-02
 
 ### Search: computed fields, direct terms, archive indexing and page sizes; compact cards

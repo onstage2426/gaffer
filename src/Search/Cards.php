@@ -20,7 +20,8 @@ use Twig\Environment;
 final class Cards
 {
     /**
-     * The card fields of one document: "card", plus "card_{variant}" per card variant. Empty
+     * The card fields of one document: "card", "card_{view}" per extra card template (`cards`),
+     * and each of those again per card variant ("card_{variant}", "card_{view}_{variant}"). Empty
      * when the index has no card or the post is gone.
      *
      * @return array<string, string>
@@ -28,19 +29,21 @@ final class Cards
     public static function fields(string $index, int $id): array
     {
         $definition = Indexes::get($index);
-        $template = $definition['card'] ?? null;
         $post = $id > 0 ? Post::from($id) : null;
-        if (!is_string($template) || $post === null) {
+        if ($definition === null || !is_string($definition['card'] ?? null) || $post === null) {
             return [];
         }
         $prepare = $definition['card_context'] ?? null;
         $context = is_callable($prepare) ? (array) $prepare($post) : ['post' => $post];
-        $render = static fn(): string => View::fetch($template, $context);
 
-        $fields = ['card' => self::compact(self::on_site_scheme($render))];
-        foreach ((array) ($definition['card_variants'] ?? []) as $variant => $wrap) {
-            if (is_callable($wrap)) {
-                $fields["card_{$variant}"] = self::compact(self::on_site_scheme(static fn(): string => (string) $wrap($render)));
+        $fields = [];
+        foreach (Indexes::templates($definition) as $view => $template) {
+            $render = static fn(): string => View::fetch($template, $context);
+            $fields[Indexes::field($view, null)] = self::compact(self::on_site_scheme($render));
+            foreach ((array) ($definition['card_variants'] ?? []) as $variant => $wrap) {
+                if (is_callable($wrap)) {
+                    $fields[Indexes::field($view, (string) $variant)] = self::compact(self::on_site_scheme(static fn(): string => (string) $wrap($render)));
+                }
             }
         }
 

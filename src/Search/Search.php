@@ -139,7 +139,6 @@ final class Search
             return null;
         }
         $engine = Engine::find();
-        $field = Indexes::card_field($index);
         if ($engine === null) {
             return Archive::unavailable();
         }
@@ -147,15 +146,25 @@ final class Search
         $term = function_exists('is_product_taxonomy') && \is_product_taxonomy() ? Term::current() : null;
         $definition = (array) Indexes::get($index);
         $query = (array) \wp_unslash($_GET);
+        // ?view= one of the index's extra card templates (`cards`): its own page, with that card.
+        $views = array_keys(Indexes::templates($definition));
+        $view = is_string($query['view'] ?? null) && $query['view'] !== '' && in_array($query['view'], $views, true) ? $query['view'] : null;
+        $field = Indexes::card_field($index, $view);
+        $on_shop = $term === null && function_exists('is_shop') && \is_shop();
+        $locked = [
+            ...self::scope($index, 'catalog'),
+            ...($term !== null ? ['term' => $term->id()] : []),
+        ];
 
         $archive = $engine->archive($index, [
-            ...self::scope($index, 'catalog'),
+            ...$locked,
             'limit' => max(1, (int) ($config['per_page'] ?? 24)),
             'attributes' => ['id', ...($field !== null ? [$field] : [])],
             'default_sort' => array_values(array_map(strval(...), (array) ($config['default_sort'] ?? []))),
             'facets' => array_values(array_map(strval(...), (array) ($config['facets'] ?? []))),
-            ...array_intersect_key($config, array_flip(['limits', 'facet_values', 'max_docs', 'index_pages', 'indexable_filters'])),
-            ...($term !== null ? ['term' => $term->id()] : []),
+            ...array_intersect_key($config, array_flip(['limits', 'facet_values', 'max_docs', 'index_pages'])),
+            // A filtered page search engines may index is the shop's (its sale page), not a category's or brand's.
+            ...($on_shop ? array_intersect_key($config, ['indexable_filters' => true]) : []),
             // A variant's page (business prices) is that visitor's: its token stops working after a day.
             ...(Indexes::variant($definition) !== null ? ['ttl' => DAY_IN_SECONDS] : []),
         ], $query, self::archive_base());
@@ -165,7 +174,24 @@ final class Search
             $sorts[] = ['value' => (string) $value, 'label' => (string) $label];
         }
         $sort = is_array($query['sort'] ?? null) ? (string) (reset($query['sort']) ?: '') : '';
-        self::$seo = ['url' => $archive['url'], 'indexable' => $archive['indexable']];
+        // Another layout of the same products: the canonical is the page without it.
+        self::$seo = ['url' => $archive['url'], 'indexable' => $archive['indexable'] && $view === null];
+
+        // The layouts to switch to: this page's search (first page) in each view.
+        $links = [];
+        if (count($views) > 1) {
+            $page = $engine->url(self::archive_base(), [...$query, 'offset' => 0]);
+            foreach ($views as $name) {
+                $links[] = ['name' => $name, 'url' => $name === '' ? $page : $page . (str_contains($page, '?') ? '&' : '?') . 'view=' . rawurlencode($name), 'current' => $name === ($view ?? '')];
+            }
+        }
+
+        // The ranges of these fields over the whole archive (a price slider's ends), not the results.
+        $bounds = [];
+        $fields = array_values(array_map(strval(...), (array) ($config['bounds'] ?? [])));
+        if ($fields !== []) {
+            $bounds = $engine->search($index, [...$locked, 'limit' => 1, 'attributes' => ['id'], 'facets' => $fields])['facetStats'];
+        }
 
         return new Archive(
             true,
@@ -178,6 +204,9 @@ final class Search
             $sorts,
             $sort,
             $field ?? 'card',
+            $view ?? '',
+            $links,
+            $bounds,
         );
     }
 

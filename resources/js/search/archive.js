@@ -13,6 +13,9 @@ import { createAlpineSearch } from "./alpine-search.js";
  *   item      — the element around each card, default "li", with class `itemClass`
  *   onRender  — called with the list after new cards are in (e.g. list => htmx.process(list))
  *
+ * viewUrl(name) is this page's current search (from the address bar, first page) in another
+ * layout (archive.views: the index's `cards`; "" the main card): a link that loads that page.
+ *
  * Everything else (minQueryLength, onBeforeRun, onSuccess) goes to createAlpineSearch().
  */
 function archive({ form = "#archive-form", list = "#archive-list", initial = "#archive-results", cardField = "card", item = "li", itemClass = "", onRender, onSuccess, ...searchOptions } = {}) {
@@ -40,6 +43,15 @@ function archive({ form = "#archive-form", list = "#archive-list", initial = "#a
                 return wrapper;
             }));
             onRender?.(element);
+        },
+
+        viewUrl(name) {
+            const params = new URLSearchParams(location.search);
+            params.delete("offset");
+            if (name) params.set("view", name);
+            else params.delete("view");
+            const query = params.toString();
+            return query ? `${location.pathname}?${query}` : location.pathname;
         },
 
         async goTo(page) {

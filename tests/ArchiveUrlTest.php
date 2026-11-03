@@ -116,6 +116,14 @@ final class ArchiveUrlTest extends TestCase
         self::assertNull(ArchiveUrl::redirect(self::PRODUCTS, ['b' => '1', 'a' => '2'], 0, 24, '/', static fn(array $query): array => ['a' => '2', 'b' => '1']), 'the same params in another order are the same page');
     }
 
+    public function test_a_form_submitted_without_javascript_redirects_to_its_normalized_url(): void
+    {
+        self::assertSame(
+            '/afwatering/?show=all&filter%5Bbrand%5D%5B%5D=x&view=list',
+            ArchiveUrl::redirect(self::PRODUCTS, ['token' => 'abc', 'show' => 'all', 'q' => '', 'offset' => '0', 'sort' => [''], 'filter' => ['brand' => ['x'], 'price' => ['min' => '', 'max' => '']], 'view' => 'list'], 0, 24, '/afwatering/?show=all'),
+        );
+    }
+
     public function test_the_urls_params_as_the_search_request(): void
     {
         self::assertSame(

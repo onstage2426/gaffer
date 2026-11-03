@@ -147,7 +147,8 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
   'yes']])` is the shop's sale page.
 - **The first row:** `archive.eager => 4` makes the main image of the first 4
   stored cards `loading="eager"` (the first also `fetchpriority="high"`) on
-  page 1, so the LCP image isn't lazy. It rewrites the card template's first
+  every page (later pages are landing pages too); per layout
+  `['grid' => 4, 'list' => 2]`, so the LCP image isn't lazy. It rewrites the card template's first
   `loading="lazy"`: put the main image first and write the attribute literally;
   later images (a hover image) stay lazy.
 

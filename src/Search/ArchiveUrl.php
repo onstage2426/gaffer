@@ -93,6 +93,15 @@ final class ArchiveUrl
         if ($translate !== null) {
             $translated = (array) $translate($translated);
         }
+        if (array_key_exists('token', $translated)) {
+            // The archive form submitted without JavaScript: its hidden token and empty fields
+            // in the URL. The normalized URL of the same search instead (base params are in
+            // $base, the layout kept).
+            $view = is_scalar($translated['view'] ?? null) ? (string) $translated['view'] : '';
+            $url = self::url($base, $translated);
+
+            return $view !== '' ? $url . (str_contains($url, '?') ? '&' : '?') . 'view=' . rawurlencode($view) : $url;
+        }
         if ($paged <= 1 && $translated == $query) {
             return null;
         }

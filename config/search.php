@@ -54,8 +54,9 @@ return [
     | => how many values to list, default 100), max_docs (best matches a search
     | ranks over, default 500, at most 5000), bounds (numeric fields whose
     | range over the whole archive the template gets as search.bounds) and
-    | eager (how many cards at the top of the first page load their images
-    | eagerly: the card template's loading="lazy" becomes "eager").
+    | eager (how many cards at the top of each page load their main image
+    | eagerly: the card template's first loading="lazy" becomes "eager"; an
+    | int, or one per layout of cards: ['grid' => 4, 'list' => 2]).
     |
     | seo: index_pages (true: later pages are indexable too) and
     | indexable_filters (field => values: a filtered shop page search engines

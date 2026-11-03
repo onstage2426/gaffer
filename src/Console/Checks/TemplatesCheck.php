@@ -43,6 +43,13 @@ final class TemplatesCheck implements Check
             }
         }
 
+        // Card templates config/search.php renders into the index (a list layout no PHP renders).
+        foreach (\Gaffer\Search\Indexes::all() as $definition) {
+            foreach (\Gaffer\Search\Indexes::templates($definition) as $card) {
+                $used[$card] = true;
+            }
+        }
+
         foreach ($templates as $name => $file) {
             $module = Templates::parse($name);
             if ($module === null) {

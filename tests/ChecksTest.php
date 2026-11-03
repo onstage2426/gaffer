@@ -586,6 +586,17 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString('search.available', $this->messages(new SearchCheck()));
     }
 
+    public function test_card_templates_of_the_search_config_are_used(): void
+    {
+        mkdir("{$this->theme}/views/product", 0755, true);
+        file_put_contents("{$this->theme}/views/product/list-item.twig", '<li>{{ post.title }}</li>');
+        self::assertStringContainsString('Nothing renders or includes this template', $this->messages(new TemplatesCheck()));
+
+        file_put_contents("{$this->theme}/config/search.php", "<?php return ['indexes' => ['products' => ['type' => 'products', 'cards' => ['grid' => 'x.twig', 'list' => 'product/list-item.twig']]]];");
+        Config::load("{$this->theme}/config");
+        self::assertStringNotContainsString('Nothing renders or includes this template', $this->messages(new TemplatesCheck()), 'the index renders it');
+    }
+
     private function messages(Check $check): string
     {
         return implode("\n", array_column($this->findings($check), 'message'));

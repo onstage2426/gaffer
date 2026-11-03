@@ -22,6 +22,14 @@ function archive(options = {}) {
 beforeEach(() => history.replaceState(null, "", "/winkel/"));
 
 describe("archive", () => {
+    test("cards that are their own list item go in as they are", async () => {
+        mockFetch(() => response({ total: 30, limit: 2, offset: 2, results: [{ id: 3, card: "<li class=\"card\">3</li>" }, { id: 4, card: "<li class=\"card\">4</li>" }] }));
+        const c = archive({ item: null });
+
+        await c.goToPage(2);
+        expect(document.getElementById("archive-list").innerHTML).toBe('<li class="card">3</li><li class="card">4</li>');
+    });
+
     test("pageUrl is page n of the current search", () => {
         history.replaceState(null, "", "/winkel/?filter%5Bon_sale%5D=yes&offset=2&view=list");
         const c = archive();

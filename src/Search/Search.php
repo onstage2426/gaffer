@@ -92,16 +92,22 @@ final class Search
     /**
      * A link to an archive with a search: the shop, or a product category or other product
      * taxonomy's term, with a filter, sort or query (brand logos → ['filter' => ['brand' =>
-     * ['x']]], a sale banner → ['filter' => ['on_sale' => 'yes']]). Normalized like the canonical.
-     * Null when the theme has no archive or the term has no page.
+     * ['x']]], a sale banner → ['filter' => ['on_sale' => 'yes']]). Normalized like the canonical;
+     * `urls.base_params` in $query are kept (['show' => 'all']). Null when the theme has no
+     * archive or the term has no page.
      *
-     * @param array<mixed> $query the archive's URL params: q, filter, sort, offset, limit
+     * @param array<mixed> $query the archive's URL params: q, filter, sort, offset, limit, and base params
      */
     public static function archive_url(?Term $term = null, array $query = []): ?string
     {
         $base = $term !== null ? $term->link() : self::shop_url();
+        if (self::archive_index() === null || $base === null || $base === '') {
+            return null;
+        }
+        $own = array_intersect_key($query, array_flip(array_map(strval(...), (array) Config::get('search.archive.urls.base_params'))));
+        $own = array_filter($own, static fn(mixed $value): bool => is_scalar($value) && (string) $value !== '');
 
-        return self::archive_index() !== null && $base !== null && $base !== '' ? ArchiveUrl::url($base, $query) : null;
+        return ArchiveUrl::url($own !== [] ? $base . (str_contains($base, '?') ? '&' : '?') . http_build_query($own, '', '&', PHP_QUERY_RFC3986) : $base, $query);
     }
 
     /** @internal The archive config's index, when the shop's archives come from one. */
@@ -227,9 +233,11 @@ final class Search
         $fields = array_values(array_map(strval(...), (array) ($config['bounds'] ?? [])));
         $bounds = $fields !== [] ? $engine->search($index, [...$request, 'limit' => 1, 'attributes' => ['id'], 'facets' => $fields])['facetStats'] : [];
 
-        // The first row of the first page holds the largest image on screen: not lazy (`eager`).
+        // The first row holds the largest image on screen: not lazy (`eager`), on every page (later
+        // pages are landing pages too, with seo.index_pages); a count per layout (a list row is shorter).
         $cards = $field !== null ? self::cards_of($results['results'], $field) : [];
-        $eager = $results['offset'] === 0 ? max(0, (int) ($config['eager'] ?? 0)) : 0;
+        $eager = $config['eager'] ?? 0;
+        $eager = max(0, (int) (is_array($eager) ? ($eager[$view] ?? 0) : $eager));
         foreach (array_slice(array_keys($cards), 0, $eager) as $i) {
             // trusted: the stored card, with its img attributes changed
             $cards[$i] = new Markup(Cards::eager((string) $cards[$i], $i === 0), 'UTF-8');

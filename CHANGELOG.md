@@ -9,6 +9,23 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-03
 
+### Search: `eager` on every page and per layout; cards as their own list item; links keep base params
+
+For sites on `config/search.php`:
+- `archive.eager` now applies on every page, not only the first (later pages are landing pages
+  too with `seo.index_pages`), and takes a count per layout: `'eager' => ['grid' => 4, 'list' => 2]`.
+  Check: the eager image count per page against before.
+- `archive({ item: null })` puts the cards in the list as they are, for card templates that are
+  their own `<li>`; with `fields` it's the filter form too.
+- `Search::archive_url($term, ['show' => 'all', 'filter' => …])` keeps the `urls.base_params`
+  you pass (before: dropped, so an overview page's filter links lost `?show=all`).
+- A submit of the archive form without JavaScript (its hidden `token` and empty fields in the URL)
+  301s to the normalized URL of the same search.
+- `doctor` no longer calls a `cards` template unused (a list layout no PHP renders).
+- With the gaffer-search plugin `0.0.0+f39884a` or newer, the live theme's requests no longer
+  empty the search endpoint's index list while a staged copy is checked (searches from the stage
+  failed with `index_unknown` before the switch).
+
 ### Search: `archive({ fields })` and `pageUrl()`; `eager` on the main image only; checks
 
 From a fuzor-wp site's switch. All but one are additions:

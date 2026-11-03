@@ -106,8 +106,9 @@ final class SearchCheck implements Check
         if (isset($archive['facet_values']) && (!is_array($archive['facet_values']) || array_filter($archive['facet_values'], is_int(...)) !== $archive['facet_values'] || array_is_list($archive['facet_values']))) {
             $problems[] = 'facet_values must map a field to a number of values';
         }
-        if (isset($archive['eager']) && (!is_int($archive['eager']) || $archive['eager'] < 0)) {
-            $problems[] = 'eager must be the number of cards at the top of the first page (an int)';
+        $eager = $archive['eager'] ?? 0;
+        if (!is_int($eager) && !(is_array($eager) && !array_is_list($eager) && array_filter($eager, is_int(...)) === $eager)) {
+            $problems[] = 'eager must be the number of cards at the top of a page (an int), or one per layout of cards ([\'grid\' => 4, \'list\' => 2])';
         }
         if (isset($archive['max_docs']) && !is_int($archive['max_docs'])) {
             $problems[] = 'max_docs must be an int';

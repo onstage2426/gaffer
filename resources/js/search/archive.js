@@ -12,7 +12,8 @@ import { createAlpineSearch, createFilterForm } from "./alpine-search.js";
  *   cardField — the hit field with the visitor's card: archive.card_field
  *   fields    — the archive's filters (createFilterForm()'s fields): `filters`, `options()`,
  *               `activeFilters()`, `removeFilter()` come with them
- *   item      — the element around each card, default "li", with class `itemClass`
+ *   item      — the element around each card, default "li", with class `itemClass`; null for
+ *               cards that are their own list item (a card template with its own <li>)
  *   onRender  — called with the list after new cards are in (e.g. list => htmx.process(list))
  *
  * pageUrl(n) is page n of the current search (from the address bar): the href for page links
@@ -49,12 +50,17 @@ function archive({ form = "#archive-form", list = "#archive-list", initial = "#a
         showCards(data) {
             const element = listElement();
             if (!element) return;
-            element.replaceChildren(...(data.results ?? []).map((hit) => {
-                const wrapper = document.createElement(item);
-                if (itemClass) wrapper.className = itemClass;
-                wrapper.innerHTML = hit[cardField] ?? "";
-                return wrapper;
-            }));
+            const cards = (data.results ?? []).map((hit) => hit[cardField] ?? "");
+            if (!item) {
+                element.innerHTML = cards.join("");
+            } else {
+                element.replaceChildren(...cards.map((card) => {
+                    const wrapper = document.createElement(item);
+                    if (itemClass) wrapper.className = itemClass;
+                    wrapper.innerHTML = card;
+                    return wrapper;
+                }));
+            }
             onRender?.(element);
         },
 

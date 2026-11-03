@@ -16,7 +16,7 @@ use WP_Term;
  * (`doctor:render`, a fresh WordPress with strict variables), several in parallel.
  * Used by doctor's render check and render:snapshot/render:diff.
  *
- * @phpstan-type Result array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, html?: string}
+ * @phpstan-type Result array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, search?: ?bool, html?: string}
  */
 final class Renderer
 {
@@ -99,6 +99,24 @@ final class Renderer
         );
 
         return self::paths(array_map(static fn(string $id): string|false => get_permalink((int) $id), $ids));
+    }
+
+    /**
+     * The pages that rendered without the search engine while this process has it: the plugin is
+     * active only here (a prepend, `wp --require`), not for the site, so their archives showed
+     * the unavailable state. Activate it for the site instead (inert for a theme without
+     * config/search.php).
+     *
+     * @param array<string, array<string, mixed>|string> $results
+     * @return list<string>
+     */
+    public static function without_engine(array $results): array
+    {
+        if (\Gaffer\Search\Engine::find() === null) {
+            return [];
+        }
+
+        return array_keys(array_filter($results, static fn(array|string $result): bool => is_array($result) && ($result['search'] ?? null) === false));
     }
 
     /**

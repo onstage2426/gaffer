@@ -245,8 +245,8 @@ describe("createFilterForm field types", () => {
         expect(c.activeFilters()).toEqual([]);
     });
 
-    test("the response's view is kept", () => {
-        const c = component(F.createFilterForm(fields, { initial: { view: "list", limit: 48 } }));
-        expect([c.view, c.limit]).toEqual(["list", 48]);
+    test("the response's limit is kept", () => {
+        const c = component(F.createFilterForm(fields, { initial: { limit: 48 } }));
+        expect([c.view, c.limit]).toEqual([undefined, 48]);
     });
 });

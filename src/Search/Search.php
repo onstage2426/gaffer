@@ -40,12 +40,14 @@ final class Search
 
     /**
      * Cards from an index, for a slider: the most popular products of a category without the
-     * product of the page, say. Products hidden from the catalog are left out.
+     * product of the page, say, or only those on sale (`filter`). Products hidden from the
+     * catalog are left out.
      *
      * @param list<string> $sort e.g. ['total_sales:desc']
+     * @param array<string, mixed> $filter e.g. ['on_sale' => 'yes'], ['brand' => ['a', 'b']], ['price' => ['min' => 10]]
      * @return list<Markup>
      */
-    public static function cards(string $index, int $limit, array $sort = [], ?Term $term = null, ?Post $except = null): array
+    public static function cards(string $index, int $limit, array $sort = [], ?Term $term = null, ?Post $except = null, array $filter = []): array
     {
         $engine = Engine::find();
         $field = Indexes::card_field($index);
@@ -58,7 +60,7 @@ final class Search
             'sort' => $sort,
             'attributes' => ['id', $field],
             ...($term !== null ? ['term' => $term->id()] : []),
-            ...($except !== null ? ['filter' => ['id' => ['not' => (string) $except->id()]]] : []),
+            ...($filter !== [] || $except !== null ? ['filter' => [...$filter, ...($except !== null ? ['id' => ['not' => (string) $except->id()]] : [])]] : []),
         ]);
 
         return self::cards_of($results['results'], $field);
@@ -85,6 +87,21 @@ final class Search
             $engine->token($index, [...self::scope($index, 'search'), 'limit' => $limit, 'facets' => $facets, ...($attributes !== [] ? ['attributes' => $attributes] : [])]),
             self::shop_url() ?? '',
         );
+    }
+
+    /**
+     * A link to an archive with a search: the shop, or a product category or other product
+     * taxonomy's term, with a filter, sort or query (brand logos → ['filter' => ['brand' =>
+     * ['x']]], a sale banner → ['filter' => ['on_sale' => 'yes']]). Normalized like the canonical.
+     * Null when the theme has no archive or the term has no page.
+     *
+     * @param array<mixed> $query the archive's URL params: q, filter, sort, offset, limit
+     */
+    public static function archive_url(?Term $term = null, array $query = []): ?string
+    {
+        $base = $term !== null ? $term->link() : self::shop_url();
+
+        return self::archive_index() !== null && $base !== null && $base !== '' ? ArchiveUrl::url($base, $query) : null;
     }
 
     /** @internal The archive config's index, when the shop's archives come from one. */
@@ -210,13 +227,21 @@ final class Search
         $fields = array_values(array_map(strval(...), (array) ($config['bounds'] ?? [])));
         $bounds = $fields !== [] ? $engine->search($index, [...$request, 'limit' => 1, 'attributes' => ['id'], 'facets' => $fields])['facetStats'] : [];
 
+        // The first row of the first page holds the largest image on screen: not lazy (`eager`).
+        $cards = $field !== null ? self::cards_of($results['results'], $field) : [];
+        $eager = $results['offset'] === 0 ? max(0, (int) ($config['eager'] ?? 0)) : 0;
+        foreach (array_slice(array_keys($cards), 0, $eager) as $i) {
+            // trusted: the stored card, with its img attributes changed
+            $cards[$i] = new Markup(Cards::eager((string) $cards[$i], $i === 0), 'UTF-8');
+        }
+
         return new Archive(
             true,
             $engine->endpoint(),
             $engine->token($index, $request),
             $results['query'],
             $results['total'],
-            $field !== null ? self::cards_of($results['results'], $field) : [],
+            $cards,
             $results,
             $sorts,
             $sort,
@@ -224,6 +249,9 @@ final class Search
             $view,
             $links,
             $bounds,
+            $base,
+            $query,
+            $view !== ($views[0] ?? '') ? $view : '',
         );
     }
 

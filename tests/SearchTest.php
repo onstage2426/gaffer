@@ -70,6 +70,15 @@ final class SearchTest extends TestCase
         self::assertSame(['id' => 7], ($definitions['products']['document'])(['id' => 7], 'products'), 'a post that doesn\'t exist: nothing added');
     }
 
+    public function test_the_first_cards_load_their_images_eagerly(): void
+    {
+        $card = '<article><img class="a" src="x.jpg" loading="lazy"><img src="y.jpg" loading=\'lazy\'></article>';
+
+        self::assertSame('<article><img fetchpriority="high" class="a" src="x.jpg" loading="eager"><img src="y.jpg" loading=\'eager\'></article>', Cards::eager($card, true));
+        self::assertSame('<article><img class="a" src="x.jpg" loading="eager"><img src="y.jpg" loading=\'eager\'></article>', Cards::eager($card));
+        self::assertSame('<img fetchpriority="low" loading="eager">', Cards::eager('<img fetchpriority="low" loading="lazy">', true), 'the template\'s own fetchpriority stays');
+    }
+
     public function test_cards_are_stored_without_indentation(): void
     {
         self::assertSame("<div>\n<h3>\nA  title\n</h3>\n<pre>  a\n    b</pre>\n<span>a</span> <span>b</span>\n</div>", Cards::compact("\n  <div>\n\n    <h3>\n      A  title\n    </h3>\n    <pre>  a\n    b</pre>\n    <span>a</span> <span>b</span>\n  </div>\n"));

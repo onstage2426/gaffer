@@ -9,6 +9,26 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-03
 
+### Search: page and archive links, slider filters, eager first row; the form works without JavaScript
+
+New, optional: `search.page_url(n)` (a crawlable link to page n of the archive's search, with its
+base params and layout), `Search::archive_url($term, ['filter' => …])` (a link to another
+archive, normalized like the canonical; `null` for the shop), `Search::cards(…, filter: […])` (a
+slider's "on sale" tab), `archive.eager => N` (the first N cards of page 1 load their images
+eagerly). `doctor --wp` and `render:diff` now say when their renders don't see the gaffer-search
+plugin the command itself sees (a plugin activated only for that process: activate it for the
+site instead, it does nothing without `config/search.php`). With `theme.cache` on, a changed
+template recompiles without `twig:clear`. `ai:update` in a staged copy with `config/search.php`
+writes the gaffer-search guideline and skill, not fuzor-wp's.
+
+Breaking, small: the archive component has no `view` property any more (always `""` since views
+left the responses): use the server's `search.view`. Find: `grep -rn "\bview\b" assets/js views | grep -v viewUrl`.
+The archive form's endpoint can now come from `data-gaffer-search-endpoint`, so the form's
+`action` stays the page itself and a submit without JavaScript renders the archive. Before:
+`<form … action="{{ search.endpoint }}">`; after:
+`<form … action="" data-gaffer-search-endpoint="{{ search.endpoint }}">`. Check: the archive
+filters with JavaScript off, then `php gaffer doctor --wp`.
+
 ### Search: `urls.redirect_params` after WooCommerce's params, and every change it makes is a 301
 
 For sites with `urls.redirect_params`. It now gets the query after WooCommerce's params became

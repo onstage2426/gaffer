@@ -71,9 +71,9 @@ content written by code).
 `blank()`, `name`, `sent`, `message`, `failed`, `value()`, `checked()`, `error()`.
 
 **Search** (with the gaffer-search plugin; config in `config/search.php`):
-`Search\Search::available()`, `archive()`, `cards()`, `searchbar()`;
+`Search\Search::available()`, `archive()`, `archive_url()`, `cards()` (with `filter`), `searchbar()`;
 `Search\Archive`: `available`, `endpoint`, `token`, `query`, `total`, `cards`,
-`results`, `sorts`, `sort`, `card_field`, `view`, `views`, `bounds`, `initial()`; `Search\Searchbar`:
+`results`, `sorts`, `sort`, `card_field`, `view`, `views`, `bounds`, `initial()`, `page_url()`; `Search\Searchbar`:
 `available`, `endpoint`, `token`, `results_url`; the JavaScript in
 `resources/js/search.js`.
 

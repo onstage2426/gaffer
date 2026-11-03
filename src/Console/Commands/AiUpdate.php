@@ -41,8 +41,10 @@ final class AiUpdate extends Command
             'woocommerce' => function_exists('WC'),
             'acf' => class_exists('ACF'),
             'gravityforms' => class_exists('GFAPI'),
-            'fuzor' => function_exists('fuzor_archive'),
-            'gaffer-search' => \Gaffer\Search\Engine::find() !== null,
+            // A theme with config/search.php is on gaffer-search, also in a staged copy while the
+            // live theme (and its active plugin) is still fuzor-wp.
+            'fuzor' => function_exists('fuzor_archive') && \Gaffer\Search\Indexes::all() === [],
+            'gaffer-search' => \Gaffer\Search\Engine::find() !== null || \Gaffer\Search\Indexes::all() !== [],
             'mcp-adapter' => Mcp::enabled(),
         ]));
 

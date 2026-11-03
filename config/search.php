@@ -52,8 +52,10 @@ return [
     | sizes the visitor picks with ?limit=, per_page among them), sorts (value
     | => label, '' for the default), default_sort, facets, facet_values (field
     | => how many values to list, default 100), max_docs (best matches a search
-    | ranks over, default 500, at most 5000) and bounds (numeric fields whose
-    | range over the whole archive the template gets as search.bounds).
+    | ranks over, default 500, at most 5000), bounds (numeric fields whose
+    | range over the whole archive the template gets as search.bounds) and
+    | eager (how many cards at the top of the first page load their images
+    | eagerly: the card template's loading="lazy" becomes "eager").
     |
     | seo: index_pages (true: later pages are indexable too) and
     | indexable_filters (field => values: a filtered shop page search engines

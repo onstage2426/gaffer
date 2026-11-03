@@ -51,6 +51,20 @@ final class Cards
     }
 
     /**
+     * A stored card for the top of a page (the archive's first row, the LCP): its images'
+     * loading="lazy" as loading="eager", and with $priority fetchpriority="high" on the first.
+     */
+    public static function eager(string $html, bool $priority = false): string
+    {
+        $html = (string) preg_replace('/\bloading=(["\'])lazy\1/i', 'loading=$1eager$1', $html);
+        if ($priority && !preg_match('/\bfetchpriority=/i', $html)) {
+            $html = (string) preg_replace('/<img\b/i', '<img fetchpriority="high"', $html, 1);
+        }
+
+        return $html;
+    }
+
+    /**
      * A card without the template's indentation and blank lines: every run of whitespace with a
      * line break becomes one line break, which a browser shows the same (about a tenth of an
      * index and of every response). Inside <pre>, <textarea>, <script> and <style> whitespace is

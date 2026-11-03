@@ -28,7 +28,7 @@ final class Request
 {
     public const string MARKER = 'GAFFER_RENDER_RESULT ';
 
-    /** @var array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, time_ms?: int, queries?: int, twig_ms?: int, html?: string} */
+    /** @var array{path: string, status: string, error: ?string, file: ?string, line: ?int, redirect: ?string, http: int, notices: list<string>, bytes: int, time_ms?: int, queries?: int, twig_ms?: int, search?: ?bool, html?: string} */
     private array $result;
 
     /** Output buffer level below the page's buffer. */
@@ -93,6 +93,9 @@ final class Request
             $this->result['time_ms'] = (int) round((hrtime(true) - $started) / 1e6);
             $this->result['queries'] = isset($GLOBALS['wpdb']) ? (int) $GLOBALS['wpdb']->num_queries : 0;
             $this->result['twig_ms'] = $this->profile !== null ? (int) round($this->profile->getDuration() * 1000) : 0;
+            // Whether this render saw the search engine (null: the theme defines no indexes): a plugin
+            // activated only for the parent process isn't active here (Renderer::without_engine()).
+            $this->result['search'] = \Gaffer\Search\Indexes::all() !== [] ? \Gaffer\Search\Engine::find() !== null : null;
             fwrite(STDOUT, "\n" . self::MARKER . json_encode($this->result, JSON_UNESCAPED_SLASHES) . "\n");
         });
 

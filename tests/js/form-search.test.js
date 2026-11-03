@@ -23,6 +23,15 @@ describe("search(form), under createAlpineSearch()", () => {
         expect(calls).toEqual(["https://shop.test/search.php?token=T&q=jurk&filter%5Bbrand%5D%5B%5D=A&filter%5Bbrand%5D%5B%5D=B"]);
     });
 
+    test("data-gaffer-search-endpoint wins over the action, which stays the page for a submit without JavaScript", async () => {
+        const calls = mockFetch();
+        document.body.innerHTML = `<form method="get" action="/winkel/" data-gaffer-search-endpoint="https://shop.test/search.php">
+            <input type="hidden" name="token" value="T"><input name="q" value="jurk"></form>`;
+
+        await search(document.querySelector("form"));
+        expect(calls).toEqual(["https://shop.test/search.php?token=T&q=jurk"]);
+    });
+
     test("refuses a POST form", () => {
         document.body.innerHTML = '<form method="post"></form>';
         expect(() => search(document.querySelector("form"))).toThrow(/method="get"/);

@@ -76,9 +76,11 @@ final class RenderSnapshot extends Command
             }
         };
 
+        $rendered = is_string($from) ? [] : new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $visitor, $entry)->render($paths, true);
         $pages = is_string($from)
             ? array_map(self::fetch(...), array_combine($paths, array_map(static fn(string $p): string => rtrim($from, '/') . $p, $paths)))
-            : array_map(Snapshot::page(...), new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $visitor, $entry)->render($paths, true));
+            : array_map(Snapshot::page(...), $rendered);
+        RenderDiff::warn_without_engine($rendered, $output);
 
         new Snapshot($name, is_string($from) ? $from : 'rendered' . ($entry !== null ? ' with ' . basename(dirname($entry)) : '') . ($visitor !== [] ? ' ' . implode(' ', $visitor) : ''), gmdate('c'), $pages, $visitor)->save();
 

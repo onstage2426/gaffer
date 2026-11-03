@@ -81,8 +81,6 @@ function createAlpineSearch({ minQueryLength = 0, initial, form, onBeforeRun, on
         // name="offset" :value="offset">), so goToPage() only has to set it.
         offset: 0,
         limit: 0,
-        // The view the last response used (a token's `views`), "" for the token's own fields.
-        view: "",
         loading: false,
         // null, or { message, code, status } from the last failed request —
         // code is the endpoint's own (invalid_token after a token-secret
@@ -145,7 +143,6 @@ function createAlpineSearch({ minQueryLength = 0, initial, form, onBeforeRun, on
             }
             this.offset = data.offset ?? 0;
             this.limit = data.limit ?? this.limit;
-            this.view = data.view ?? "";
             this.searchedQuery = data.query ?? this.query;
 
             // A misconfiguration signal (an undeclared facet, filter, or sort

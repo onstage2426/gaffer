@@ -173,7 +173,8 @@ async function performSearch(form, { endpoint, commit, writeHistory }) {
         formSearchers.set(form, searcher);
     }
 
-    const base = endpoint ?? form.action;
+    // data-gaffer-search-endpoint: the form's action stays the page itself (a no-JS submit renders it).
+    const base = endpoint ?? form.dataset.gafferSearchEndpoint ?? form.action;
     const url = `${base}${base.includes("?") ? "&" : "?"}${paramString}`;
 
     let data;
@@ -197,7 +198,7 @@ async function performSearch(form, { endpoint, commit, writeHistory }) {
 /**
  * @param {HTMLFormElement|string} formOrSelector
  * @param {{ endpoint?: string, commit?: boolean }} [options]
- *   endpoint — defaults to the form's own `action`. Lets one form serve two
+ *   endpoint — defaults to the form's data-gaffer-search-endpoint, else its `action`. Lets one form serve two
  *     purposes: a self-submitting archive form's action="" (current page,
  *     for the no-JS fallback) and its JS-enhanced fetch targeting
  *     search.php are the same markup, with the enhancement script passing

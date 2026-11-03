@@ -122,7 +122,7 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
 ```twig
 <script type="application/json" id="archive-results">{{ search.initial() }}</script>
 <div x-data="archive({ cardField: '{{ search.card_field }}' })">
-    <form id="archive-form" method="get" action="{{ search.endpoint }}" data-gaffer-search-history="push" @submit.prevent="run()" @change="run()">
+    <form id="archive-form" method="get" action="" data-gaffer-search-endpoint="{{ search.endpoint }}" data-gaffer-search-history="push" @submit.prevent="run()" @change="run()">
         <input type="hidden" name="token" value="{{ search.token }}">
         <input type="hidden" name="offset" :value="offset" value="{{ search.results.offset }}" data-gaffer-search-default="0">
         {% for sort in search.sorts %}
@@ -130,15 +130,33 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
         {% endfor %}
     </form>
     <ul id="archive-list">{% for card in search.cards %}<li>{{ card }}</li>{% endfor %}</ul>
-    {# pages: x-for over pageNumbers(), @click="goTo(page)" #}
+    {# pages: x-for over pageNumbers(), @click.prevent="goTo(page)", href from search.page_url(n) #}
 </div>
 ```
+
+- The form's `action=""` is the page itself, so it works without JavaScript;
+  the browser searches `data-gaffer-search-endpoint`. Base params (`?show=all`)
+  need a hidden input to survive a submit without JavaScript.
+- **Page links:** `search.page_url(2)` is page 2 of this search (filters,
+  sort, page size, base params and the layout kept): real `<a href>`s, which
+  crawlers need with `seo.index_pages`; the component's `goTo()` takes over
+  the click.
+- **Links to other archives:** `Search::archive_url($brand_term, ['filter' =>
+  ['brand' => ['x']]])` (PHP prepares them; null for the shop's own when the
+  theme has no archive); `Search::archive_url(null, ['filter' => ['on_sale' =>
+  'yes']])` is the shop's sale page.
+- **The first row:** `archive.eager => 4` makes the first 4 stored cards'
+  images `loading="eager"` (the first also `fetchpriority="high"`) on page 1,
+  so the LCP image isn't lazy. It rewrites the card template's own
+  `loading="lazy"`: write it as a literal attribute there.
 
 - `search.available` is false without the plugin (or when it doesn't speak
   Gaffer's contract): say so in the archive (`{% if not search.available %}`
   "products can't be shown right now"; `doctor` warns when no template reads
   it) and leave the searchbar out (`Search::searchbar()` has `available` too).
-- Sliders: `Search::cards('products', 10, ['total_sales:desc'], $category, except: $post)`.
+- Sliders: `Search::cards('products', 10, ['total_sales:desc'], $category, except: $post)`;
+  `filter: ['on_sale' => 'yes']` for an "on sale" tab (the Filter shape: a value,
+  a list, `['not' => …]`, `['min' => …, 'max' => …]`).
 - A searchbar: `Search::searchbar('products', 8, facets: ['price', 'category'],
   attributes: ['id', 'url', 'thumbnail', 'price', 'category'])` gives
   `endpoint`, `token`, `results_url` (the shop: append `?q=`).
@@ -178,13 +196,18 @@ Alpine.data("archive", (options) => archive({ ...options, itemClass: "flex flex-
 
 fuzor-wp sites (`fuzor_*()`, `window.Fuzor`, `data-fuzor-*`; `doctor` lists
 them) move to `config/search.php` in the same deploy that switches the plugin:
-gaffer-search has no `fuzor_`/`gaffer_search_` theme API. Stage the theme
-(`cp -r theme theme-stage`, see `gaffer-migrate`): `php gaffer` in the copy runs
-it as the active theme without the object cache, and builds the index before
-the switch with `wp --require=vendor/onstage2426/gaffer/bin/stage.php
+gaffer-search has no `fuzor_`/`gaffer_search_` theme API. **Activate
+gaffer-search for the site first** (network-wide on a multisite): it does nothing
+for a theme without `config/search.php`, and every process (renders,
+`doctor --wp`, WP-CLI) then sees it; a plugin activated only for one process
+(a prepend) isn't active in the renders it starts, which `doctor --wp` reports.
+Stage the theme (`cp -r theme theme-stage`, see `gaffer-migrate`): `php gaffer`
+in the copy runs it as the active theme without the object cache, and builds
+the index before the switch with `wp --require=vendor/onstage2426/gaffer/bin/stage.php
 gaffer-search rebuild`. Content edited between that build and the switch
 isn't tracked (the plugin isn't active for the live theme yet): right after the
-switch, `wp gaffer-search verify --fix` updates what differs. Snapshot the live
+switch, `wp gaffer-search verify --fix` updates what differs (one full
+verify, then only the fixed documents are checked again). Snapshot the live
 site first (`render:snapshot --from`), compare searches and archive counts after.
 
 | fuzor-wp | config/search.php |
@@ -214,8 +237,8 @@ site first (`render:snapshot --from`), compare searches and archive counts after
 
 ## Checking
 
-- `php gaffer doctor --wp`: the plugin (and the features the config needs),
-  the definitions, every index built and current, one card rendered with
+- `php gaffer doctor --wp`: the plugin (also in the renders it starts), the
+  definitions, every index built and current, one card rendered with
   strict variables, old plugin API calls (gaffer-search's and fuzor-wp's).
 - `gaffer-search` (MCP): search an index (query, filter, facets) and see its
   status: for synonyms, facets, "why isn't X found".

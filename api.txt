@@ -49,10 +49,12 @@ final class Gaffer\Search\Archive
   readonly array $views
   readonly array $bounds
   initial(): Twig\Markup
+  page_url(int $page): string
 final class Gaffer\Search\Search
   static archive(): ?Gaffer\Search\Archive
+  static archive_url(?Gaffer\Types\Term $term = NULL, array $query = []): ?string
   static available(): bool
-  static cards(string $index, int $limit, array $sort = [], ?Gaffer\Types\Term $term = NULL, ?Gaffer\Types\Post $except = NULL): array
+  static cards(string $index, int $limit, array $sort = [], ?Gaffer\Types\Term $term = NULL, ?Gaffer\Types\Post $except = NULL, array $filter = []): array
   static searchbar(string $index, int $limit = 8, array $facets = [], array $attributes = []): Gaffer\Search\Searchbar
 final class Gaffer\Search\Searchbar
   readonly bool $available

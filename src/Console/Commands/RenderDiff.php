@@ -17,6 +17,7 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -70,6 +71,7 @@ final class RenderDiff extends Command
             }
         };
         $now = new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $snapshot->visitor, $entry)->render(array_keys($snapshot->pages), true);
+        self::warn_without_engine($now, $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output);
 
         // The same change on many pages (a header, a footer) is shown once, with its pages.
         $hide = (bool) $input->getOption('hide-reorders');
@@ -166,5 +168,19 @@ final class RenderDiff extends Command
         array_push($changes, ...HtmlDiff::diff($lines($before['html']), $lines($after['html']), 2, PHP_INT_MAX));
 
         return $changes;
+    }
+
+    /**
+     * Pages rendered without the search engine this process has (Renderer::without_engine()):
+     * said before the diff, which would otherwise show them as "products can't be shown".
+     *
+     * @param array<string, array<string, mixed>|string> $results
+     */
+    public static function warn_without_engine(array $results, OutputInterface $output): void
+    {
+        $blind = Renderer::without_engine($results);
+        if ($blind !== []) {
+            $output->writeln('<error>' . count($blind) . ' pages rendered without the gaffer-search plugin this process sees (it is active only here, not for the site): activate it for the site; it does nothing for a theme without config/search.php.</error>');
+        }
     }
 }

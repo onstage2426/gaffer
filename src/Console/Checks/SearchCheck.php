@@ -21,7 +21,7 @@ use Gaffer\Search\Indexes;
 final class SearchCheck implements Check
 {
     /** The archive's keys: what it searches, then its groups (key => the group's keys). */
-    private const array ARCHIVE_KEYS = ['index', 'per_page', 'limits', 'sorts', 'default_sort', 'facets', 'facet_values', 'max_docs', 'bounds'];
+    private const array ARCHIVE_KEYS = ['index', 'per_page', 'limits', 'sorts', 'default_sort', 'facets', 'facet_values', 'max_docs', 'bounds', 'eager'];
     private const array ARCHIVE_GROUPS = ['seo' => ['index_pages', 'indexable_filters'], 'urls' => ['base_params', 'redirect_params', 'redirect_search']];
 
     #[\Override]
@@ -105,6 +105,9 @@ final class SearchCheck implements Check
         }
         if (isset($archive['facet_values']) && (!is_array($archive['facet_values']) || array_filter($archive['facet_values'], is_int(...)) !== $archive['facet_values'] || array_is_list($archive['facet_values']))) {
             $problems[] = 'facet_values must map a field to a number of values';
+        }
+        if (isset($archive['eager']) && (!is_int($archive['eager']) || $archive['eager'] < 0)) {
+            $problems[] = 'eager must be the number of cards at the top of the first page (an int)';
         }
         if (isset($archive['max_docs']) && !is_int($archive['max_docs'])) {
             $problems[] = 'max_docs must be an int';

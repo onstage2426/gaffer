@@ -51,6 +51,12 @@ final class RenderCheck implements Check
             $report->warning('render', $notice, null, null, 'Seen' . self::on($paths) . '.');
         }
 
+        $blind = Renderer::without_engine($results);
+        if ($blind !== []) {
+            $report->error('render', count($blind) . ' of ' . count($results) . ' renders didn\'t see the gaffer-search plugin this process sees: their archives show "unavailable"', null, null,
+                'It is active only for this process (a prepend, wp --require), not for the site. Activate it for the site (network-wide on a multisite): it does nothing for a theme without config/search.php.');
+        }
+
         $ok = count(array_filter($results, static fn(array|string $r): bool => is_array($r) && $r['status'] !== 'error'));
         $report->info('render', "Rendered {$ok}/" . count($results) . ' URLs with strict variables');
     }

@@ -77,6 +77,9 @@ final class Gaffer
 
         $twig = new Environment($loader, [
             'cache' => Config::get('theme.cache') ? Paths::twig_cache() : false,
+            // A changed template recompiles without twig:clear (a stat per template): else a deploy,
+            // doctor's renders and the search index's cards would use the old one.
+            'auto_reload' => true,
             'debug' => $debug,
             'strict_variables' => $debug,
             'use_yield' => true,

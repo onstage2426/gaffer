@@ -79,15 +79,21 @@ final class ArchiveUrl
 
     /**
      * Where an archive URL should 301 to, or null: WordPress's /page/N/ ($paged > 1) becomes
-     * `offset`; WooCommerce's own params become the archive's (translate()).
+     * `offset`; WooCommerce's own params become the archive's (translate()); then the theme's
+     * $translate (urls.redirect_params) gets that query and returns it with its own old params
+     * changed or dropped. Any change is a redirect, to exactly the params it returned.
      *
      * @param array<string, mixed> $definition the archive's index
      * @param array<mixed> $query
+     * @param (callable(array<mixed>): array<mixed>)|null $translate
      */
-    public static function redirect(array $definition, array $query, int $paged, int $per_page, string $base): ?string
+    public static function redirect(array $definition, array $query, int $paged, int $per_page, string $base, ?callable $translate = null): ?string
     {
         $translated = self::translate($definition, $query);
-        if ($paged <= 1 && $translated === $query) {
+        if ($translate !== null) {
+            $translated = (array) $translate($translated);
+        }
+        if ($paged <= 1 && $translated == $query) {
             return null;
         }
         if ($paged > 1) {

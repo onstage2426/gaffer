@@ -95,7 +95,8 @@ return [
     counts over (default 500): a large catalog's first page then matches an
     exhaustive search.
   - `bounds => ['price']`: `search.bounds.price` (`{min, max}`) over the whole
-    archive, for a price slider's ends (`facetStats` follow the results).
+    archive, for a price slider's ends (`facetStats` follow the results). It
+    costs one more search per archive page: leave it out without a slider.
   - `seo => ['index_pages' => true]`: later pages are indexable too (offsets
     that are multiples of the page size).
   - `seo => ['indexable_filters' => ['on_sale' => ['yes']]]`: a filtered shop
@@ -104,9 +105,12 @@ return [
   - `urls => ['base_params' => ['show']]`: params that make another page
     (`/category/?show=all`), kept in the canonical and page links.
   - `urls => ['redirect_params' => [Theme\X::class, 'method']]`: gets the
-    query, returns it with the theme's old params translated (a former filter
-    plugin's `?onsale_filter=1` → `filter[on_sale]=yes`); a different page is
-    a 301.
+    query after WooCommerce's params became the archive's (`min_price` is
+    `filter[price]` by then; its own old params are still there as they came)
+    and returns it with the theme's old params translated or dropped (a former
+    filter plugin's `?onsale_filter=1` → `filter[on_sale]=yes`, `?yith_wcan=1`
+    gone). Any change is a 301 to exactly what it returned, so return tracking
+    params (`utm_*`) you want kept, and the query unchanged when nothing applies.
 
 ## Templates
 
@@ -178,8 +182,10 @@ gaffer-search has no `fuzor_`/`gaffer_search_` theme API. Stage the theme
 (`cp -r theme theme-stage`, see `gaffer-migrate`): `php gaffer` in the copy runs
 it as the active theme without the object cache, and builds the index before
 the switch with `wp --require=vendor/onstage2426/gaffer/bin/stage.php
-gaffer-search rebuild`. Snapshot the live site first (`render:snapshot
---from`), compare searches and archive counts after.
+gaffer-search rebuild`. Content edited between that build and the switch
+isn't tracked (the plugin isn't active for the live theme yet): right after the
+switch, `wp gaffer-search verify --fix` updates what differs. Snapshot the live
+site first (`render:snapshot --from`), compare searches and archive counts after.
 
 | fuzor-wp | config/search.php |
 |---|---|

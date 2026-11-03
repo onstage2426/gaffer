@@ -55,17 +55,10 @@ final class Integration
         if (!Search::on_archive()) {
             return;
         }
-        $query = (array) \wp_unslash($_GET);
-        $base = Search::archive_base();
         // The theme's own old URLs (a filter plugin's params) as the archive's query.
         $translate = Config::get('search.archive.urls.redirect_params');
-        $translated = is_callable($translate) ? (array) $translate($query) : $query;
-        $url = ArchiveUrl::redirect((array) Indexes::get($index), $translated, (int) \get_query_var('paged'), max(1, (int) Config::get('search.archive.per_page') ?: 24), $base);
-        if ($url === null && $translated !== $query) {
-            // Only when the translation changes the page (no redirect to the same URL).
-            $target = ArchiveUrl::url($base, $translated);
-            $url = $target !== ArchiveUrl::url($base, $query) ? $target : null;
-        }
+        $url = ArchiveUrl::redirect((array) Indexes::get($index), (array) \wp_unslash($_GET), (int) \get_query_var('paged'),
+            max(1, (int) Config::get('search.archive.per_page') ?: 24), Search::archive_base(), is_callable($translate) ? $translate : null);
         if ($url !== null) {
             \wp_safe_redirect($url, 301);
             exit;

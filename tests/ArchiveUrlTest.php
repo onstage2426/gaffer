@@ -98,6 +98,24 @@ final class ArchiveUrlTest extends TestCase
         self::assertSame('/afwatering/?show=all&offset=24', ArchiveUrl::redirect(self::PRODUCTS, ['show' => 'all'], 2, 24, '/afwatering/?show=all'), 'base params ride in the query');
     }
 
+    public function test_the_themes_old_params_after_woocommerces(): void
+    {
+        // Like Bestratingsmarkt: YITH's params and a price filter over mixed units go.
+        $theme = static function (array $query): array {
+            unset($query['yith_wcan'], $query['top'], $query['filter']['price']);
+            if (($query['filter'] ?? null) === []) {
+                unset($query['filter']);
+            }
+            return $query;
+        };
+
+        self::assertSame('/assortiment/', ArchiveUrl::redirect(self::PRODUCTS, ['yith_wcan' => '1'], 0, 24, '/assortiment/', $theme), 'a dropped param is a 301');
+        self::assertSame('/afwatering/?utm_source=mail', ArchiveUrl::redirect(self::PRODUCTS, ['top' => '10', 'utm_source' => 'mail'], 0, 24, '/afwatering/', $theme), 'what it keeps stays');
+        self::assertSame('/assortiment/', ArchiveUrl::redirect(self::PRODUCTS, ['min_price' => '10', 'max_price' => '50'], 0, 24, '/assortiment/', $theme), 'it sees what WooCommerce\'s params became');
+        self::assertNull(ArchiveUrl::redirect(self::PRODUCTS, ['utm_source' => 'mail', 'q' => 'tegel'], 0, 24, '/assortiment/', $theme), 'nothing changed: no redirect');
+        self::assertNull(ArchiveUrl::redirect(self::PRODUCTS, ['b' => '1', 'a' => '2'], 0, 24, '/', static fn(array $query): array => ['a' => '2', 'b' => '1']), 'the same params in another order are the same page');
+    }
+
     public function test_the_urls_params_as_the_search_request(): void
     {
         self::assertSame(

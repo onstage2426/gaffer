@@ -577,6 +577,9 @@ final class WordPressCheck implements Check
             if ($state['version'] !== $definition['version']) {
                 $report->warning('search', "Index \"{$name}\" was built from an older definition or card template" . ($state['building'] ? ' (rebuilding now)' : ''), $file, null,
                     'It rebuilds in the background (WP-cron); wp gaffer-search rebuild does it now.');
+            } else {
+                // Said when it's fine too: a check that passes silently reads like one that didn't run.
+                $report->info('search', "Index \"{$name}\": built and current, {$state['documents']} documents", $file);
             }
             $this->search_card($report, $engine, $name);
         }

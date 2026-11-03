@@ -62,8 +62,9 @@ return [
     |
     | urls: base_params (query params that make another page, kept in the
     | canonical and page links, e.g. ['show']), redirect_params ([class,
-    | method]: gets the query, returns it with the theme's old params
-    | translated; a different page is a 301) and redirect_search (true:
+    | method]: gets the query after WooCommerce's params are translated,
+    | returns it with the theme's old params translated or dropped; any change
+    | is a 301 to what it returned) and redirect_search (true:
     | WordPress's own ?s= search opens the shop's results).
     |
     | Search::archive() gives the template its data; Gaffer adds the redirects

@@ -9,6 +9,19 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-03
 
+### Search: `urls.redirect_params` after WooCommerce's params, and every change it makes is a 301
+
+For sites with `urls.redirect_params`. It now gets the query after WooCommerce's params became
+the archive's (`min_price=10` is `filter[price][min]=10` by then; your own old params are still
+there as they came), so it can drop or change what they became. And whatever it changes is a 301
+to exactly the params it returned: a param it drops (`?yith_wcan=1`) redirects to the URL without
+it, where before it rendered as a duplicate page. `doctor --wp` now also says when an index is
+built and current.
+Find: `grep -n redirect_params config/search.php`, then the method. Check: it returns the query
+unchanged when nothing applies (and keeps `utm_*` and other params you want kept); it handles
+`filter[price]` instead of `min_price`/`max_price`; old URLs 301 as before
+(`php gaffer doctor:render '/shop/?yith_wcan=1'` shows the redirect).
+
 ### Search: `cards` replaces `card`, the archive's `seo` and `urls` groups; archive URLs are Gaffer's
 
 Breaking, for sites on `config/search.php`. Update the gaffer-search plugin in the same deploy:
@@ -16,7 +29,8 @@ Gaffer no longer asks it for archive URLs (it computes the canonical, `noindex` 
 itself) and the plugin no longer answers those calls.
 
 Find: `grep -nE "'card'|index_pages|indexable_filters|base_params|redirect_params|redirect_search" config/search.php`.
-Before:
+Before (`cards` here is the list layouts of the entry below, from earlier the same day; most sites
+have only `card`):
 
 ```php
 'products' => [..., 'card' => 'product/card.twig', 'cards' => ['list' => 'product/list-item.twig']],

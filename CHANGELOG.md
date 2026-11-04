@@ -9,6 +9,46 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-04
 
+### Search: products' prices, stock, SKU and rating are built in; remove their `meta` lines
+
+With the gaffer-search plugin of the same day (`0.0.0+3ab31fd` or newer, see its
+`docs/migration.md`), every products index has `price`, `regular_price`, `sale_price`, `rating`
+(floats), `stock_status`, `sku` (strings) and `on_sale` (`yes`/`no`), read from WooCommerce's
+product objects instead of post meta. A `meta` line for one of them, or for WooCommerce's own
+keys, is now an error in `doctor --wp`, and the engine doesn't define the index until it's gone
+(searches answer empty). Update the plugin and the theme together.
+
+Find: `grep -n "_price\|_regular_price\|_sale_price\|_stock_status\|_sku\|_wc_average_rating" config/search.php`
+
+```php
+// before
+'meta' => [
+    '_sku' => 'sku',
+    '_price' => ['price', 'float'],
+    '_regular_price' => ['regular_price', 'float'],
+    '_sale_price' => ['sale_price', 'float'],
+    '_stock_status' => 'stock_status',
+    '_stock' => ['stock_quantity', 'int'],
+],
+// after: only what isn't built in (an empty 'meta' => [] can go)
+'meta' => [
+    '_stock' => ['stock_quantity', 'int'],
+],
+```
+
+Field names stay the same, so `facets`, `sorts`, filters, `bounds`, templates and JS need no
+change; if a theme mapped them under other names (`'_price' => 'prijs'`), rename the field to the
+built-in one everywhere (`grep -rn "prijs" config views assets`). Also:
+- WooCommerce's old archive URLs (`?min_price=`, `?orderby=price`) redirect to the `price` field
+  without any `meta` line, and `?orderby=rating` to `rating:desc` (before: dropped).
+- A variable product's `regular_price`/`sale_price` are now its cheapest (or, with
+  `variation_price: 'default'`, its default) variation's; before they were usually missing
+  (WooCommerce doesn't store them on the parent). A card or filter reading them can show more.
+
+Check: `wp gaffer-search rebuild`, then `php gaffer render:diff <snapshot from before>` and the
+archives' totals and orders (shop, a category, price sorts both ways, a price range, the in-stock
+and sale filters, a search); `php gaffer doctor --wp`.
+
 ### fuzor-wp migration support removed; `console.raw_baseline` removed
 
 Every site is on gaffer-search, so what only helped the move from fuzor-wp is gone:

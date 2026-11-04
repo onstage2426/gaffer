@@ -16,7 +16,9 @@ return [
     | ancestors: a category shows only its own products), fields (field =>
     | 'string'|'int'|'float': what `document` adds), synonyms (equivalences,
     | one_way), rebuild, thumbnail_size and variation_price (products),
-    | post_types (posts); doctor checks them against the engine.
+    | post_types (posts); doctor checks them against the engine. Products have
+    | price, regular_price, sale_price, on_sale, stock_status, sku and rating
+    | built in (from WooCommerce, not meta): a meta line for them is an error.
     |
     | Gaffer's own keys: cards (layout => template, rendered into each
     | document with `post`; the first is the default, the others are the
@@ -36,7 +38,7 @@ return [
     //         'language' => 'nl',
     //         'searchable' => ['title', 'short_description'],
     //         'facets' => ['price', 'category'],
-    //         'meta' => ['_price' => ['price', 'float']],
+    //         'meta' => ['herkomst' => 'origin'],
     //         'taxonomies' => ['product_cat' => 'category'],
     //         'cards' => ['grid' => 'product/card.twig'],
     //     ],

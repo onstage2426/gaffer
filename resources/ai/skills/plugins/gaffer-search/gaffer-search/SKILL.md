@@ -18,11 +18,11 @@ return [
             'language' => 'nl',
             'searchable' => ['title', 'short_description', 'origin'],
             'facets' => ['price', 'category', 'on_sale'],
-            'meta' => ['_price' => ['price', 'float'], '_stock_status' => 'stock_status', 'herkomst' => 'origin'],
+            'meta' => ['herkomst' => 'origin'],  // other post meta; prices, stock, sku are built in
             'taxonomies' => ['product_cat' => 'category'],
             'sortable' => ['title'],
             'synonyms' => ['equivalences' => [['garnalen', 'gamba', 'scampi']]],
-            'variation_price' => 'default',       // cards show the default variation's price
+            'variation_price' => 'default',       // a variable product's prices: its default variation's
             'rebuild' => 'twicedaily',
             'cards' => ['grid' => 'product/card.twig'], // rendered into every document, with `post`
         ],
@@ -41,8 +41,12 @@ return [
   changes which products a search finds and their order: compare searches
   before changing it on a live site.
 - The right-hand side of `meta`/`taxonomies` is the field name everywhere:
-  `filter[category]`, facets, sorts, the JS. Prices and stock come from `meta`.
-  Only fields the index declares sort and filter; text sorts on
+  `filter[category]`, facets, sorts, the JS. Products have `price`,
+  `regular_price`, `sale_price`, `rating` (floats), `stock_status`, `sku` and
+  `on_sale` (`yes`/`no`) built in, read from WooCommerce (a variable product's:
+  its cheapest variation's, or its default one's with `variation_price`); never
+  map `_price`, `_stock_status`, … in `meta` (doctor: an error). Only fields the
+  index declares sort and filter; text sorts on
   `{field}_sort` (`sortable`), products also on `menu_order` and
   `total_sales` (popularity). `doctor --wp` asks the engine what's wrong with
   a definition (an unknown field, with a suggestion).

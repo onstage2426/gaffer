@@ -280,19 +280,18 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 
 ## Open
 
-- **gaffer-search before its first tag** (agreed 2026-11-03, not started; the contract only grows
-  from the tag on):
-  1. Products' standard fields (`price`, `regular_price`, `sale_price`, `stock_status`, `sku`,
-     `rating`) built in from `WC_Product`, so themes stop mapping `_price`/`_stock_status` meta:
-     the contract mustn't depend on WooCommerce keeping products in post meta (its product
-     tables). Breaking for every `config/search.php` (remove those `meta` lines).
-  2. Fixtures for what the contract promises but only checks the shape of: `direct_terms` (a
-     category search without its children's products), `fields` (typed values in results),
-     `facet_values` and `max_docs` honored by `search()`, `limits` in `search()`.
-  3. Delete dead internals: `Audience` (customer groups, decided against) and fuzor-wp's global
-     helpers in `Functions.php` (into classes).
-  The browser side (endpoint params, token, error codes) freezes with it: cached pages keep old
-  JS and tokens for days.
+- **gaffer-search before its first tag** (agreed 2026-11-03; the contract only grows from the
+  tag on, and the browser side freezes with it). Done 2026-11-04: `Audience` and the global
+  `gaffer_search_*()` helpers deleted (now `Services\Tokens`/`PhpSearch`/`Locks`); fixtures for
+  `direct_terms`, `fields`, `facet_values`, `limits` (cases with `setup.build` build a real index);
+  products' standard fields (`price`, `regular_price`, `sale_price`, `rating`, `stock_status`,
+  `sku`, `on_sale`) built in from `WC_Product`, a `meta` line for them a `problems()` error;
+  `ArchiveUrl` maps WooCommerce's price/rating params to them. Left: **`max_docs` pages**: Fuzor
+  returns no hits past its ranked candidates while `total` counts every match (3,000 matches,
+  `max_docs` 500: pages past ~500 are empty); report for the user's Fuzor in
+  `~/handoff/fuzor-max-docs-pages/`; record the `max_docs` fixture once fixed. The updater token
+  (`gaffer-search.php`) once it can read the repository. The two remote sites
+  (`~/handoff/gaffer-search-standard-fields/`).
 - **Why gaffer-search, not a general fuzor-wp** (the user asked; answer of 2026-11-03): each
   fuzor-wp theme wrote its own glue (tokens, SEO/redirect hooks); with gaffer-search it's config.
   Evidence, Bestratingsmarkt round 4: all 2,081 archives, canonicals, robots and redirects

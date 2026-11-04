@@ -139,7 +139,7 @@ final class ArchiveUrl
         $out = array_diff_key($query, array_flip($keys));
         $fields = self::fields($definition);
         $taxonomies = array_map(strval(...), (array) ($definition['taxonomies'] ?? []));
-        $price = self::meta_field($definition, '_price');
+        $price = ($definition['type'] ?? null) === 'products' ? 'price' : null;
         $filter = is_array($out['filter'] ?? null) ? $out['filter'] : [];
         $sort = is_array($out['sort'] ?? null) ? $out['sort'] : [];
 
@@ -159,7 +159,7 @@ final class ArchiveUrl
 
         $spec = [
             'popularity' => 'total_sales:desc',
-            'rating' => 'average_rating:desc',
+            'rating' => 'rating:desc',
             'date' => 'date:desc',
             'price' => $price !== null ? "{$price}:asc" : null,
             'price-desc' => $price !== null ? "{$price}:desc" : null,
@@ -174,21 +174,31 @@ final class ArchiveUrl
         return [...$out, ...($filter !== [] ? ['filter' => $filter] : []), ...($sort !== [] ? ['sort' => $sort] : [])];
     }
 
+    /** The fields every products document has from WooCommerce, filterable and sortable (the contract's standard fields). */
+    public const array PRODUCT_FIELDS = ['price', 'regular_price', 'sale_price', 'on_sale', 'stock_status', 'sku', 'rating'];
+
     /**
      * The fields an index filters and sorts on, from its definition, as the contract describes
-     * them: id, date, its facets and taxonomy fields; sorting also on {field}_sort per sortable
-     * text field, and products on menu_order and total_sales.
+     * them: id, date, its facets and taxonomy fields, and products' standard fields; sorting also
+     * on {field}_sort per sortable text field, and products on menu_order and total_sales.
      *
      * @param array<string, mixed> $definition
      * @return array{filter: list<string>, sort: list<string>}
      */
     public static function fields(array $definition): array
     {
-        $filter = array_values(array_unique(['id', 'date', ...array_map(strval(...), (array) ($definition['facets'] ?? [])), ...array_map(strval(...), array_values((array) ($definition['taxonomies'] ?? [])))]));
+        $products = ($definition['type'] ?? null) === 'products';
+        $filter = array_values(array_unique([
+            'id',
+            'date',
+            ...($products ? self::PRODUCT_FIELDS : []),
+            ...array_map(strval(...), (array) ($definition['facets'] ?? [])),
+            ...array_map(strval(...), array_values((array) ($definition['taxonomies'] ?? []))),
+        ]));
         $sort = [
             ...$filter,
             ...array_map(static fn(mixed $field): string => "{$field}_sort", (array) ($definition['sortable'] ?? [])),
-            ...(($definition['type'] ?? null) === 'products' ? ['menu_order', 'total_sales'] : []),
+            ...($products ? ['menu_order', 'total_sales'] : []),
         ];
 
         return ['filter' => $filter, 'sort' => array_values(array_unique($sort))];
@@ -228,15 +238,6 @@ final class ArchiveUrl
         $sort = $query['sort'] ?? [];
 
         return array_values(array_filter(is_array($sort) ? $sort : [$sort], static fn(mixed $spec): bool => is_string($spec) && trim($spec) !== ''));
-    }
-
-    /** @param array<string, mixed> $definition */
-    private static function meta_field(array $definition, string $key): ?string
-    {
-        $field = ((array) ($definition['meta'] ?? []))[$key] ?? null;
-        $field = is_array($field) ? ($field[0] ?? null) : $field;
-
-        return is_string($field) && $field !== '' ? $field : null;
     }
 
     /** A filter[] value without empty values, fields and value lists sorted. */

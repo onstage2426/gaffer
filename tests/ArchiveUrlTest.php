@@ -8,11 +8,10 @@ use Gaffer\Search\ArchiveUrl;
 
 final class ArchiveUrlTest extends TestCase
 {
-    /** An index as config/search.php defines it: colors from pa_kleur, the price filterable. */
+    /** An index as config/search.php defines it: colors from pa_kleur (the price is built in). */
     private const array PRODUCTS = [
         'type' => 'products',
         'facets' => ['price'],
-        'meta' => ['_price' => ['price', 'float']],
         'taxonomies' => ['product_cat' => 'category', 'pa_kleur' => 'color'],
         'sortable' => ['title'],
     ];
@@ -83,7 +82,9 @@ final class ArchiveUrlTest extends TestCase
             'rating_filter' => '4',
         ]), 'pa_kleur → color; no field for pa_maat or a rating');
         self::assertSame(['q' => 'x', 'sort' => ['total_sales:desc']], ArchiveUrl::translate(self::PRODUCTS, ['q' => 'x', 'orderby' => 'popularity']));
-        self::assertSame(['q' => 'x'], ArchiveUrl::translate(['type' => 'products'], ['q' => 'x', 'min_price' => '10', 'orderby' => 'price']), 'no price field: dropped');
+        self::assertSame(['q' => 'x', 'filter' => ['price' => ['min' => '10']], 'sort' => ['price:asc']], ArchiveUrl::translate(['type' => 'products'], ['q' => 'x', 'min_price' => '10', 'orderby' => 'price']), 'products have a price without facets or meta');
+        self::assertSame(['sort' => ['rating:desc']], ArchiveUrl::translate(['type' => 'products'], ['orderby' => 'rating']), 'the built-in rating');
+        self::assertSame(['q' => 'x'], ArchiveUrl::translate(['type' => 'posts'], ['q' => 'x', 'min_price' => '10', 'orderby' => 'price']), 'no price field: dropped');
         self::assertSame(['onsale_filter' => '1'], ArchiveUrl::translate(self::PRODUCTS, ['onsale_filter' => '1']), 'other plugins\' params are left alone');
     }
 

@@ -60,7 +60,7 @@ final class AppCheck implements Check
     }
 
     /** Calls that look content up, by function name. */
-    private const string LOOKUP_FUNCTION = '/^(get_(field|fields|sub_field|option|post|posts|post_meta|post_thumbnail_id|the_\w+|term|terms|term_meta|term_by|page_by_path|permalink|nav_menu_locations|queried_object)|wp_get_\w+|have_posts|do_shortcode|wc_get_\w+|WC|fuzor_\w+|gaffer_search_\w+|acf_\w+)$/';
+    private const string LOOKUP_FUNCTION = '/^(get_(field|fields|sub_field|option|post|posts|post_meta|post_thumbnail_id|the_\w+|term|terms|term_meta|term_by|page_by_path|permalink|nav_menu_locations|queried_object)|wp_get_\w+|have_posts|do_shortcode|wc_get_\w+|WC|acf_\w+)$/';
 
     /** Classes whose static calls look content up. */
     private const array LOOKUP_CLASS = ['Post', 'Term', 'Image', 'Attachment', 'Menu', 'Pagination', 'Acf', 'GFAPI', 'WC_Product_Factory'];

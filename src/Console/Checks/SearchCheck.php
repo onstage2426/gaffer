@@ -14,9 +14,9 @@ use Gaffer\Search\ArchiveUrl;
 use Gaffer\Search\Indexes;
 
 /**
- * config/search.php as far as Gaffer reads it (the card and its variants, the archive; the
- * engine's own keys are WordPressCheck::search()'s, the engine checks them), and theme code still
- * calling a search plugin's own theme API: gaffer-search's from before Gaffer\Search, or fuzor-wp's.
+ * config/search.php as far as Gaffer reads it (the cards and their variants, the archive; the
+ * engine's own keys are WordPressCheck::search()'s, the engine checks them), and an archive no
+ * template says is unavailable.
  */
 final class SearchCheck implements Check
 {
@@ -31,10 +31,6 @@ final class SearchCheck implements Check
         $templates = Templates::all();
 
         foreach (Indexes::all() as $name => $definition) {
-            if (isset($definition['card'])) {
-                $report->error('search', "Index \"{$name}\": card is now cards (layout => template, the first the default)", $file, null,
-                    "'cards' => ['grid' => " . var_export($definition['card'], true) . ']');
-            }
             foreach (['card_context', 'card_variant', 'document'] as $key) {
                 if (isset($definition[$key]) && !is_callable($definition[$key])) {
                     $report->error('search', "Index \"{$name}\": {$key} is not callable", $file, null, 'Use [Theme\\Class::class, \'method\'] with a public static method.');
@@ -79,7 +75,6 @@ final class SearchCheck implements Check
             }
         }
 
-        $this->old_api($report);
         $this->unavailable($report);
     }
 
@@ -140,7 +135,7 @@ final class SearchCheck implements Check
     }
 
     /**
-     * Keys the archive doesn't have, with where a known one belongs now (seo, urls).
+     * Keys the archive and its groups (seo, urls) don't have.
      *
      * @param array<mixed> $archive
      * @return list<string>
@@ -149,10 +144,8 @@ final class SearchCheck implements Check
     {
         $problems = [];
         foreach (array_diff(array_keys($archive), [...self::ARCHIVE_KEYS, ...array_keys(self::ARCHIVE_GROUPS)]) as $key) {
-            $group = array_key_first(array_filter(self::ARCHIVE_GROUPS, static fn(array $keys): bool => in_array($key, $keys, true)));
             $suggestion = ConfigStubs::did_you_mean((string) $key, [...self::ARCHIVE_KEYS, ...array_keys(self::ARCHIVE_GROUPS)]);
-            $problems[] = $group !== null ? "\"{$key}\" belongs in \"{$group}\" now ('{$group}' => ['{$key}' => …])"
-                : "unknown key \"{$key}\"" . ($suggestion !== null ? " (did you mean \"{$suggestion}\"?)" : '');
+            $problems[] = "unknown key \"{$key}\"" . ($suggestion !== null ? " (did you mean \"{$suggestion}\"?)" : '');
         }
         foreach (self::ARCHIVE_GROUPS as $group => $keys) {
             if (isset($archive[$group]) && !is_array($archive[$group])) {
@@ -174,7 +167,7 @@ final class SearchCheck implements Check
      */
     private function unavailable(Report $report): void
     {
-        // Gaffer's Search::archive(), not a theme's own class of that name (Theme\Search on fuzor-wp).
+        // Gaffer's Search::archive(), not a theme's own class of that name.
         $callers = array_values(array_filter(ThemeFiles::find(['php']), static function (string $file): bool {
             $code = (string) file_get_contents($file);
 
@@ -190,28 +183,5 @@ final class SearchCheck implements Check
         }
         $report->warning('search', 'No template reads search.available: without the gaffer-search plugin the shop shows no products and nothing says why', $callers[0], null,
             '{% if not search.available %}…{% endif %} in the archive template, e.g. "Products can\'t be shown right now".');
-    }
-
-    /**
-     * The plugins' own theme APIs, replaced by config/search.php and Gaffer\Search: gaffer-search's
-     * (gaffer_search_*() and its hooks, window.GafferSearch) and fuzor-wp's (fuzor_*() and its
-     * hooks, window.Fuzor, data-fuzor-* attributes, FuzorSearch\ classes).
-     */
-    private function old_api(Report $report): void
-    {
-        $plugins = [
-            'gaffer-search' => '/\bgaffer_search_\w+|window\.GafferSearch\b|\bGafferSearch\.\w+\(/',
-            'fuzor-wp' => '/\bfuzor_\w+|window\.Fuzor\b|\bFuzor\.\w+\(|\bdata-fuzor-[\w-]+|\bFuzorSearch\\\\/',
-        ];
-        foreach (ThemeFiles::find(['php', 'twig', 'js']) as $file) {
-            $code = (string) file_get_contents($file);
-            foreach ($plugins as $plugin => $pattern) {
-                if (preg_match_all($pattern, $code, $matches, PREG_OFFSET_CAPTURE) > 0) {
-                    $first = $matches[0][0];
-                    $report->warning('search', "Uses the {$plugin} plugin's own theme API (replaced by Gaffer\\Search)", $file, substr_count($code, "\n", 0, $first[1]) + 1,
-                        "{$first[0]}" . (count($matches[0]) > 1 ? ' and ' . (count($matches[0]) - 1) . ' more' : '') . ': move to config/search.php, Gaffer\\Search\\Search and resources/js/search.js (see the gaffer-search skill and CHANGELOG.md).');
-                }
-            }
-        }
     }
 }

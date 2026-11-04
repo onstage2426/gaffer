@@ -172,7 +172,7 @@ describe("createFilterForm", () => {
         expect(c.activeFilters().map((chip) => chip.label)).toEqual(["a", "rood"]);
     });
 
-    test("a single field also reads a one-item list (gaffer_search_redirect_archive_params() writes lists)", () => {
+    test("a single field also reads a one-item list (filter[color][]=…, as forms and old links write it)", () => {
         history.replaceState(null, "", "/winkel/?filter[color][]=rood");
         expect(component(F.createFilterForm(fields)).filters.color).toBe("rood");
     });

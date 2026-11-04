@@ -38,9 +38,8 @@ return [
 ```
 
 - `language` sets the stemming (`'nl'` finds "tegels" for "tegel"), so it
-  changes which products a search finds and their order. Moving a site from
-  another index (fuzor-wp), keep the old index's language (`wp fuzor describe`;
-  often `''`) and compare searches before changing it.
+  changes which products a search finds and their order: compare searches
+  before changing it on a live site.
 - The right-hand side of `meta`/`taxonomies` is the field name everywhere:
   `filter[category]`, facets, sorts, the JS. Prices and stock come from `meta`.
   Only fields the index declares sort and filter; text sorts on
@@ -204,63 +203,37 @@ Alpine.data("archive", (options) => archive({
 - A field the form shouldn't send leaks in as a console warning "Parameters
   this endpoint doesn't read".
 
-## Moving from fuzor-wp
+## Adding search to a live site
 
-fuzor-wp sites (`fuzor_*()`, `window.Fuzor`, `data-fuzor-*`; `doctor` lists
-them) move to `config/search.php` in the same deploy that switches the plugin:
-gaffer-search has no `fuzor_`/`gaffer_search_` theme API. **Activate
-gaffer-search for the site first** (network-wide on a multisite): it does nothing
-for a theme without `config/search.php`, and every process (renders,
-`doctor --wp`, WP-CLI) then sees it; a plugin activated only for one process
-(a prepend) isn't active in the renders it starts, which `doctor --wp` reports.
-Stage the theme (`cp -r theme theme-stage`, see `gaffer-migrate`): `php gaffer`
-in the copy runs it as the active theme without the object cache, and builds
-the index before the switch with `wp --require=vendor/onstage2426/gaffer/bin/stage.php
-gaffer-search rebuild`. Content edited between that build and the switch
-isn't tracked (the plugin isn't active for the live theme yet): right after the
-switch, `wp gaffer-search verify --fix` updates what differs (one full
+**Activate gaffer-search for the site first** (network-wide on a multisite): it
+does nothing for a theme without `config/search.php`, and every process
+(renders, `doctor --wp`, WP-CLI) then sees it; a plugin activated only for one
+process (a prepend) isn't active in the renders it starts, which `doctor --wp`
+reports. Stage the theme (`cp -r theme theme-stage`, see `gaffer-migrate`):
+`php gaffer` in the copy runs it as the active theme without the object cache,
+and builds the index before the switch with `wp
+--require=vendor/onstage2426/gaffer/bin/stage.php gaffer-search rebuild`.
+Content edited between that build and the switch isn't tracked: right after
+the switch, `wp gaffer-search verify --fix` updates what differs (one full
 verify, then only the fixed documents are checked again). Snapshot the live
-site first (`render:snapshot --from`), compare searches and archive counts after.
-Back up fuzor-wp's index with SQLite's `VACUUM INTO` (a `tar` of a live index with
-WAL can be torn) through PHP when the system `sqlite3` is old: `php -r '(new
-PDO("sqlite:/path/index.db"))->exec("VACUUM INTO \"/backup/index.db\"");'`.
+site first (`render:snapshot --from`), compare searches and archive counts
+after.
 
-| fuzor-wp | config/search.php |
-|---|---|
-| `fuzor_register_index()` on `fuzor_register_indexes`, builder options | `indexes.{name}` with `type` and the same keys: `searchable`, `facets`, `sortable`, `meta`, `taxonomy` → `taxonomies`, `synonyms` (`oneWay` → `one_way`), `thumbnail_size`, `variation_price` |
-| builder `language` | `language`: keep the old index's (`wp fuzor describe`; often `''`), or every search changes |
-| builder `directTerms` | `direct_terms` |
-| `fuzor_index_document` adding the card | `cards` (+ `card_context`, `card_variants`/`card_variant`) |
-| `fuzor_index_document` adding other fields, `fuzor_index_schema` | `document` + `fields` |
-| `fuzor_index_version` | nothing: Gaffer versions the definition, card and methods |
-| builder `rebuildInterval` | `rebuild` |
-| builder `chunkSize` | nothing: the plugin's own batch size |
-| `fuzor_index_document` adding fields only the card shows (a hover image) | nothing: the card template reads them from the post |
-| `meta` mapped only for cards rendered from hits | drop it: cards are stored, rendered from the post |
-| `fuzor_visibility_filter('search' / 'catalog')` | nothing: `Search::searchbar()` hides what search hides, the archive and `Search::cards()` what the catalog hides |
-| `fuzor_redirect_archive_params()` on `template_redirect` | nothing: Gaffer's archive redirects (`/page/N/`, WooCommerce's params) |
-| `fuzor_archive()` | `Search::archive()` with `archive` config |
-| token `limit` / `limits` | `archive.per_page` / `archive.limits` |
-| token `facet_values` | `archive.facet_values` |
-| token `max_docs` | `archive.max_docs` |
-| `fuzor_archive_indexable_page_size` | `archive.seo.index_pages` |
-| `fuzor_archive_indexable_facets` | `archive.seo.indexable_filters` (the shop only) |
-| `fuzor_archive_url_params` | `archive.urls.base_params` |
-| `fuzor_redirect_archive_query` | `archive.urls.redirect_params` |
-| `fuzor_search()` for sliders | `Search::cards()` |
-| searchbar token | `Search::searchbar()` |
-| `window.Fuzor`, `data-fuzor-*` | `@gaffer/search.js`, `data-gaffer-search-*` |
-| token `views` (a list layout) | `cards => ['grid' => …, 'list' => …]`, the page at `?view=list` (or CSS on one card) |
-| a token with `filter[id]` open (recently viewed) | not supported: an ajax action that renders the card template for the IDs |
-| token `bounds` (a range over the whole archive) | `archive.bounds`, read as `search.bounds` |
-| facet search tokens | not supported: `facet_values` and filtering the list in the browser |
-| `fuzor_audience_filter` | not supported: `card_variants` for prices per customer group |
+Not supported, and what to do instead:
+
+- Cards for given IDs (recently viewed): an ajax action that renders the card
+  template for them.
+- Searching a facet's values: `facet_values` and filtering the list in the
+  browser.
+- Prices per customer group: `card_variants`.
+- Visibility: nothing to do; `Search::searchbar()` hides what WooCommerce's
+  search hides, the archive and `Search::cards()` what the catalog hides.
 
 ## Checking
 
 - `php gaffer doctor --wp`: the plugin (also in the renders it starts), the
   definitions, every index built and current, one card rendered with
-  strict variables, old plugin API calls (gaffer-search's and fuzor-wp's).
+  strict variables.
 - `gaffer-search` (MCP): search an index (query, filter, facets) and see its
   status: for synonyms, facets, "why isn't X found".
 - `php gaffer render:screenshot / --fill='#search=…'` and on an archive

@@ -13,8 +13,7 @@ in review.
 Not covered: the generated AI guidelines and skills (`AGENTS.md`, `.claude/`,
 ...; they're regenerated with every update), the wording of messages, and
 what's **experimental** until the plugin it builds on reaches 1.0: the MCP
-server (`gaffer`, its tools and inputs; MCP Adapter) and the Fuzor
-integration (its guideline).
+server (`gaffer`, its tools and inputs; MCP Adapter).
 
 ## Supported versions
 

@@ -19,8 +19,8 @@ import { getActiveFilters, getFacetOptions, getPageNumbers, removeFilter } from 
  *   consumer with a display mode for an unfiltered result set (an archive
  *   page). A dropdown searchbar, which has no display mode for an empty
  *   query at all, sets this to 1.
- *   initial — the response the page was rendered with (gaffer_search_archive()'s
- *     `results`, a SearchResponse): the component starts from it (results,
+ *   initial — the response the page was rendered with (`Search::archive()`'s
+ *     `initial()`, a SearchResponse): the component starts from it (results,
  *     facets, query, offset) instead of fetching the first page again.
  *   form — the <form> to search with (an element, or a selector looked up
  *     inside the component's root first, then in the document), when the
@@ -41,7 +41,7 @@ import { getActiveFilters, getFacetOptions, getPageNumbers, removeFilter } from 
  *   The component is also the last argument, for arrow functions (which
  *   ignore the bound `this`).
  *   These are the preferred way to layer consumer-specific behavior onto
- *   run() without reimplementing it — see docs/js.md. run() itself stays on
+ *   run() without reimplementing it. run() itself stays on
  *   the returned object either way, so the older `base.run.call(this,
  *   opts)` method-borrowing pattern (for anything these two hooks don't
  *   cover) still works unchanged.
@@ -92,7 +92,7 @@ function createAlpineSearch({ minQueryLength = 0, initial, form, onBeforeRun, on
 
         // Captured once here, in a proper init() lifecycle hook, rather than
         // re-resolving this.$root inside run() on every call — a consumer
-        // extending run() via base.run.call(this, opts) (see docs/js.md) may
+        // extending run() via base.run.call(this, opts) may
         // do so from a nested x-data (a filter drawer/modal with its own
         // local state); $root inside a borrowed/rebound `this` doesn't
         // reliably resolve to the form in that case, but a plain data
@@ -288,7 +288,7 @@ function createFilterForm(fields, searchOptions) {
         // to reimplement this per field by hand. A consumer with additional
         // state of its own in the URL re-reads it from the same
         // gaffer-search:popstate event, and still needs its own init() chaining to
-        // this one — see docs/js.md's init()-shadowing note.
+        // this one (an init() of its own shadows this one).
         init() {
             base.init.call(this);
             this._seedFilters(new URLSearchParams(location.search));
@@ -328,7 +328,7 @@ function createFilterForm(fields, searchOptions) {
             return getFacetOptions(counts, sortFor[field], this.labels[field]);
         },
 
-        // A method, not a getter: docs/js.md's own documented extension
+        // A method, not a getter: the extension
         // pattern is object spread (`{...base, ...moreStuff}`), and spread
         // snapshots a getter's *current value* once into a plain, frozen
         // data property — it does not preserve the accessor. Since a

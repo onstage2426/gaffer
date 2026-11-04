@@ -1,10 +1,10 @@
 /**
  * Reference styling for the optional dual-range slider enhancement
- * (GafferSearch.createDualRangeSlider — see docs/js.md).
+ * (createDualRangeSlider() from search.js).
  *
- * NOT loaded by the plugin — copy this into your own theme stylesheet and
- * adjust. Fuzor ships no markup or styling of its own: your <form>, your
- * class names, your layout. This covers only the structural CSS the slider
+ * Not loaded by anything: copy this into your own theme stylesheet and
+ * adjust. The search JavaScript ships no markup or styling of its own: your
+ * <form>, your class names, your layout. This covers only the structural CSS the slider
  * actually depends on to work — positioning, hit targets, drag reliability —
  * not colors, thickness, or shape, which are entirely your call.
  */
@@ -23,7 +23,7 @@ mark { background: #fef08a; border-radius: 2px; }
 }
 
 /* ── Dual-range slider ───────────────────────────────────────────
-   GafferSearch.createDualRangeSlider(minInput, maxInput, options) enhances two real
+   createDualRangeSlider(minInput, maxInput, options) enhances two real
    form <input> fields — those two inputs are the no-JS fallback, so they're
    visually hidden here (not type="hidden", to keep validation/SR semantics),
    not removed. The rail/fill/thumb below are plain divs the slider itself

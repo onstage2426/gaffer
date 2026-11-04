@@ -7,6 +7,27 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-04
+
+### fuzor-wp migration support removed; `console.raw_baseline` removed
+
+Every site is on gaffer-search, so what only helped the move from fuzor-wp is gone:
+- The `fuzor` guideline and `fuzor-search` skill: `php gaffer ai:update` removes the generated
+  files.
+- `doctor` no longer warns about a search plugin's own theme API (`fuzor_*()`, `window.Fuzor`,
+  `data-fuzor-*`, `FuzorSearch\`, `gaffer_search_*()`, `window.GafferSearch`), and `app/` methods
+  calling `fuzor_*()`/`gaffer_search_*()` no longer count as lookups. Code like that does nothing
+  any more (neither plugin has that API): remove it. Find:
+  `grep -rnE "fuzor|gaffer_search_|GafferSearch" app inc views assets woocommerce *.php`.
+- Old `config/search.php` keys get a plain unknown-key error (with did-you-mean) instead of
+  "belongs in seo/urls now"; an index's `card` (now `cards`) shows up in `doctor --wp` as the
+  engine's unknown key.
+- `console.raw_baseline` (deprecated since 2026-10-31): `doctor` lists each `|raw`/`new Markup`
+  without a trust comment, and the key itself is an unknown config key. Find:
+  `grep -n raw_baseline config/console.php`. Before: `'raw_baseline' => 19`. After: a
+  `{# trusted: why #}` (Twig) or `// trusted: why` (PHP) on or above each use, and the key
+  removed. Check: `php gaffer doctor` shows no `raw` warnings.
+
 ## 2026-11-03
 
 ### Search: `eager` on every page and per layout; cards as their own list item; links keep base params

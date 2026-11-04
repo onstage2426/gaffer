@@ -8,8 +8,7 @@ Always:
 - **Configured, not coded:** indexes and the shop archive are
   `config/search.php`; templates get their data from
   `Gaffer\Search\Search` (`archive()`, `cards()`, `searchbar()`). Never call
-  the plugin itself (`gaffer_search_*()`, its hooks, `window.GafferSearch`):
-  that API goes away, and `doctor` flags it.
+  the plugin itself: Gaffer is its only client.
 - **Cards are rendered into the index** from the `cards` templates: they come
   back as trusted markup (`{{ card }}`, no `|raw`). A changed card template, or
   anything it includes, rebuilds the index by itself.

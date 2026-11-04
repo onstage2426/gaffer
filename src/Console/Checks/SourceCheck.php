@@ -6,9 +6,7 @@ namespace Gaffer\Console\Checks;
 
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
-use Gaffer\Config;
 use Gaffer\FieldGroups;
-use Gaffer\Paths;
 
 /**
  * Line-level scans of the theme's PHP and Twig: hardcoded IDs, uploads paths, and
@@ -61,40 +59,10 @@ final class SourceCheck implements Check
             }
         }
 
-        $baseline = Config::get('console.raw_baseline');
-        if ($baseline !== null) {
-            $this->baseline($report, $raw, $baseline);
-            return;
-        }
         foreach ($raw as [$file, $line, $what]) {
             $report->warning('raw', "{$what} without a trust comment", $file, $line, $what === '|raw'
                 ? 'Say why this HTML is trusted, on the line or alone on the line above: {{ post.content()|raw }}{# trusted: WordPress content #}. Untrusted values are printed escaped.'
                 : 'Say why this HTML is trusted, on the line or alone on the line above: // trusted: rendered by Theme\\Search. Or pass the string to a template and use |raw there.');
-        }
-    }
-
-    /**
-     * Deprecated: console.raw_baseline, a count of the uses without a trust comment.
-     *
-     * @param list<array{string, int, string}> $raw
-     */
-    private function baseline(Report $report, array $raw, mixed $baseline): void
-    {
-        $report->warning('raw', 'console.raw_baseline is deprecated', Paths::base('config/console.php'), null,
-            'Mark each |raw and new Markup with a trust comment instead ({# trusted: why #} in Twig, // trusted: why in PHP), then remove the key; without it, doctor lists each unmarked use.');
-
-        $count = count($raw);
-        if (!is_int($baseline)) {
-            return;
-        }
-        if ($count > $baseline) {
-            $report->warning('raw', "{$count} uses of |raw and new Markup, baseline is {$baseline}; check the new ones below", Paths::base('config/console.php'));
-            foreach ($raw as [$file, $line, $what]) {
-                $report->info('raw', $what, $file, $line);
-            }
-        } elseif ($count < $baseline) {
-            $report->info('raw', "{$count} uses of |raw and new Markup, below the baseline of {$baseline}", Paths::base('config/console.php'), null,
-                "Lower console.raw_baseline to {$count}.");
         }
     }
 }

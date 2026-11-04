@@ -253,19 +253,6 @@ final class ChecksTest extends TestCase
         self::assertSame(['a.twig:1 |raw without a trust comment', 'a.twig:6 |raw without a trust comment', 'x.php:2 new Markup without a trust comment'], $found);
     }
 
-    public function test_raw_baseline_still_counts_but_is_deprecated(): void
-    {
-        mkdir("{$this->theme}/views", 0755, true);
-        file_put_contents("{$this->theme}/config/console.php", "<?php return ['raw_baseline' => 0];");
-        file_put_contents("{$this->theme}/views/a.twig", "{{ a|raw }}\n{{ b|raw }}{# trusted: content #}\n");
-        Config::load("{$this->theme}/config");
-
-        self::assertSame(
-            ['console.raw_baseline is deprecated', '1 uses of |raw and new Markup, baseline is 0; check the new ones below', '|raw'],
-            array_column($this->findings(new SourceCheck()), 'message'),
-        );
-    }
-
     public function test_declarations_in_inc(): void
     {
         $code = <<<'PHP'
@@ -539,27 +526,11 @@ final class ChecksTest extends TestCase
         }
     }
 
-    public function test_search_plugins_own_theme_apis(): void
-    {
-        mkdir("{$this->theme}/inc", 0755, true);
-        mkdir("{$this->theme}/assets/js", 0755, true);
-        file_put_contents("{$this->theme}/inc/search.php", "<?php\nuse FuzorSearch\\IndexDefinition;\nadd_action('fuzor_register_indexes', fn() => fuzor_register_index(\$d));\n");
-        file_put_contents("{$this->theme}/assets/js/search.js", "window.GafferSearch.archive();\n");
-        file_put_contents("{$this->theme}/assets/js/app.js", "const archive = window.Fuzor.archive(el);\n");
-
-        $findings = array_column($this->findings(new SearchCheck()), null, 'file');
-        self::assertSame(2, $findings['inc/search.php']['line']);
-        self::assertStringContainsString('fuzor-wp', $findings['inc/search.php']['message']);
-        self::assertStringStartsWith('FuzorSearch\\ and 2 more', (string) $findings['inc/search.php']['hint']);
-        self::assertStringContainsString('gaffer-search', $findings['assets/js/search.js']['message']);
-        self::assertStringStartsWith('window.Fuzor:', (string) $findings['assets/js/app.js']['hint']);
-    }
-
     public function test_search_archive_keys(): void
     {
         file_put_contents("{$this->theme}/config/search.php", <<<'PHP'
             <?php return [
-                'indexes' => ['products' => ['type' => 'products', 'document' => 'nope', 'card' => 'card.twig', 'cards' => ['List' => 'x.twig', 'grid' => 'missing.twig']]],
+                'indexes' => ['products' => ['type' => 'products', 'document' => 'nope', 'cards' => ['List' => 'x.twig', 'grid' => 'missing.twig']]],
                 'archive' => ['index' => 'products', 'per_page' => 24, 'limits' => [12, 48], 'facet_values' => ['size' => '400'], 'max_docs' => 5000, 'bounds' => 'price',
                     'index_pages' => true, 'seo' => ['index_pages' => 'yes', 'indexable_filters' => ['on_sale' => 'yes'], 'canonical' => true],
                     'urls' => ['base_params' => ['show', 'offset'], 'redirect_params' => 'nope']],
@@ -568,9 +539,9 @@ final class ChecksTest extends TestCase
         Config::load("{$this->theme}/config");
 
         $messages = $this->messages(new SearchCheck());
-        foreach (['document is not callable', 'card is now cards', 'limits must include per_page (24)', 'facet_values must map', 'seo.index_pages must be', 'seo.indexable_filters must map',
+        foreach (['document is not callable', 'limits must include per_page (24)', 'facet_values must map', 'seo.index_pages must be', 'seo.indexable_filters must map',
             'urls.base_params can\'t name the archive\'s own param "offset"', 'urls.redirect_params is not callable', 'bounds must be a list', 'cards maps a layout name',
-            'cards "grid" "missing.twig" is not a template', '"index_pages" belongs in "seo" now', 'unknown key "seo.canonical"'] as $expected) {
+            'cards "grid" "missing.twig" is not a template', 'unknown key "index_pages"', 'unknown key "seo.canonical"'] as $expected) {
             self::assertStringContainsString($expected, $messages);
         }
         self::assertStringNotContainsString('max_docs', $messages);
@@ -580,7 +551,7 @@ final class ChecksTest extends TestCase
     {
         mkdir("{$this->theme}/app", 0755, true);
         file_put_contents("{$this->theme}/app/Search.php", "<?php\nnamespace Theme;\nfinal class Search { public static function x() { return Search::archive('products'); } }\n");
-        self::assertStringNotContainsString('search.available', $this->messages(new SearchCheck()), 'a theme\'s own Search class (fuzor-wp) isn\'t Gaffer\'s');
+        self::assertStringNotContainsString('search.available', $this->messages(new SearchCheck()), 'a theme\'s own Search class isn\'t Gaffer\'s');
 
         file_put_contents("{$this->theme}/app/Shop.php", "<?php\nnamespace Theme;\nuse Gaffer\\Search\\Search;\nfinal class Shop { public static function x() { return Search::archive(); } }\n");
         self::assertStringContainsString('search.available', $this->messages(new SearchCheck()));

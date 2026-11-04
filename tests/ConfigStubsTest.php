@@ -18,7 +18,7 @@ final class ConfigStubsTest extends TestCase
         self::assertContains('twig_extensions', $keys['theme']);
         self::assertArrayNotHasKey('path', $keys);
         self::assertContains('site_key', $keys['turnstile']);
-        self::assertContains('raw_baseline', $keys['console']);
+        self::assertNotContains('raw_baseline', $keys['console']); // trust comments instead
         self::assertNotContains('url', $keys['console']); // SITE_URL in .env now
     }
 

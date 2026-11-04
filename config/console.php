@@ -6,20 +6,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | |raw Baseline (deprecated)
-    |--------------------------------------------------------------------------
-    |
-    | Deprecated: mark each |raw (templates) and new Markup(...) (theme PHP)
-    | with a trust comment where it's used instead, {# trusted: why #} or
-    | // trusted: why, and remove this key. While it's set, doctor still
-    | counts the unmarked uses against it (and warns that it's deprecated).
-    |
-    */
-
-    // 'raw_baseline' => 0,
-
-    /*
-    |--------------------------------------------------------------------------
     | render:diff Ignores
     |--------------------------------------------------------------------------
     |

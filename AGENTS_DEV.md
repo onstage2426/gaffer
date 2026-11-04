@@ -261,10 +261,13 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   `onstage2426/gaffer-search`; push it when a change is verified, the user tags releases) is
   Gaffer's search engine behind a data-only contract (`docs/contract.md` there, frozen
   fixtures); `Gaffer\Search` is the theme side (see Architecture). It continues fuzor-wp
-  (`~/workspace/fuzor-wp`, frozen); the Fuzor library stays standalone. Every site switched by
+  (`~/workspace/fuzor-wp`, abandoned for good: never propose it again); the Fuzor library stays
+  standalone. Every site switched by
   2026-11-04 with identical archives, canonicals, redirects and searches (verdemare,
-  thenewbride, Bestratingsmarkt after six staging rounds, blueprint, blueprint-base); fuzor-wp is
-  deactivated everywhere, not deleted (deleting it is the user's call). Backups:
+  thenewbride, Bestratingsmarkt after six staging rounds, blueprint, blueprint-base); fuzor-wp was
+  deleted from blueprint, blueprint-base and verdemare on 2026-11-04 (backup and RESTORE.md in
+  `~/backups/fuzor-wp-delete-2026-11-04/`); on the remote sites (thenewbride's rebuild,
+  Bestratingsmarkt) it's deactivated, deleting it there is the user's. Earlier backups:
   `~/backups/verdemare-wp-2026-11-02-pre-gaffer-search/`,
   `~/backups/fuzor-to-gaffer-search-2026-11-04/`. The migration support (fuzor guideline and
   skill, old-API warnings, moved-key messages, `console.raw_baseline`) was purged 2026-11-04.

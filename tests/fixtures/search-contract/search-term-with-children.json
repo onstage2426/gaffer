@@ -1,0 +1,171 @@
+{
+    "setup": {
+        "terms": [
+            {
+                "id": 501,
+                "taxonomy": "category",
+                "name": "Kleding",
+                "slug": "kleding",
+                "parent": 0
+            },
+            {
+                "id": 502,
+                "taxonomy": "category",
+                "name": "Jurken",
+                "slug": "jurken",
+                "parent": 501
+            },
+            {
+                "id": 503,
+                "taxonomy": "category",
+                "name": "Accessoires",
+                "slug": "accessoires",
+                "parent": 0
+            }
+        ],
+        "build": {
+            "index": "nested",
+            "hierarchical": [
+                "category"
+            ],
+            "definition": {
+                "type": "posts",
+                "taxonomies": {
+                    "category": "category"
+                }
+            },
+            "posts": [
+                {
+                    "id": 601,
+                    "title": "Jas",
+                    "terms": {
+                        "category": [
+                            501
+                        ]
+                    }
+                },
+                {
+                    "id": 602,
+                    "title": "Rode jurk",
+                    "terms": {
+                        "category": [
+                            502
+                        ]
+                    }
+                },
+                {
+                    "id": 603,
+                    "title": "Blauwe jurk",
+                    "terms": {
+                        "category": [
+                            502
+                        ]
+                    }
+                },
+                {
+                    "id": 604,
+                    "title": "Tiara",
+                    "terms": {
+                        "category": [
+                            503
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    "call": "search",
+    "args": [
+        "nested",
+        {
+            "term": 501,
+            "limit": 20,
+            "attributes": [
+                "id",
+                "category"
+            ],
+            "facets": [
+                "category"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 3,
+        "offset": 0,
+        "limit": 20,
+        "results": [
+            {
+                "id": 601,
+                "category": [
+                    "kleding"
+                ],
+                "formatted": {
+                    "title": "Jas",
+                    "snippet": ""
+                },
+                "labels": {
+                    "category": [
+                        "Kleding"
+                    ]
+                }
+            },
+            {
+                "id": 602,
+                "category": [
+                    "jurken",
+                    "kleding"
+                ],
+                "formatted": {
+                    "title": "Rode jurk",
+                    "snippet": ""
+                },
+                "labels": {
+                    "category": [
+                        "Jurken",
+                        "Kleding"
+                    ]
+                }
+            },
+            {
+                "id": 603,
+                "category": [
+                    "jurken",
+                    "kleding"
+                ],
+                "formatted": {
+                    "title": "Blauwe jurk",
+                    "snippet": ""
+                },
+                "labels": {
+                    "category": [
+                        "Jurken",
+                        "Kleding"
+                    ]
+                }
+            }
+        ],
+        "facets": {
+            "category": {
+                "kleding": 3,
+                "jurken": 2,
+                "accessoires": 1
+            }
+        },
+        "facetStats": [],
+        "labels": {
+            "category": {
+                "kleding": "Kleding",
+                "jurken": "Jurken",
+                "accessoires": "Accessoires"
+            }
+        },
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

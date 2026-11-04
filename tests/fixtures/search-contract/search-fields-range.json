@@ -1,0 +1,93 @@
+{
+    "setup": {
+        "build": {
+            "index": "listings",
+            "definition": {
+                "type": "posts",
+                "fields": {
+                    "price_m2": "float",
+                    "rooms": "int",
+                    "code": "string"
+                },
+                "facets": [
+                    "price_m2",
+                    "rooms"
+                ]
+            },
+            "posts": [
+                {
+                    "id": 701,
+                    "title": "Appartement",
+                    "document": {
+                        "price_m2": "12.5",
+                        "rooms": "3",
+                        "code": 7
+                    }
+                },
+                {
+                    "id": 702,
+                    "title": "Studio",
+                    "document": {
+                        "price_m2": 8,
+                        "rooms": 2,
+                        "code": "B-2"
+                    }
+                },
+                {
+                    "id": 703,
+                    "title": "Kamer",
+                    "document": []
+                },
+                {
+                    "id": 704,
+                    "title": "Loft",
+                    "document": {
+                        "price_m2": null,
+                        "rooms": "vier"
+                    }
+                }
+            ]
+        }
+    },
+    "call": "search",
+    "args": [
+        "listings",
+        {
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "filter": {
+                "price_m2": {
+                    "min": 10
+                }
+            },
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 1,
+        "offset": 0,
+        "limit": 20,
+        "results": [
+            {
+                "id": 701,
+                "formatted": {
+                    "title": "Appartement",
+                    "snippet": ""
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

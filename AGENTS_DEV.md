@@ -271,9 +271,8 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   2026-11-04 with identical archives, canonicals, redirects and searches (verdemare,
   thenewbride, Bestratingsmarkt after six staging rounds, blueprint, blueprint-base); fuzor-wp was
   deleted from blueprint, blueprint-base and verdemare on 2026-11-04 (backup and RESTORE.md in
-  `~/backups/fuzor-wp-delete-2026-11-04/`); Bestratingsmarkt deleted it the same day (its
-  inactive `themes/bestratingsmarkt-bootstrap` rollback copy still has fuzor code; the user's
-  call); thenewbride's rebuild got the prompt (`~/handoff/fuzor-wp-delete/`), no report yet. Earlier backups:
+  `~/backups/fuzor-wp-delete-2026-11-04/`); Bestratingsmarkt deleted it the same day, and its
+  `themes/bestratingsmarkt-bootstrap` rollback copy (fuzor code; backup on that server); thenewbride's rebuild got the prompt (`~/handoff/fuzor-wp-delete/`), no report yet. Earlier backups:
   `~/backups/verdemare-wp-2026-11-02-pre-gaffer-search/`,
   `~/backups/fuzor-to-gaffer-search-2026-11-04/`. The migration support (fuzor guideline and
   skill, old-API warnings, moved-key messages, `console.raw_baseline`) was purged 2026-11-04.

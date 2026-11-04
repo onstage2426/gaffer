@@ -1,0 +1,31 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "term": 999,
+            "limit": 20,
+            "attributes": [
+                "id"
+            ]
+        }
+    ],
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 0,
+            "offset": 0,
+            "limit": 20,
+            "results": [],
+            "facets": [],
+            "facetStats": [],
+            "labels": [],
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

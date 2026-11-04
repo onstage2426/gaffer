@@ -11,12 +11,14 @@ the entries since the version in your `composer.lock` after every
 
 ### Search: products' prices, stock, SKU and rating are built in; remove their `meta` lines
 
-With the gaffer-search plugin of the same day (`0.0.0+3ab31fd` or newer, see its
+With the gaffer-search plugin of the same day (`0.0.0+2ea4fa9` or newer, see its
 `docs/migration.md`), every products index has `price`, `regular_price`, `sale_price`, `rating`
 (floats), `stock_status`, `sku` (strings) and `on_sale` (`yes`/`no`), read from WooCommerce's
 product objects instead of post meta. A `meta` line for one of them, or for WooCommerce's own
-keys, is now an error in `doctor --wp`, and the engine doesn't define the index until it's gone
-(searches answer empty). Update the plugin and the theme together.
+keys, is now an error in `doctor --wp`; the engine ignores the line and uses the built-in field
+(so the plugin can be updated before the theme). Remove the lines. Also from that plugin version
+on, an archive's term lock is never dropped: a product taxonomy archive whose taxonomy the index
+doesn't store shows no products (before: every product); `doctor --wp` warns about those.
 
 Find: `grep -n "_price\|_regular_price\|_sale_price\|_stock_status\|_sku\|_wc_average_rating" config/search.php`
 

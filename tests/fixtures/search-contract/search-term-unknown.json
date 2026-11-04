@@ -1,0 +1,30 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "sort": [
+                "id:asc"
+            ],
+            "term": 999
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 0,
+        "offset": 0,
+        "limit": 20,
+        "results": [],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

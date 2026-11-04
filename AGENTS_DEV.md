@@ -286,11 +286,14 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   `direct_terms`, `fields`, `facet_values`, `limits` (cases with `setup.build` build a real index);
   products' standard fields (`price`, `regular_price`, `sale_price`, `rating`, `stock_status`,
   `sku`, `on_sale`) built in from `WC_Product`, a `meta` line for them a `problems()` error;
-  `ArchiveUrl` maps WooCommerce's price/rating params to them. Left: **`max_docs` pages**: Fuzor
+  `ArchiveUrl` maps WooCommerce's price/rating params to them. After Bestratingsmarkt's first try
+  (the plugin installed before the theme left the index undefined, and an undefined index dropped
+  the archive's term lock: every category listed the whole shop for 48 s): `define()` keeps a
+  definition and ignores only its built-in `meta` lines, and a term lock that can't be applied
+  finds nothing (`Locks::NOTHING`). A plugin update must never undefine a theme's index. Left: **`max_docs` pages**: Fuzor
   returns no hits past its ranked candidates while `total` counts every match (3,000 matches,
   `max_docs` 500: pages past ~500 are empty); report for the user's Fuzor in
-  `~/handoff/fuzor-max-docs-pages/`; record the `max_docs` fixture once fixed. The updater token
-  (`gaffer-search.php`) once it can read the repository. The two remote sites
+  `~/handoff/fuzor-max-docs-pages/`; record the `max_docs` fixture once fixed. The two remote sites
   (`~/handoff/gaffer-search-standard-fields/`).
 - **Why gaffer-search, not a general fuzor-wp** (the user asked; answer of 2026-11-03): each
   fuzor-wp theme wrote its own glue (tokens, SEO/redirect hooks); with gaffer-search it's config.

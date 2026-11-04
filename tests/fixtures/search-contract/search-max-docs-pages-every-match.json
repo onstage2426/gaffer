@@ -1,0 +1,51 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "query": "jurk",
+            "max_docs": 1,
+            "limit": 2,
+            "offset": 2,
+            "attributes": [
+                "id"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "jurk",
+        "total": 5,
+        "offset": 2,
+        "limit": 2,
+        "results": [
+            {
+                "id": 3,
+                "formatted": {
+                    "title": "<mark>Jurk</mark> &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                    "snippet": "Feestelijke <mark>jurk</mark> met kant."
+                },
+                "labels": []
+            },
+            {
+                "id": 10,
+                "formatted": {
+                    "title": "Gouden <mark>jurk</mark>",
+                    "snippet": "Een glanzende gouden <mark>jurk</mark>."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": false,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": [
+            "A keyword matched more than Config::$maxDocs (1) documents; only the first 1 were considered, so results and counts are estimates."
+        ]
+    }
+}

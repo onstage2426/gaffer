@@ -1,0 +1,47 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "max_docs": 1,
+            "limit": 2,
+            "attributes": [
+                "id"
+            ]
+        }
+    ],
+    "query": {
+        "q": "jurk",
+        "offset": "4",
+        "sort[]": "id:asc"
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "jurk",
+            "total": 5,
+            "offset": 4,
+            "limit": 2,
+            "results": [
+                {
+                    "id": 11,
+                    "formatted": {
+                        "title": "Geheime <mark>jurk</mark>",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": [],
+            "exhaustive": false,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [
+                "A keyword matched more than Config::$maxDocs (1) documents; only the first 1 were considered, so results and counts are estimates."
+            ],
+            "time": "*"
+        }
+    }
+}

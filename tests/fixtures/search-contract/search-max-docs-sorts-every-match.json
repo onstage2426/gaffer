@@ -1,0 +1,74 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "query": "jurk",
+            "max_docs": 1,
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "sort": [
+                "id:desc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "jurk",
+        "total": 5,
+        "offset": 0,
+        "limit": 20,
+        "results": [
+            {
+                "id": 11,
+                "formatted": {
+                    "title": "Geheime <mark>jurk</mark>",
+                    "snippet": "Alleen in de winkel."
+                },
+                "labels": []
+            },
+            {
+                "id": 10,
+                "formatted": {
+                    "title": "Gouden <mark>jurk</mark>",
+                    "snippet": "Een glanzende gouden <mark>jurk</mark>."
+                },
+                "labels": []
+            },
+            {
+                "id": 3,
+                "formatted": {
+                    "title": "<mark>Jurk</mark> &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                    "snippet": "Feestelijke <mark>jurk</mark> met kant."
+                },
+                "labels": []
+            },
+            {
+                "id": 2,
+                "formatted": {
+                    "title": "Blauwe <mark>jurk</mark>",
+                    "snippet": "Een korte blauwe <mark>jurk</mark>."
+                },
+                "labels": []
+            },
+            {
+                "id": 1,
+                "formatted": {
+                    "title": "Rode <mark>jurk</mark>",
+                    "snippet": "Een lange rode <mark>jurk</mark> van zijde."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": false,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": [
+            "A keyword matched more than Config::$maxDocs (1) documents; only the first 1 were considered, so results and counts are estimates."
+        ]
+    }
+}

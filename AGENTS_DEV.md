@@ -211,6 +211,11 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   and translations before `init` log `_load_textdomain_just_in_time`. Find
   the caller of a `_doing_it_wrong` notice with a `doing_it_wrong_run` hook
   that prints `debug_backtrace()` (`wp --require=<file>`).
+- Never keep often-written state in autoloaded options (one array for many keys, least of all):
+  with a persistent object cache a long process (a 2-minute index build) writes back the whole
+  `alloptions` it loaded at its start, so another process's newer value is lost. gaffer-search's
+  built versions did that on Bestratingsmarkt (2026-11-04): the index looked stale after every
+  build and rebuilt in a loop. One non-autoloaded option per key.
 - Never tell a live site to `wp cache flush` (or `redis-cli FLUSHALL`): on Bestratingsmarkt
   (Redis, 2M+ keys) the flush blocked Redis and the site answered with WordPress's Redis error
   for a few seconds (2026-11-04). After deleting options straight in the database, delete only
@@ -290,16 +295,20 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   (the plugin installed before the theme left the index undefined, and an undefined index dropped
   the archive's term lock: every category listed the whole shop for 48 s): `define()` keeps a
   definition and ignores only its built-in `meta` lines, and a term lock that can't be applied
-  finds nothing (`Locks::NOTHING`). A plugin update must never undefine a theme's index. Left: **`max_docs` pages**: Fuzor
-  returns no hits past its ranked candidates while `total` counts every match (3,000 matches,
-  `max_docs` 500: pages past ~500 are empty); report for the user's Fuzor in
-  `~/handoff/fuzor-max-docs-pages/`; record the `max_docs` fixture once fixed. The two remote sites
-  (`~/handoff/gaffer-search-standard-fields/`).
+  finds nothing (`Locks::NOTHING`). A plugin update must never undefine a theme's index. 2026-11-05: Fuzor fixed the empty pages
+  past `max_docs` (`59c4413`; `max_docs` fixtures recorded); the built signature/version moved
+  to one non-autoloaded option per index (the rebuild loop on Bestratingsmarkt, see Gotchas). Both
+  remote sites switched with identical archives (Bestratingsmarkt, thenewbride).
 - **Why gaffer-search, not a general fuzor-wp** (the user asked; answer of 2026-11-03): each
   fuzor-wp theme wrote its own glue (tokens, SEO/redirect hooks); with gaffer-search it's config.
   Evidence, Bestratingsmarkt round 4: all 2,081 archives, canonicals, robots and redirects
   identical to live, its SEO hooks 91 → 24 lines. Cost: four rounds and ~25 changes on our side,
   and it only serves Gaffer themes (the Fuzor library stays general).
+- **Staged render drops rows** (Bestratingsmarkt, 2026-11-04): `render:diff --theme=<copy>` of one
+  product (In-Lite 117713) lacks 6 of its 18 spec rows, also with an unchanged copy of live;
+  live renders them, and the CLI sees the same 18 attributes under both themes. Not diagnosed
+  (no access): ask the site where those rows come from (template, ACF group, plugin filter) and
+  what differs under the copy.
 - **At 1.0:** the CHANGELOG starts fresh; gaffer-search's `docs/migration.md` at its first tag.
 - **Customer groups and prices** (a Bestratingsmarkt client's request, 2026-11-03; only an
   answer so far): groups, group prices and discounts, personal price agreements, and a periodic

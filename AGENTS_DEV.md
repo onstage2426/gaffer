@@ -285,8 +285,13 @@ Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
   products, no multisite or caches) switched on 2026-11-03 without staging (the user's call):
   24/24 archives and 19/19 searches identical to fuzor-wp; its report drove `archive({ fields })`,
   `pageUrl()`, `Snapshot::redirected()`, the taxonomy warning, the MCP memory limit and the
-  `fuzor-search` skill rename. fuzor-wp is deactivated there, not deleted. Still on fuzor-wp:
-  Bestratingsmarkt (round 5 pending), blueprint, blueprint-base.
+  `fuzor-search` skill rename. fuzor-wp is deactivated there, not deleted. Bestratingsmarkt switched
+  after six staging rounds (2026-11-03/04). blueprint and blueprint-base switched on 2026-11-04
+  (searchbar only; identical searches; blueprint-base's two fuzor-only test features dropped:
+  `inStock` unused, `audience` hid 2 customer-group products on `/tweede/` from search only;
+  backups and fuzor baselines in `~/backups/fuzor-to-gaffer-search-2026-11-04/`). **No site
+  runs fuzor-wp any more** (deactivated everywhere, not deleted): the purge under "Open" can
+  start.
 
 ## Open
 

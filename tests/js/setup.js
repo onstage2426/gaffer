@@ -8,4 +8,5 @@ window.GafferSearch = {
     ...(await import("../../resources/js/search/alpine-search.js")),
     ...(await import("../../resources/js/search/range-slider.js")),
     ...(await import("../../resources/js/search/archive.js")),
+    ...(await import("../../resources/js/search/counter.js")),
 };

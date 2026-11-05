@@ -9,6 +9,33 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-05
 
+### `Search::counter()`: counts from the browser, without booting WordPress
+
+Nothing breaks. `Search::counter($index, $term)` gives `available`, `endpoint` and `token` for
+the plugin's boot-free endpoint, with `Search::count()`'s scope, and `createCounter()` in
+`@gaffer/search.js` asks it. The token doesn't expire, so it can sit in a cached page.
+
+Replace an ajax action that only wraps `Search::count()`, which boots WordPress and WooCommerce
+for each count. Find: `grep -rln "Search::count(" app/Ajax`.
+
+```php
+// before: app/Ajax/FinderCount/FinderCount.php, called on every choice
+View::render('components/finder-count.twig', ['count' => Search::count('products', filter: $filter)]);
+// after: in the block's data; the action and its template go
+'counter' => Search::counter('products'),
+```
+```js
+// after
+const count = createCounter({ endpoint, token });
+const total = await count(filter); // a number; null: show no number; undefined: a newer call replaced it
+if (total !== undefined) this.total = total;
+```
+
+Afterwards: run `php gaffer ai:update`; check the count equals what the shop shows for the same
+filter, that the page shows plain text when the endpoint fails (block the request in the
+browser), and that the console shows no `Gaffer Search:` warning (a filter on a field the index
+doesn't filter on is ignored, and `doctor` can't see filters built in JavaScript).
+
 ### Field report fixes (Prime Lease): new checks, `migrate:set`, `Search::count()`, screenshots in parts
 
 Nothing breaks; new warnings may show up. After updating, run `php gaffer ai:update`, then

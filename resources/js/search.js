@@ -8,11 +8,12 @@
  *
  * search/range-slider.css has starting styles for createDualRangeSlider().
  *
- * The endpoint and token come from the server (Search::archive(), Search::searchbar()) as the
+ * The endpoint and token come from the server (Search::archive(), Search::searchbar(), Search::counter()) as the
  * form's action and its hidden `token` input.
  */
 
 export { archive } from "./search/archive.js";
 export { createAlpineSearch, createFilterForm } from "./search/alpine-search.js";
+export { createCounter } from "./search/counter.js";
 export { createDualRangeSlider } from "./search/range-slider.js";
 export { formatCurrency, getActiveFilters, getFacetOptions, getPageNumbers, removeFilter } from "./search/helpers.js";

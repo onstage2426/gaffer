@@ -6,7 +6,7 @@ const F = window.GafferSearch;
 describe("search.js", () => {
     test("exports what themes use", async () => {
         expect(Object.keys(await import("../../resources/js/search.js")).sort()).toEqual([
-            "archive", "createAlpineSearch", "createDualRangeSlider", "createFilterForm", "formatCurrency", "getActiveFilters", "getFacetOptions",
+            "archive", "createAlpineSearch", "createCounter", "createDualRangeSlider", "createFilterForm", "formatCurrency", "getActiveFilters", "getFacetOptions",
             "getPageNumbers", "removeFilter",
         ]);
     });
@@ -121,5 +121,49 @@ describe("createSearcher", () => {
         mockFetch(() => new Response("<html>", { status: 200 }));
         const err = await F.createSearcher()("/s").catch((e) => e);
         expect([err.name, err.status, err.code]).toEqual(["GafferSearchError", 200, null]);
+    });
+});
+
+describe("createCounter", () => {
+    const counter = () => F.createCounter({ endpoint: "https://shop.test/search.php", token: "t.k" });
+
+    test("asks the endpoint with the filter and answers the total", async () => {
+        const calls = mockFetch(() => response({ total: 9 }));
+        expect(await counter()({ brand: ["volvo"] })).toBe(9);
+        expect(calls).toEqual(["https://shop.test/search.php?q=&token=t.k&filter[brand][]=volvo"]);
+    });
+
+    test("a total of 0 is a count", async () => {
+        mockFetch(() => response({ total: 0 }));
+        expect(await counter()()).toBe(0);
+    });
+
+    test("every failure is null, never an exception", async () => {
+        mockFetch(() => response({ error: "Invalid token.", code: "invalid_token" }, 400));
+        expect(await counter()()).toBeNull();
+        mockFetch(() => new Response("<html>", { status: 502 }));
+        expect(await counter()()).toBeNull();
+        mockFetch(() => Promise.reject(new TypeError("network")));
+        expect(await counter()()).toBeNull();
+    });
+
+    test("a replaced call answers undefined, so a slow old answer can't win", async () => {
+        const first = deferred();
+        mockFetch((url) => (url.includes("old") ? first.promise : response({ total: 2 })));
+        const count = counter();
+        const old = count({ brand: "old" });
+        expect(await count({ brand: "new" })).toBe(2);
+        first.resolve(response({ total: 99 }));
+        expect(await old).toBeUndefined();
+    });
+
+    test("the engine's warnings reach the console", async () => {
+        mockFetch(() => response({ total: 14, warnings: ["filter on fuel ignored"] }));
+        const warn = console.warn;
+        const seen = [];
+        console.warn = (message) => seen.push(message);
+        await counter()({ fuel: "electric" });
+        console.warn = warn;
+        expect(seen).toEqual(["Gaffer Search: filter on fuel ignored"]);
     });
 });

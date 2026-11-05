@@ -186,6 +186,24 @@ final class SearchTest extends TestCase
         self::assertSame(['products', ['visibility' => 'catalog', 'limit' => 4, 'sort' => ['total_sales:desc'], 'attributes' => ['id', 'card']]], $engine->calls[0]);
     }
 
+    public function test_a_counter_signs_counts_scope_for_the_cheapest_request_and_searches_nothing(): void
+    {
+        self::config(['indexes' => ['products' => ['type' => 'products'], 'news' => ['type' => 'posts']]]);
+        $engine = new FakeEngine([]);
+        Engine::reset(new Engine($engine));
+
+        $counter = Search::counter('products');
+        Search::counter('news');
+        Search::count('products');
+
+        self::assertTrue($counter->available);
+        self::assertSame('https://shop.test/search.php', $counter->endpoint);
+        self::assertSame('signed', $counter->token);
+        self::assertSame(['products', ['visibility' => 'catalog', 'limit' => 1, 'attributes' => ['id']]], $engine->tokens[0], 'no facets, no ttl');
+        self::assertSame(['news', ['limit' => 1, 'attributes' => ['id']]], $engine->tokens[1]);
+        self::assertSame($engine->calls[0][1], $engine->tokens[0][1], 'what count() asks');
+    }
+
     public function test_without_the_plugin_templates_get_empty_states(): void
     {
         self::config(['indexes' => ['products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig']]]]);
@@ -193,6 +211,8 @@ final class SearchTest extends TestCase
         self::assertFalse(Search::available());
         self::assertSame([], Search::cards('products', 4));
         self::assertFalse(Search::searchbar('products')->available);
+        self::assertFalse(Search::counter('products')->available);
+        self::assertSame('', Search::counter('products')->token);
         $archive = \Gaffer\Search\Archive::unavailable();
         self::assertSame([0, 0, []], [$archive->results['offset'], $archive->results['total'], $archive->results['results']], 'the response shape, so templates read it as usual');
     }
@@ -241,6 +261,9 @@ final class FakeEngine
     /** @var list<array{string, array<string, mixed>}> */
     public array $calls = [];
 
+    /** @var list<array{string, array<string, mixed>}> */
+    public array $tokens = [];
+
     /** @param list<mixed> $hits */
     public function __construct(private readonly array $hits) {}
 
@@ -253,5 +276,18 @@ final class FakeEngine
         $this->calls[] = [$index, $request];
 
         return ['query' => '', 'total' => count($this->hits), 'offset' => 0, 'limit' => 4, 'results' => $this->hits];
+    }
+
+    public function endpoint(): string
+    {
+        return 'https://shop.test/search.php';
+    }
+
+    /** @param array<string, mixed> $request */
+    public function token(string $index, array $request): string
+    {
+        $this->tokens[] = [$index, $request];
+
+        return 'signed';
     }
 }

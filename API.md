@@ -70,10 +70,10 @@ content written by code).
 `blank()`, `name`, `sent`, `message`, `failed`, `value()`, `checked()`, `error()`.
 
 **Search** (with the gaffer-search plugin; config in `config/search.php`):
-`Search\Search::available()`, `archive()`, `archive_url()`, `cards()` (with `filter`), `count()`, `searchbar()`;
+`Search\Search::available()`, `archive()`, `archive_url()`, `cards()` (with `filter`), `count()`, `counter()`, `searchbar()`;
 `Search\Archive`: `available`, `endpoint`, `token`, `query`, `total`, `cards`,
 `results`, `sorts`, `sort`, `card_field`, `view`, `views`, `bounds`, `initial()`, `page_url()`; `Search\Searchbar`:
-`available`, `endpoint`, `token`, `results_url`; the JavaScript in
+`available`, `endpoint`, `token`, `results_url`; `Search\Counter`: `available`, `endpoint`, `token`; the JavaScript in
 `resources/js/search.js`.
 
 **Twig**: the functions `config()` and `ajax_url()`; the filter `t`; the namespace `@block`;

@@ -91,6 +91,26 @@ final class Search
     }
 
     /**
+     * A count() the browser asks for itself: endpoint and token, for a count that changes with
+     * the visitor's choices or sits on a cached page (the token doesn't expire). The same scope
+     * as count(); the browser adds the filter. Signing it searches nothing.
+     */
+    public static function counter(string $index, ?Term $term = null): Counter
+    {
+        $engine = Engine::find();
+        if ($engine === null) {
+            return new Counter(false, '', '');
+        }
+
+        return new Counter(true, $engine->endpoint(), $engine->token($index, [
+            ...self::scope($index, 'catalog'),
+            'limit' => 1,
+            'attributes' => ['id'],
+            ...($term !== null ? ['term' => $term->id()] : []),
+        ]));
+    }
+
+    /**
      * A searchbar's form data: endpoint, token (with these facets and the hit fields its
      * template shows) and the archive's URL for "all results". Products hidden from search are
      * left out.

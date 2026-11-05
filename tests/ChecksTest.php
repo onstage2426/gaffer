@@ -19,6 +19,7 @@ use Gaffer\Console\Checks\MarkupCheck;
 use Gaffer\Console\Checks\SearchCheck;
 use Gaffer\Console\Checks\SourceCheck;
 use Gaffer\Console\Checks\TemplateGlobalsCheck;
+use Gaffer\Console\Checks\TagsCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
 use Gaffer\Console\Checks\TexturizeCheck;
 use Gaffer\Console\Checks\WordPressCheck;
@@ -566,6 +567,77 @@ final class ChecksTest extends TestCase
         file_put_contents("{$this->theme}/config/search.php", "<?php return ['indexes' => ['products' => ['type' => 'products', 'cards' => ['grid' => 'x.twig', 'list' => 'product/list-item.twig']]]];");
         Config::load("{$this->theme}/config");
         self::assertStringNotContainsString('Nothing renders or includes this template', $this->messages(new TemplatesCheck()), 'the index renders it');
+    }
+
+    public function test_tags_alt_next_to_attrs_and_classes_in_both_class_and_bind(): void
+    {
+        $source = <<<'TWIG'
+            <img class="h-8" {{ logo.attrs('medium') }} alt="">
+            <img class="h-8" {{ logo.attrs('medium', decorative: true) }}>
+            <button class="px-3 bg-deep text-white" :class="incl ? 'bg-white text-deep' : 'bg-deep text-white'">x</button>
+            <div class="{{ open ? 'a' : 'b' }} rotate-0 block" :class="{ 'rotate-45': open, hidden: !open }"></div>
+            <p class="hidden" x-bind:class="{ hidden: !open }"></p>
+            {{ "<img alt='x' class='q'>" }}
+            {# <img {{ x.attrs() }} alt=""> #}
+            TWIG;
+        $problems = TagsCheck::problems($source);
+        self::assertSame([[1, 'error'], [3, 'warning'], [5, 'warning']], array_map(static fn(array $p): array => [$p[2], $p[0]], $problems));
+        self::assertStringStartsWith('bg-deep text-white stays on', $problems[1][3]);
+        self::assertStringStartsWith('hidden stays on', $problems[2][3]);
+    }
+
+    public function test_tags_reads_twig_inside_attribute_values(): void
+    {
+        $tags = TagsCheck::tags("<a href=\"{{ url ~ '\">' }}\" {% if x %}data-x{% endif %} class='a b'>\n<b>");
+        self::assertSame(['a', 'b'], array_column($tags, 'name'));
+        self::assertSame([['href', "{{ url ~ '\">' }}"], ['data-x', null], ['class', 'a b']], $tags[0]['attrs']);
+        self::assertSame(['{% if x %}', '{% endif %}'], $tags[0]['twig']);
+        self::assertSame(2, $tags[1]['line']);
+    }
+
+    public function test_assets_templates_changed_since_the_build_with_classes_it_lacks(): void
+    {
+        self::assertSame('md\:grid-cols-\[minmax\(0\,1fr\)_1fr\]', AssetsCheck::escape('md:grid-cols-[minmax(0,1fr)_1fr]'));
+        self::assertSame('\32 xl\:p-4', AssetsCheck::escape('2xl:p-4'));
+        self::assertSame(['flex', 'md:pt-16', 'js-x'], AssetsCheck::classes('<div class="flex md:pt-16 {{ x }}"><i class="js-x flex"></i></div>'));
+
+        mkdir("{$this->theme}/assets/css", 0755, true);
+        mkdir("{$this->theme}/public/.vite", 0755, true);
+        mkdir("{$this->theme}/public/assets", 0755, true);
+        mkdir("{$this->theme}/views", 0755, true);
+        file_put_contents("{$this->theme}/assets/css/app.css", '');
+        touch("{$this->theme}/assets/css/app.css", time() - 120);
+        file_put_contents("{$this->theme}/public/.vite/manifest.json", '{"assets/css/app.css": {"file": "assets/app-1.css"}}');
+        file_put_contents("{$this->theme}/public/assets/app-1.css", '.flex{display:flex}.md\:pt-4{padding-top:1rem}');
+        touch("{$this->theme}/public/.vite/manifest.json", time() - 60);
+        file_put_contents("{$this->theme}/views/old.twig", '<p class="md:pt-16"></p>');
+        touch("{$this->theme}/views/old.twig", time() - 90); // built since: not checked
+        file_put_contents("{$this->theme}/views/new.twig", '<p class="flex md:pt-4 md:pt-16"></p>');
+        self::reset(Vite::class, 'manifest', null);
+        self::reset(Vite::class, 'dev_mode', null);
+        self::reset(View::class, 'env', null);
+        self::reset(Gaffer::class, 'twig', false);
+
+        $findings = $this->findings(new AssetsCheck());
+        self::assertSame(['Changed since the build, with classes the built CSS doesn\'t have'], array_column($findings, 'message'));
+        self::assertStringEndsWith('views/new.twig', (string) $findings[0]['file']);
+        self::assertStringStartsWith('md:pt-16. Tailwind', (string) $findings[0]['hint']);
+    }
+
+    public function test_search_filters_on_fields_that_are_no_facets(): void
+    {
+        self::assertSame(['expected' => 2, 'price' => 2, 'brand' => 3], SearchCheck::filtered_fields("<?php\nSearch::cards('p', 4, filter: ['expected' => 'yes', 'price' => ['min' => 1]]);\n\$r = ['filter' => ['brand' => ['a']]];", true));
+        self::assertSame(['expected' => 1, 'fuel' => 1], SearchCheck::filtered_fields('<a href="?filter[expected]=yes&amp;filter%5Bfuel%5D=x">', false));
+
+        mkdir("{$this->theme}/views", 0755, true);
+        file_put_contents("{$this->theme}/config/search.php", "<?php return ['indexes' => ['products' => ['type' => 'products', 'facets' => ['fuel'], 'meta' => ['_fuel' => 'fuel', '_x' => ['expected', 'string']], 'fields' => ['per_m2' => 'float']]]];");
+        Config::load("{$this->theme}/config");
+        file_put_contents("{$this->theme}/views/chips.twig", '<a href="?filter[fuel]=ev">EV</a> <a href="?filter[expected]=yes">Soon</a>');
+        self::reset(View::class, 'env', null);
+        self::reset(Gaffer::class, 'twig', false);
+
+        $findings = array_values(array_filter($this->findings(new SearchCheck()), static fn(array $f): bool => str_starts_with($f['message'], 'Filters on')));
+        self::assertSame(['Filters on "expected", which index "products" stores but doesn\'t filter on'], array_column($findings, 'message'));
     }
 
     private function messages(Check $check): string

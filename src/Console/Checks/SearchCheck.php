@@ -76,6 +76,70 @@ final class SearchCheck implements Check
         }
 
         $this->unavailable($report);
+        $this->unfiltered($report);
+    }
+
+    /**
+     * Filters on a field an index stores but can't filter on: the engine only filters on its
+     * facets (and the fields its type makes filterable), and ignores any other filter with a
+     * warning nobody sees, so the page lists everything (or, with the filter in the archive's
+     * URL, not what the link promised).
+     */
+    private function unfiltered(Report $report): void
+    {
+        $stored = [];
+        foreach (Indexes::all() as $name => $definition) {
+            $facets = array_map(strval(...), (array) ($definition['facets'] ?? []));
+            $fields = array_map(strval(...), array_keys((array) ($definition['fields'] ?? [])));
+            foreach ((array) ($definition['meta'] ?? []) as $field) {
+                $fields[] = (string) (is_array($field) ? ($field[0] ?? '') : $field);
+            }
+            foreach (array_diff($fields, $facets) as $field) {
+                $stored[$field][] = $name;
+            }
+        }
+        if ($stored === []) {
+            return;
+        }
+
+        $files = [...array_values(Templates::all()), ...ThemeFiles::find(['php'])];
+        foreach ($files as $file) {
+            foreach (self::filtered_fields((string) file_get_contents($file), str_ends_with($file, '.php')) as $field => $line) {
+                if (isset($stored[$field])) {
+                    $report->warning('search', "Filters on \"{$field}\", which index \"" . implode('", "', $stored[$field]) . '" stores but doesn\'t filter on', $file, $line,
+                        "The engine filters only on the index's facets and ignores this filter. Add \"{$field}\" to the index's facets (config/search.php).");
+                }
+            }
+        }
+    }
+
+    /**
+     * The fields a file filters on, with the first line: filter[field] in a URL or form field
+     * name, and in PHP the keys of a filter array ('filter' => ['on_sale' => 'yes'], filter: [...]).
+     *
+     * @return array<string, int>
+     */
+    public static function filtered_fields(string $code, bool $php): array
+    {
+        $found = [];
+        $line = static fn(int $offset): int => substr_count($code, "\n", 0, $offset) + 1;
+        preg_match_all('/filter(?:\[|%5B)([a-z0-9_]+)(?:\]|%5D)/i', $code, $m, PREG_OFFSET_CAPTURE);
+        foreach ($m[1] as [$field, $offset]) {
+            $found[$field] ??= $line($offset);
+        }
+        if ($php) {
+            preg_match_all('/[\'"]?filter[\'"]?\s*(?:=>|:)\s*\[((?:[^\[\]]|\[[^\[\]]*\])*)\]/', $code, $m, PREG_OFFSET_CAPTURE);
+            foreach ($m[1] as [$array, $offset]) {
+                // Only the top level: a range's min/max are no fields.
+                $top = (string) preg_replace_callback('/\[[^\[\]]*\]/', static fn(array $n): string => str_repeat(' ', strlen($n[0])), $array);
+                preg_match_all('/[\'"]([a-z0-9_]+)[\'"]\s*=>/i', $top, $keys, PREG_OFFSET_CAPTURE);
+                foreach ($keys[1] as [$field, $at]) {
+                    $found[$field] ??= $line($offset + $at);
+                }
+            }
+        }
+
+        return $found;
     }
 
     /**

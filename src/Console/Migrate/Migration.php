@@ -225,7 +225,7 @@ final class Migration
             return 0;
         }
         if (!$run) {
-            $output->writeln(count($this->plan) . ' location(s) would change. Dry run: nothing was written. Make a database backup, then run again with --run.');
+            $output->writeln(count($this->plan) . ' location(s) would change. Dry run: nothing was written. Run again with --run: it first saves these locations as they are now to storage/backups/migrate/ (undo with migrate:rollback). A database dump is only needed on a live site, as a second safety net.');
             return 0;
         }
 

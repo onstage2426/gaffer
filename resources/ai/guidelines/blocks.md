@@ -92,8 +92,11 @@ content. Renaming or removing a block or field, or changing a field's type,
 means migrating that content with the `migrate:*` commands (dry run, then
 `--run` once the user agrees): follow the `gaffer-migrate` skill. A type changes
 in place only when the stored value still means the same (text → wysiwyg,
-select → radio, image → file); otherwise add a field with a new name. Never
-write a converter or a throwaway script that writes content.
+select → radio, image → file); otherwise add a field with a new name. To fill
+a field in blocks already stored (a new field existing pages need, a value
+for demo content): `php gaffer migrate:set acf/name field '<json>' [--post=ID]`
+(validated like `Blocks::markup()`, dry run, backup, rollback). Never write a
+converter or a throwaway script that writes content.
 - **Content written by code** (demo and launch pages, seeds) goes through
   `Gaffer\Blocks::markup('acf/name', [field => value])`, never hand-written
   block comments: it adds every derived key and refuses an unknown field or a

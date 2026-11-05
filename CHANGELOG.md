@@ -9,6 +9,52 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-05
 
+### Field report fixes (Prime Lease): new checks, `migrate:set`, `Search::count()`, screenshots in parts
+
+Nothing breaks; new warnings may show up. After updating, run `php gaffer ai:update`, then
+`php gaffer doctor --wp` and work through what's new:
+
+- **`alt` next to `.attrs(`** (error): `attrs()` writes the `alt` already, so the tag had two
+  and browsers kept the media library's. Decorative images: `image.attrs('medium',
+  decorative: true)` writes `alt=""`. Find: `grep -rn "attrs(.*alt=" views blocks`.
+  ```twig
+  {# before #} <img class="h-8" {{ logo.attrs('medium') }} alt="">
+  {# after  #} <img class="h-8" {{ logo.attrs('medium', decorative: true) }}>
+  ```
+- **A class in both `class` and `:class`** (warning): Alpine never removes the static one.
+  Move every state's classes into `:class`.
+- **Alpine directives outside any `x-data`** (`doctor --wp`, warning): Alpine ignores them.
+  Add `x-data` on the element or an ancestor.
+- **WordPress's theme-compat sidebar on a page** (`doctor --wp`, warning): a theme without
+  `sidebar.php` on WooCommerce pages. `remove_action('woocommerce_sidebar',
+  'woocommerce_get_sidebar')` in `inc/`.
+- **The front page a visitor gets links assets the build no longer has** (`doctor --wp`, error):
+  a page cache from before the last build. Clear it after every build.
+- **Templates changed since the build with classes the built CSS lacks** (warning): run
+  `npm run build`. A class that is no Tailwind utility (a JavaScript hook) shows until then.
+- **Search:** a filter on a field the index stores but doesn't have in `facets` (warning; the
+  engine ignores it, find: `grep -rn "filter\[" views`); the engine's warnings now show in
+  `doctor:render`/`doctor --wp`; an index built with 0 documents while posts are published
+  (warning: `wp gaffer-search rebuild`); with gaffer-search of the same day, a taxonomy field
+  in `searchable` is a `problems()` error (the index stays defined without it).
+- **`Search::count($index, $term, filter: [...])`**: counts in the archive's scope from the
+  index. Replace hand-written `product_visibility`/`exclude-from-catalog` tax_queries that count
+  or list "what the archive shows": `grep -rn "exclude-from-catalog" app inc blocks`.
+- **`php gaffer migrate:set <block> <field> '<json>' [--post=ID]`** sets a block field's value
+  in stored content (dry run, backup, rollback), instead of a `wp eval-file` script.
+- **`render:screenshot`**: `--full` scrolls through the page first and writes it in parts
+  (`--slice=1200`, `{width}-{n}.png`; the output and the MCP tool's `files` list them, with the
+  page height); `--hover=<selector>` as a step; `--local-storage key=value` for a returning
+  visitor's stored state.
+- **`wp_print_font_faces` is removed from `wp_head`** when the theme has no `theme.json`
+  (~5 ms a page, it printed nothing). Remove a theme's own `remove_action` for it:
+  `grep -rn "wp_print_font_faces" inc`.
+- `labels` example corrected in the `gaffer-search` skill: names visitors read go through
+  `__()` on a site translated with the theme's strings (ACF choices are translated as ACF field
+  settings).
+
+Check: `php gaffer doctor --wp` and `php gaffer twig:lint`.
+
 ### Search: names for values of fields without terms (`labels`)
 
 An index can name the values of its other string fields (an ACF select mapped in `meta`, a

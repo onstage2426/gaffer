@@ -21,6 +21,7 @@ use Gaffer\Console\Commands\MigrateRemoveBlock;
 use Gaffer\Console\Commands\MigrateRemoveField;
 use Gaffer\Console\Commands\MigrateRemoveLeftovers;
 use Gaffer\Console\Commands\MigrateRollback;
+use Gaffer\Console\Commands\MigrateSet;
 use Gaffer\Console\Commands\RenderDiff;
 use Gaffer\Console\Commands\RenderScreenshot;
 use Gaffer\Console\Commands\RenderSnapshot;
@@ -64,6 +65,7 @@ final class Console
             new MigrateRemoveField(),
             new MigrateRemoveLeftovers(),
             new MigrateRollback(),
+            new MigrateSet(),
             new RenderDiff(),
             new RenderScreenshot(),
             new RenderSnapshot(),

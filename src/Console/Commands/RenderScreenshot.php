@@ -39,9 +39,12 @@ final class RenderScreenshot extends Command
     {
         $this->addArgument('path', InputArgument::REQUIRED, 'URL path, e.g. /contact/ or "/winkel/?s=shirt"');
         $this->addOption('width', null, InputOption::VALUE_REQUIRED, 'Viewport widths, comma-separated', '390,1440');
-        $this->addOption('full', null, InputOption::VALUE_NONE, 'The whole page, not only the first screen');
-        $this->addOption('click', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Click this CSS selector before the screenshot (repeatable; with --fill in the order given)');
+        $this->addOption('full', null, InputOption::VALUE_NONE, 'The whole page, not only the first screen: scrolled through first (lazy images), in parts of --slice pixels');
+        $this->addOption('slice', null, InputOption::VALUE_REQUIRED, 'With --full: the height of each part in pixels (0: one image)', '1200');
+        $this->addOption('click', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Click this CSS selector before the screenshot (repeatable; with --fill/--hover in the order given)');
         $this->addOption('fill', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Type into a field first: selector=value, e.g. "input[name=qty]=3" (repeatable)');
+        $this->addOption('hover', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Hover this CSS selector (repeatable; the pointer stays there for the screenshot)');
+        $this->addOption('local-storage', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'A returning visitor\'s stored state: key=value in localStorage before the page loads (repeatable)');
         $this->addOption('session', null, InputOption::VALUE_REQUIRED, 'As the visitor of this ajax:call session: its cookies in the render and the browser (its cart, its drawer)');
         $this->addOption('theme', null, InputOption::VALUE_REQUIRED, 'Render a full copy of the theme next to it (e.g. blueprint-stage), with its own assets');
         $this->addOption('json', null, InputOption::VALUE_NONE, 'Print the result as JSON (the gaffer-screenshot MCP tool)');
@@ -61,6 +64,10 @@ final class RenderScreenshot extends Command
             return $fail("\"{$path}\" is not a URL path (it starts with /)");
         }
         $widths = array_map('intval', explode(',', (string) $input->getOption('width')));
+        $slice = (string) $input->getOption('slice');
+        if (!ctype_digit($slice) || ((int) $slice > 0 && (int) $slice < 200)) {
+            return $fail('--slice takes a height in pixels (200 or more), or 0 for one image');
+        }
         if (array_filter($widths, static fn(int $w): bool => $w < 200 || $w > 3840) !== []) {
             return $fail('--width takes widths in pixels between 200 and 3840, e.g. 390,1440');
         }
@@ -69,6 +76,7 @@ final class RenderScreenshot extends Command
             $entry = is_string($theme = $input->getOption('theme')) ? StagedTheme::entry($theme) : null;
             $session = is_string($session = $input->getOption('session')) ? $session : null;
             $cookies = $session !== null ? Request::session($session) : [];
+            $storage = self::storage((array) $input->getOption('local-storage'));
         } catch (\InvalidArgumentException $e) {
             return $fail($e->getMessage());
         }
@@ -95,8 +103,10 @@ final class RenderScreenshot extends Command
             'http' => $render['http'],
             'widths' => $widths,
             'full' => (bool) $input->getOption('full'),
+            'slice' => (int) $slice,
             'steps' => $steps,
             'cookies' => (object) $cookies,
+            'storage' => (object) $storage,
             'out' => $out,
             'endpoint' => Env::get('PLAYWRIGHT_WS_ENDPOINT'),
         ];
@@ -112,7 +122,7 @@ final class RenderScreenshot extends Command
         }
 
         foreach ($result['shots'] as $shot) {
-            $output->writeln("{$shot['width']}px: {$shot['file']}");
+            $output->writeln("{$shot['width']}px, page {$shot['height']}px high: " . implode(' ', $shot['files']));
         }
         foreach (['console' => 'Console errors', 'failed' => 'Failed requests'] as $key => $label) {
             if ($result[$key] !== []) {
@@ -127,22 +137,44 @@ final class RenderScreenshot extends Command
     }
 
     /**
-     * The --click and --fill options in the order given (fill a field, then click submit).
+     * --local-storage key=value pairs.
+     *
+     * @param array<mixed> $pairs
+     * @return array<string, string>
+     * @throws \InvalidArgumentException on one without "="
+     */
+    public static function storage(array $pairs): array
+    {
+        $storage = [];
+        foreach ($pairs as $pair) {
+            // At the first "=": keys rarely have one, values (JSON) may.
+            $at = strpos((string) $pair, '=');
+            if ($at === false || $at === 0) {
+                throw new \InvalidArgumentException("--local-storage takes key=value, not \"{$pair}\"");
+            }
+            $storage[substr((string) $pair, 0, $at)] = substr((string) $pair, $at + 1);
+        }
+
+        return $storage;
+    }
+
+    /**
+     * The --click, --hover and --fill options in the order given (fill a field, then click submit).
      *
      * @param list<string> $tokens the command line after the command name
-     * @return list<array{click: string}|array{fill: string, value: string}>
+     * @return list<array{click: string}|array{hover: string}|array{fill: string, value: string}>
      * @throws \InvalidArgumentException on a --fill without "="
      */
     public static function steps(array $tokens): array
     {
         $steps = [];
         foreach ($tokens as $i => $token) {
-            if (!preg_match('/^--(click|fill)(?:=(.*))?$/s', $token, $m)) {
+            if (!preg_match('/^--(click|hover|fill)(?:=(.*))?$/s', $token, $m)) {
                 continue;
             }
             $value = $m[2] ?? (string) ($tokens[$i + 1] ?? '');
-            if ($m[1] === 'click') {
-                $steps[] = ['click' => $value];
+            if ($m[1] === 'click' || $m[1] === 'hover') {
+                $steps[] = [$m[1] => $value];
                 continue;
             }
             // At the last "=": selectors may have one ([name=qty]), values rarely do.
@@ -164,7 +196,7 @@ final class RenderScreenshot extends Command
 
     /**
      * @param array<string, mixed> $options
-     * @return array{error: string}|array{shots: list<array{width: int, file: string}>, console: list<string>, failed: list<string>}
+     * @return array{error: string}|array{shots: list<array{width: int, file: string, files: list<string>, height: int}>, console: list<string>, failed: list<string>}
      */
     private static function browser(array $options): array
     {
@@ -186,7 +218,7 @@ final class RenderScreenshot extends Command
             return ['error' => 'The browser script gave no result' . ($tail !== '' ? ": {$tail}" : ' (is Node, `node`, installed?)')];
         }
 
-        /** @var array{error: string}|array{shots: list<array{width: int, file: string}>, console: list<string>, failed: list<string>} $result */
+        /** @var array{error: string}|array{shots: list<array{width: int, file: string, files: list<string>, height: int}>, console: list<string>, failed: list<string>} $result */
         return $result;
     }
 }

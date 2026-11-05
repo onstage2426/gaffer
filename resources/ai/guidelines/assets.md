@@ -25,6 +25,11 @@ the build.
   hardcoded, also not in a `style=""`.
 - **Environment-specific settings** (dev server origin, URLs) come from an
   env file (`.env`, not committed), never from `vite.config.js` itself.
-- Run `npm run build` before deploying. `doctor` reports a missing or
-  stale build (older than `assets/`) and `Vite::` calls for entries the
-  manifest doesn't have.
+- Run `npm run build` after changing classes in a template too (Tailwind
+  scans templates: a new utility exists only after a build), and before
+  deploying. `doctor` reports a missing or stale build (older than
+  `assets/`), templates changed since the build with classes the built CSS
+  doesn't have, and `Vite::` calls for entries the manifest doesn't have.
+  After a build on a site with a page cache, clear it: a cached page links
+  the previous build's files, which are gone (`doctor --wp` fetches the front
+  page a visitor gets and errors on them).

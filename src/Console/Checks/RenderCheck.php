@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Checks;
 
+use Gaffer\Console\Render\HtmlProblems;
 use Gaffer\Console\Render\Renderer;
+use Gaffer\Paths;
 use Gaffer\Console\Report;
 
 /**
@@ -23,11 +25,13 @@ final class RenderCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
-        $results = new Renderer($this->url, $this->progress)->render(Renderer::sample());
+        $results = new Renderer($this->url, $this->progress)->render(Renderer::sample(), html: true);
 
         // One shared template error shows up on every URL; report it once, with the URLs.
         $errors = [];
         $notices = [];
+        $alpine = [];
+        $sidebar = [];
         foreach ($results as $path => $result) {
             if (is_string($result)) {
                 $report->error('render', "{$path}: {$result}");
@@ -41,6 +45,22 @@ final class RenderCheck implements Check
             foreach (array_unique($result['notices']) as $notice) {
                 $notices[$notice][] = $path;
             }
+            $html = $result['html'] ?? '';
+            foreach (HtmlProblems::alpine_outside_scope($html) as $element) {
+                $alpine[$element][] = $path;
+            }
+            if (HtmlProblems::theme_compat_sidebar($html)) {
+                $sidebar[] = $path;
+            }
+        }
+
+        foreach ($alpine as $element => $paths) {
+            $report->warning('render', "Alpine directive outside any x-data, so Alpine ignores it: {$element}", null, null,
+                'Seen' . self::on($paths) . '. Put x-data on the element or an ancestor (x-data on its own is enough for $store).');
+        }
+        if ($sidebar !== [] && !is_file(Paths::base('sidebar.php'))) {
+            $report->warning('render', "WordPress's deprecated theme-compat sidebar.php is on the page (a search form, a list of every page, empty archive headings)", null, null,
+                'Seen' . self::on($sidebar) . ". Something calls get_sidebar() and the theme has no sidebar.php: on WooCommerce pages it's the woocommerce_sidebar hook (remove_action('woocommerce_sidebar', 'woocommerce_get_sidebar') in inc/).");
         }
 
         foreach ($errors as ['result' => $result, 'paths' => $paths]) {

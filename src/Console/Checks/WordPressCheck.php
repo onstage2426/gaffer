@@ -7,6 +7,7 @@ namespace Gaffer\Console\Checks;
 use Closure;
 use Gaffer\BlockFields;
 use Gaffer\FieldGroups;
+use Gaffer\Console\Render\HtmlProblems;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
 use Gaffer\Console\WordPress;
@@ -46,7 +47,33 @@ final class WordPressCheck implements Check
         $this->search($report);
         $this->menus($report);
         $this->image_sizes($report);
+        $this->served_assets($report);
         $this->mcp($report);
+    }
+
+    /**
+     * The front page a logged-out visitor gets over HTTP (a page cache's copy, which doctor's
+     * renders skip) loads only assets the build has: a page cached before the last build links
+     * stylesheets and scripts that are gone, and shows unstyled.
+     */
+    private function served_assets(Report $report): void
+    {
+        if (\Gaffer\Vite::is_dev_mode()) {
+            return;
+        }
+        $theme = WordPress::staged_from() ?? basename(Paths::base()); // a staged copy: live's page links live's build
+        $public = dirname(Paths::base()) . "/{$theme}/public";
+        $response = \wp_remote_get(\home_url('/'), ['timeout' => 20, 'redirection' => 3, 'sslverify' => false, 'cookies' => []]);
+        if (\is_wp_error($response) || \wp_remote_retrieve_response_code($response) !== 200) {
+            $report->info('wp', 'The front page wasn\'t fetched over HTTP (' . (\is_wp_error($response) ? $response->get_error_message() : 'HTTP ' . \wp_remote_retrieve_response_code($response)) . '), so its cached copy\'s assets weren\'t checked');
+            return;
+        }
+        $prefix = \content_url("themes/{$theme}/public");
+        $missing = array_values(array_filter(HtmlProblems::assets(\wp_remote_retrieve_body($response), $prefix), static fn(string $asset): bool => !is_file("{$public}/{$asset}")));
+        if ($missing !== []) {
+            $report->error('wp', 'The front page visitors get loads assets the build no longer has: a page cache serves a copy from before the last build', null, null,
+                'public/' . implode(', public/', array_slice($missing, 0, 3)) . '. Clear the page cache (WP Rocket: Clear and preload cache) after every build you deploy.');
+        }
     }
 
     /**
@@ -583,8 +610,14 @@ final class WordPressCheck implements Check
                 $report->warning('search', "Index \"{$name}\" was built from an older definition or card template" . ($state['building'] ? ' (rebuilding now)' : ''), $file, null,
                     'It rebuilds in the background (WP-cron); wp gaffer-search rebuild does it now.');
             } else {
-                // Said when it's fine too: a check that passes silently reads like one that didn't run.
-                $report->info('search', "Index \"{$name}\": built and current, {$state['documents']} documents", $file);
+                $published = self::published($indexes[$name] ?? []);
+                if ($state['documents'] === 0 && $published > 0) {
+                    $report->warning('search', "Index \"{$name}\": built and current, but with 0 documents while {$published} are published", $file, null,
+                        'It was built before the content existed (or the content was added without the hooks that index it): wp gaffer-search rebuild.');
+                } else {
+                    // Said when it's fine too: a check that passes silently reads like one that didn't run.
+                    $report->info('search', "Index \"{$name}\": built and current, {$state['documents']} documents", $file);
+                }
             }
             $this->search_card($report, $engine, $name);
             $this->search_labels($report, $engine, $name);
@@ -643,7 +676,23 @@ final class WordPressCheck implements Check
         }
     }
 
-    private function search_card(Report $report, SearchEngine $engine, string $index): void
+    /**
+     * Published posts of what an index holds (products, or its post_types).
+     *
+     * @param array<mixed> $definition
+     */
+    private static function published(array $definition): int
+    {
+        $types = ($definition['type'] ?? null) === 'products' ? ['product'] : array_map(strval(...), (array) ($definition['post_types'] ?? ['post']));
+        $count = 0;
+        foreach ($types as $type) {
+            $count += \post_type_exists($type) ? (int) (\wp_count_posts($type)->publish ?? 0) : 0;
+        }
+
+        return $count;
+    }
+
+        private function search_card(Report $report, SearchEngine $engine, string $index): void
     {
         $definition = Indexes::get($index) ?? [];
         if (Indexes::templates($definition) === []) {

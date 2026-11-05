@@ -32,8 +32,15 @@ php gaffer migrate:remove-leftovers [acf/content-faq]              # delete valu
 php gaffer migrate:fields post_type/product --run --delete-groups  # a fields/ target: move, check values, then delete the UI groups
 php gaffer migrate:remove-leftovers post_type/product              # a fields/ target: references under an old name, with their values
 php gaffer migrate:remove-field post_type/product excluton_3d_sku  # a fields/ target: every value and reference of a removed field
+php gaffer migrate:set acf/product-offers autos '[17, 23]' --post=12 # set a block field's value (JSON, as Blocks::markup() takes it)
 php gaffer migrate:rollback [backup]                               # undo (no argument: list backups)
 ```
+
+- `migrate:set` replaces the field's stored value (a repeater's rows too) in
+  every block of that name, or with `--post` in one post; everything else in
+  the content stays as it is. Re-running it with the same value changes
+  nothing. For a value on a post, term or options page (`fields/`), edit it
+  in the admin.
 
 - Moving fields out of the ACF UI/JSON: `migrate:fields` first. Renames and
   removals refuse while a block still stores data under its old field keys.
@@ -112,7 +119,8 @@ php gaffer migrate:rollback [backup]                               # undo (no ar
   refused there (the live cache wouldn't see the writes): run migrations
   from the active theme, after the deploy. The live site keeps the active
   theme until you switch.
-- Make a database backup first on a live site, and run it right after
+- `--run`'s own backup covers what it changes (`migrate:rollback`): a dev
+  site needs no database dump. On a live site make one first anyway, and run it right after
   deploying the code (until then a renamed field shows empty).
 - Page caches: the write bypasses `wp_update_post()`, so only cache plugins
   that purge on `clean_post_cache` (WP Rocket does) see it, and a purge can

@@ -49,6 +49,7 @@ final class Gaffer
         self::includes();
         self::acf();
         self::blocks();
+        self::font_faces();
         AdminBar::register();
         Mcp::register();
         Search\Integration::register();
@@ -156,6 +157,18 @@ final class Gaffer
             $paths[] = $dir;
             return $paths;
         });
+    }
+
+    /**
+     * Without a theme.json there are no theme.json fonts: WordPress's wp_print_font_faces still
+     * resolves the theme.json data on every page (~5 ms) to print nothing. A theme loads its own
+     * fonts (assets/). With a theme.json it stays.
+     */
+    private static function font_faces(): void
+    {
+        if (function_exists('remove_action') && !is_file(Paths::base('theme.json'))) {
+            \remove_action('wp_head', 'wp_print_font_faces', 50);
+        }
     }
 
     /**

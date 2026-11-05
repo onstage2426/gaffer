@@ -20,6 +20,7 @@ use Gaffer\Console\Checks\ScreenshotCheck;
 use Gaffer\Console\Checks\SearchCheck;
 use Gaffer\Console\Checks\SourceCheck;
 use Gaffer\Console\Checks\TemplateGlobalsCheck;
+use Gaffer\Console\Checks\TagsCheck;
 use Gaffer\Console\Checks\TemplatesCheck;
 use Gaffer\Console\Checks\TexturizeCheck;
 use Gaffer\Console\Checks\WordPressCheck;
@@ -53,7 +54,7 @@ final class Doctor extends Command
         $json = (bool) $input->getOption('json');
         $report = new Report();
 
-        foreach ([new BlocksCheck(), new FieldGroupsCheck(), new AcfJsonCheck(), new AjaxCheck(), new ConfigCheck(), new SourceCheck(), new TemplatesCheck(), new TexturizeCheck(), new MarkupCheck(), new TemplateGlobalsCheck(), new IncCheck(), new AssetsCheck(), new AppCheck(), new GuidelinesCheck(), new DeprecationsCheck(), new ScreenshotCheck(), new SearchCheck()] as $check) {
+        foreach ([new BlocksCheck(), new FieldGroupsCheck(), new AcfJsonCheck(), new AjaxCheck(), new ConfigCheck(), new SourceCheck(), new TemplatesCheck(), new TagsCheck(), new TexturizeCheck(), new MarkupCheck(), new TemplateGlobalsCheck(), new IncCheck(), new AssetsCheck(), new AppCheck(), new GuidelinesCheck(), new DeprecationsCheck(), new ScreenshotCheck(), new SearchCheck()] as $check) {
             $check->run($report);
         }
 

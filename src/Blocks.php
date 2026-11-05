@@ -43,6 +43,19 @@ final class Blocks
     }
 
     /**
+     * The block data for these values (what markup() puts in `data`), for migrate:set.
+     *
+     * @internal
+     * @param array<string, mixed> $values
+     * @return array<string, mixed>
+     * @throws InvalidArgumentException as markup()
+     */
+    public static function data_for(string $block, array $values): array
+    {
+        return self::data(BlockFields::group(self::dir($block))['fields'], $values, '', $block);
+    }
+
+    /**
      * blocks/{dir} of a block name.
      *
      * @throws InvalidArgumentException when no block has the name

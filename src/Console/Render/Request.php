@@ -96,6 +96,9 @@ final class Request
             // Whether this render saw the search engine (null: the theme defines no indexes): a plugin
             // activated only for the parent process isn't active here (Renderer::without_engine()).
             $this->result['search'] = \Gaffer\Search\Indexes::all() !== [] ? \Gaffer\Search\Engine::find() !== null : null;
+            foreach (\Gaffer\Search\Engine::warnings() as $warning) {
+                $this->result['notices'][] = "gaffer-search {$warning}";
+            }
             fwrite(STDOUT, "\n" . self::MARKER . json_encode($this->result, JSON_UNESCAPED_SLASHES) . "\n");
         });
 

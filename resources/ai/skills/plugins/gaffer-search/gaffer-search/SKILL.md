@@ -73,13 +73,25 @@ return [
   string field, the built-in `stock_status`): `labels => [Theme\X::class,
   'method']` returns `['fuel' => ['plugin_hybride' => 'Plug-in hybride']]`;
   responses (`labels`) and hits (`hit.labels.fuel`) carry them like term
-  names, so facets and filter chips show names. Read the field's own choices
-  instead of writing them twice: `acf_get_field('field_post_type_product__brandstof')['choices'] ?? []`
-  (a `fields/` field's key). It runs during builds, in the language being
+  names, so facets and filter chips show names. The names are text visitors
+  read: on a site translated with the theme's text domain (WPML string
+  translation of the theme, Poedit), return them from `__()` in the method
+  (one place, translatable); ACF's choices
+  (`acf_get_field('field_post_type_product__brandstof')['choices'] ?? []`) are
+  one source too, but are translated with ACF's field settings, not the
+  theme's strings. It runs during builds, in the language being
   built, like the cards; its file counts in the version, but choices changed
   elsewhere show after the next rebuild. Taxonomy fields keep their term
   names. `doctor --wp` warns about values without a name in the archive's
   facets and the labelled fields.
+- **A field filters only when it's in `facets`** (or is a field the type
+  filters on itself: taxonomies, `price`, `on_sale`, …). A filter on any other
+  field (`filter[expected]=yes` for a field only in `fields`/`meta`) is
+  ignored by the engine: the page lists everything. `doctor` warns about such
+  filters in templates and PHP, `doctor:render` shows the engine's warning.
+- **Taxonomy fields aren't text:** never put one in `searchable` (a list of
+  slugs; `doctor --wp` errors). To search term names, a `fields` string the
+  `document` method fills with them.
 - **Yes/no fields** (an ACF true/false): a computed field (`document`)
   returning `'yes'`/`'no'` like the built-in `on_sale` (never `"1"`/`"0"`/
   missing), declared in `fields` (`['direct' => 'string']`), filtered like it
@@ -177,9 +189,18 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
 - Sliders: `Search::cards('products', 10, ['total_sales:desc'], $category, except: $post)`;
   `filter: ['on_sale' => 'yes']` for an "on sale" tab (the Filter shape: a value,
   a list, `['not' => …]`, `['min' => …, 'max' => …]`).
+- Counts (a finder's "14 cars", a count per brand):
+  `Search::count('products', $category, filter: ['brand' => 'volvo'])`, the
+  same scope as the archive (catalog visibility applied), one index lookup.
+  Never count with `Post::query()` and a hand-written `product_visibility`
+  tax_query: it drifts from what the archive shows. Null without the plugin.
 - A searchbar: `Search::searchbar('products', 8, facets: ['price', 'category'],
   attributes: ['id', 'url', 'thumbnail', 'price', 'category'])` gives
   `endpoint`, `token`, `results_url` (the shop: append `?q=`).
+  **Keeping a product out of the searchbar but in the archive** ("coming
+  soon"): WooCommerce's catalog visibility "Shop only"; "Hidden" removes it
+  everywhere, "Search results only" the other way round. Never add a filter
+  for this.
 - Hits in a searchbar are index documents: plain text (`x-text`), only
   `hit.formatted.*` is HTML (`x-html`); names in `hit.labels`.
 - Show "refresh the page" for the error codes `invalid_token` and

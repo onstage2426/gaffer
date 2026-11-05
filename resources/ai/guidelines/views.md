@@ -62,7 +62,10 @@
   <img class="w-full object-cover" {{ image.attrs('large') }} loading="lazy">
   ```
   `attrs(size)` gives `src`, `srcset`, `sizes`, `width`/`height` of that size and
-  the escaped `alt`. An image cropped into a box with `object-cover` (a box
+  the escaped `alt`. Never write an `alt` next to it (two alts: browsers keep
+  the first; `doctor` errors). An image next to text that says the same (a
+  brand logo beside its name, a card's thumbnail beside its title) is
+  decorative: `image.attrs('medium', decorative: true)` writes `alt=""`. An image cropped into a box with `object-cover` (a box
   of another aspect ratio) is wider than the box, so give the width it needs
   as `sizes`: `image.attrs('large', '(min-width: 1024px) 60vw, 150vw')`
   (box height × the image's aspect ratio). Not `src('full')`: that loads the
@@ -78,6 +81,14 @@
 - **Theme graphics** (logo, icons) are SVG files in `views/components/icons/`,
   output with `{{ source('components/icons/name.svg') }}`. Never reference
   `wp-content/uploads/` paths or attachment IDs for theme graphics.
+  **Sizing an icon:** an icon that's sized in templates is a Twig partial
+  with the SVG inline and a `class` on its root,
+  `views/components/icons/arrow.twig`:
+  `<svg class="{{ class ?? 'size-4' }}" viewBox="0 0 24 24" aria-hidden="true">…</svg>`,
+  included as `{{ include('components/icons/arrow.twig', { class: 'size-5' }, with_context = false) }}`.
+  Never size a `source()`d SVG through its parent with `*:size-*`/`*:h-*`:
+  that sizes every child, so a label `<span>` or status dot next to the
+  icon gets squeezed too.
 - **Menus** are registered locations (`register_nav_menus()` in `inc/`) and
   loaded with `Menu::location('primary')`, usually shared with `View::share()`.
   Never use menu IDs. Loop safely: `{% for item in nav_primary.items ?? [] %}`.
@@ -93,6 +104,16 @@
 - **Forms don't nest:** a template with a `<form>` (add to cart, a size
   picker) can't be included inside another form (a filter form around an
   archive): browsers drop the inner `<form>` tag. `doctor` warns.
+- **Alpine state classes only in `:class`:** Alpine adds `:class`'s classes
+  and never removes static ones, so a class in both `class` and `:class`
+  stays on in the other state (a stored "incl. VAT" with both buttons dark).
+  `class` holds what never changes, `:class` every state:
+  `class="px-3" :class="incl ? 'bg-deep text-white' : 'bg-white text-deep'"`.
+  The same for `hover:` next to a state variant (`peer-checked:text-white
+  hover:text-deep` turns the active tab's text the background colour on
+  hover): scope the hover to the inactive state. Directives need an `x-data`
+  on the element or above it, also for `$store` (`doctor --wp` warns: Alpine
+  ignores them silently).
 - Autoescape escapes values, not string literals: `{{ error ?
   'aria-invalid="true"' }}` prints the quotes as they are, `{{ value }}` is
   escaped.

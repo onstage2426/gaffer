@@ -5,8 +5,10 @@
  * dev dependency, resolved from the theme directory.
  *
  * node screenshot.cjs <options as JSON>
- *   {theme, url, html, http, widths, full, steps, cookies, out, endpoint}
- * Prints one JSON line: {shots: [{width, file}], console: [...], failed: [...]} or {error}.
+ *   {theme, url, html, http, widths, full, slice, steps, cookies, storage, out, endpoint}
+ * Prints one JSON line: {shots: [{width, file, files, height}], console: [...], failed: [...]} or {error}.
+ * A full page comes in parts of `slice` pixels (files; file is the first): a model can't read a
+ * 390x8000 image.
  *
  * @internal
  */
@@ -47,6 +49,14 @@ async function main() {
             // An ajax:call session's cookies (render:screenshot --session): its cart in ajax answers too.
             const cookies = Object.entries(options.cookies ?? {}).map(([name, value]) => ({ name, value, url: new URL(options.url).origin }));
             if (cookies.length) await context.addCookies(cookies);
+            // A returning visitor's stored state (localStorage), there before the page's scripts run, once per tab.
+            if (Object.keys(options.storage ?? {}).length) {
+                await context.addInitScript((items) => {
+                    if (sessionStorage.getItem('gaffer-screenshot-storage')) return;
+                    for (const [key, value] of Object.entries(items)) localStorage.setItem(key, value);
+                    sessionStorage.setItem('gaffer-screenshot-storage', '1');
+                }, options.storage);
+            }
             const page = await context.newPage();
             let served = false;
             // Only the first request for the page itself is the render; links clicked later go to the site.
@@ -91,24 +101,45 @@ async function main() {
             await settle(page);
             for (const step of options.steps) {
                 // The first visible match: themes often have a hidden mobile or desktop twin of an element.
-                const target = page.locator(step.click ?? step.fill).filter({ visible: true }).first();
+                const action = step.click !== undefined ? 'click' : step.hover !== undefined ? 'hover' : 'fill';
+                const target = page.locator(step[action]).filter({ visible: true }).first();
                 try {
-                    if (step.click !== undefined) await target.click({ timeout: 5000 });
+                    if (action === 'click') await target.click({ timeout: 5000 });
+                    else if (action === 'hover') await target.hover({ timeout: 5000 });
                     else await target.fill(step.value, { timeout: 5000 });
                 } catch (e) {
-                    throw new Error(`--${step.click !== undefined ? 'click' : 'fill'} "${step.click ?? step.fill}" at ${width}px: ${String(e.message).split('\n')[0].replace(/^locator\.\w+: /, '')} (no visible element matches, or it doesn't take this action)`);
+                    throw new Error(`--${action} "${step[action]}" at ${width}px: ${String(e.message).split('\n')[0].replace(/^locator\.\w+: /, '')} (no visible element matches, or it doesn't take this action)`);
                 }
                 await settle(page);
             }
-            if (options.full) {
-                // Lazy images below the fold load only when scrolled to: load them all.
-                await page.evaluate(() => document.querySelectorAll('img[loading="lazy"]').forEach((img) => (img.loading = 'eager')));
-                await settle(page);
+            if (!options.full) {
+                const file = path.join(options.out, `${width}.png`);
+                await page.screenshot({ path: file, animations: 'disabled' });
+                shots.push({ width, file, files: [file], height: await page.evaluate(() => document.documentElement.scrollHeight) });
+                await context.close();
+                continue;
             }
 
-            const file = path.join(options.out, `${width}.png`);
-            await page.screenshot({ path: file, fullPage: options.full, animations: 'disabled' });
-            shots.push({ width, file });
+            // Lazy images and scroll-triggered content (x-intersect, sliders) load only when scrolled
+            // to: scroll through the page like a visitor, then back to the top.
+            await page.evaluate(() => document.querySelectorAll('img[loading="lazy"]').forEach((img) => (img.loading = 'eager')));
+            const viewport = page.viewportSize().height;
+            for (let y = 0; y < (await page.evaluate(() => document.documentElement.scrollHeight)); y += viewport) {
+                await page.evaluate((top) => window.scrollTo(0, top), y);
+                await page.waitForTimeout(150);
+            }
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await settle(page);
+
+            const height = await page.evaluate(() => document.documentElement.scrollHeight);
+            const slice = options.slice > 0 ? options.slice : height;
+            const files = [];
+            for (let y = 0, part = 1; y < height; y += slice, part++) {
+                const file = path.join(options.out, slice >= height ? `${width}.png` : `${width}-${part}.png`);
+                await page.screenshot({ path: file, fullPage: true, animations: 'disabled', clip: { x: 0, y, width, height: Math.min(slice, height - y) } });
+                files.push(file);
+            }
+            shots.push({ width, file: files[0], files, height });
             await context.close();
         }
     } catch (e) {

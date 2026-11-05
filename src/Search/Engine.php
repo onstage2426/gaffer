@@ -19,6 +19,9 @@ final class Engine
     private static ?self $found = null;
     private static bool $looked = false;
 
+    /** @var array<string, true> the engine's warnings of this request ("index: warning") */
+    private static array $warnings = [];
+
     public function __construct(private readonly object $engine) {}
 
     /** The plugin's engine for this request, null when the plugin is inactive or doesn't speak contract 1. */
@@ -89,7 +92,23 @@ final class Engine
      */
     public function search(string $index, array $request): array
     {
-        return self::response($this->call('search', $index, $request));
+        $response = self::response($this->call('search', $index, $request));
+        foreach ($response['warnings'] as $warning) {
+            self::$warnings["{$index}: {$warning}"] = true;
+        }
+
+        return $response;
+    }
+
+    /**
+     * What the engine warned about in this request's searches (a filter on a field it can't
+     * filter on: ignored): a misconfiguration nothing else shows. doctor:render reports them.
+     *
+     * @return list<string>
+     */
+    public static function warnings(): array
+    {
+        return array_keys(self::$warnings);
     }
 
     /** @param array<string, mixed> $request */

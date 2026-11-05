@@ -24,8 +24,13 @@ final class Image extends Attachment
      *
      * Writes the size's own width and height: set the shown size with CSS (h-20 w-auto),
      * not a width or height attribute on the tag, which would be a second one.
+     *
+     * $decorative writes alt="" (screen readers skip the image) instead of the media
+     * library's alt: for an image next to text that says the same (a logo beside the
+     * brand's name, a thumbnail in a card with its title). Never add an alt attribute
+     * to the tag yourself: it would be a second one, and browsers keep the first.
      */
-    public function attrs(string $size = 'full', ?string $sizes = null): Markup
+    public function attrs(string $size = 'full', ?string $sizes = null, bool $decorative = false): Markup
     {
         $img = \wp_get_attachment_image_src($this->wp->ID, $size);
 
@@ -56,7 +61,7 @@ final class Image extends Attachment
             $attrs['height'] = (int) $height;
         }
 
-        $attrs['alt'] = \esc_attr(trim(strip_tags($this->alt())));
+        $attrs['alt'] = $decorative ? '' : \esc_attr(trim(strip_tags($this->alt())));
 
         $html = implode(' ', array_map(
             static fn(string $key, string|int $value): string => $key . '="' . $value . '"',

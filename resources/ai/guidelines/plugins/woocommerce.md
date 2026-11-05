@@ -15,6 +15,13 @@
   `global $product`). Variants of one page (shop vs search) are a `match` in
   that template, not extra files. `doctor --wp` reports files WooCommerce
   doesn't have a template for, and a `woocommerce.php`.
+  A thin override gives up what WooCommerce's hooks print there: an own
+  `single-product.php` has no Product structured data unless the theme
+  prints it, and still gets WooCommerce's gallery scripts. A theme without
+  `sidebar.php` gets WordPress's deprecated theme-compat sidebar from the
+  `woocommerce_sidebar` hook (a search form, a list of every page):
+  `remove_action('woocommerce_sidebar', 'woocommerce_get_sidebar')` in `inc/`
+  (`doctor --wp` warns when a page shows it).
 - Map `product` to a theme type in `theme.types` for product logic (prices,
   variations); keep `WC_Product` behind methods on that type.
 - Watch out: WooCommerce's term ordering keeps array keys, so take the first

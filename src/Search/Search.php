@@ -67,6 +67,30 @@ final class Search
     }
 
     /**
+     * How many documents an index has in the archive's scope (products hidden from the catalog
+     * left out, as on the archive and in cards()), in a category (`term`) or with a filter: a
+     * finder's "14 cars", a count per brand. One lookup in the index, not a query over posts.
+     * Null when search is unavailable (the plugin inactive).
+     *
+     * @param array<string, mixed> $filter as for cards()
+     */
+    public static function count(string $index, ?Term $term = null, array $filter = []): ?int
+    {
+        $engine = Engine::find();
+        if ($engine === null) {
+            return null;
+        }
+
+        return $engine->search($index, [
+            ...self::scope($index, 'catalog'),
+            'limit' => 1,
+            'attributes' => ['id'],
+            ...($term !== null ? ['term' => $term->id()] : []),
+            ...($filter !== [] ? ['filter' => $filter] : []),
+        ])['total'];
+    }
+
+    /**
      * A searchbar's form data: endpoint, token (with these facets and the hit fields its
      * template shows) and the archive's URL for "all results". Products hidden from search are
      * left out.

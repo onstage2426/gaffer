@@ -46,7 +46,7 @@ abstract class MigrateCommand extends Command
         }
         $staged = WordPress::staged_from();
         if ($staged !== null && $input->getOption('run')) {
-            // Without the persistent object cache (WordPress::as_this_theme()), the live site's cache wouldn't see the change.
+            // A staged copy keeps its cache writes to itself (WordPress::as_this_theme(), OverlayObjectCache): migrate from the live theme.
             $migration->problem("This is a staged copy of the active theme \"{$staged}\": run migrations from the active theme, after the deploy (a dry run here is fine)");
         }
 

@@ -116,11 +116,13 @@ final class WordPress
     /**
      * Run from a staged copy of the active theme (`cp -r theme theme-stage` next to it, vendor/
      * included; see staged_from()), WordPress loads the copy instead, with the active theme's
-     * theme mods (menu locations and customizer settings are stored per theme), and without the
-     * persistent object cache: the copy's values (WooCommerce caches template paths, without
-     * the theme in the key) would end up in the live site's cache. Run from the active theme,
-     * or on a site whose theme isn't a copy of this one, nothing changes. Hooked before
-     * WordPress loads, like skip_page_cache().
+     * theme mods (menu locations and customizer settings are stored per theme), and with the
+     * persistent object cache read-only (OverlayObjectCache, from the first hook after the
+     * drop-in loads): the copy reads what live has cached, and its own values (WooCommerce
+     * caches template paths, without the theme in the key) stay in this process. Without the
+     * cache it read stale values from the database instead. Run from the active theme, or on a
+     * site whose theme isn't a copy of this one, nothing changes. Hooked before WordPress loads,
+     * like skip_page_cache().
      */
     public static function as_this_theme(): void
     {
@@ -128,10 +130,16 @@ final class WordPress
             return;
         }
         $slug = basename(Paths::base());
-        $GLOBALS['wp_filter']['enable_loading_object_cache_dropin'][PHP_INT_MAX][] = [
-            'function' => static fn(bool $enabled): bool => $enabled && self::staged_from() === null,
-            'accepted_args' => 1,
-        ];
+        foreach (['ms_loaded', 'muplugins_loaded'] as $hook) {
+            $GLOBALS['wp_filter'][$hook][PHP_INT_MIN][] = [
+                'function' => static function (): void {
+                    if (self::staged_from() !== null) {
+                        OverlayObjectCache::install();
+                    }
+                },
+                'accepted_args' => 0,
+            ];
+        }
         foreach (['stylesheet', 'template'] as $hook) {
             $GLOBALS['wp_filter'][$hook][PHP_INT_MAX][] = [
                 'function' => static fn(string $current): string => $current !== '' && $current === self::staged_from() ? $slug : $current,

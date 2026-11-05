@@ -7,6 +7,20 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-05
+
+### A staged copy reads the live site's object cache
+
+`php gaffer` (and `wp --require=…/bin/stage.php`) run from a staged copy of the theme used to
+switch the persistent object cache (Redis) off, so the copy read old cached values from the
+database that the live site never reads: on one site a product lost six attributes in
+`render:diff --theme=<copy>` because of a pre-Redis WooCommerce transient. Now the copy reads
+live's cache; what it writes stays in the copy's process, and each key it writes is dropped
+from live's cache, so live reads the database again (a build from the copy no longer leaves live
+with an old cached option). Nothing to change. A guideline in `.ai/` saying not to trust renders
+through a theme copy can go: `grep -rn "theme copy\|--theme" .ai`. Check: a `render:diff --theme`
+of a page that differed only through the copy now matches.
+
 ## 2026-11-04
 
 ### Search: products' prices, stock, SKU and rating are built in; remove their `meta` lines

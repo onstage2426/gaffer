@@ -2,8 +2,8 @@
 
 /**
  * WP-CLI from a staged copy of the active theme: `wp --require=vendor/onstage2426/gaffer/bin/stage.php
- * gaffer-search rebuild` (in the copy) loads the copy as the active theme, without the persistent
- * object cache, as `php gaffer` does from there (Gaffer\Console\WordPress::as_this_theme()).
+ * gaffer-search rebuild` (in the copy) loads the copy as the active theme, reading live's persistent
+ * object cache without writing to it, as `php gaffer` does from there (Gaffer\Console\WordPress::as_this_theme()).
  * From the active theme it changes nothing.
  *
  * Only Gaffer's and the theme's own classes (Theme\ in app/: config files may use their

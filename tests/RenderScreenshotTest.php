@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Tests;
 
 use Gaffer\Console\Commands\RenderScreenshot;
+use Gaffer\Console\Render\BrowserPage;
 use InvalidArgumentException;
 
 final class RenderScreenshotTest extends TestCase
@@ -40,7 +41,7 @@ final class RenderScreenshotTest extends TestCase
 
     public function test_slug(): void
     {
-        self::assertSame('home', RenderScreenshot::slug('/'));
-        self::assertSame('winkel-s-shirt', RenderScreenshot::slug('/winkel/?s=Shirt'));
+        self::assertSame('home', BrowserPage::slug('/'));
+        self::assertSame('winkel-s-shirt', BrowserPage::slug('/winkel/?s=Shirt'));
     }
 }

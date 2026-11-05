@@ -20,5 +20,7 @@ Each `config/{file}.php` returns an array; the file name is the top-level key:
     PHP logs elsewhere than the CLI's (a PHP-FPM pool's `error_log`),
     `PLAYWRIGHT_WS_ENDPOINT` (optional) for `render:screenshot` when this
     machine can't run Chromium (a Playwright server in Docker, the same
-    version as the theme's `playwright`).
+    version as the theme's `playwright`), `DESIGN_COOKIE` (optional:
+    `name=value; other=value`, sent to a design site behind a login by
+    `render:compare`/`render:styles`).
 - `config:show` and `doctor` flag unknown keys (with a did-you-mean).

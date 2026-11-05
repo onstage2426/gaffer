@@ -87,11 +87,25 @@ php gaffer doctor --wp    # conventions + renders every page with strict variabl
 They can't tell whether a page *looks* right: after a change with a visual
 effect, look at it with `php gaffer render:screenshot <path>` (PNGs at 390
 and 1440 px, plus the page's console errors and failed requests; `--click`
-/ `--fill` first to open a menu or drawer, `--full` for the whole page). It
-needs Playwright in the theme (`npm install --save-dev playwright`, then
-`npx playwright install chromium`, or a Playwright server at
-`PLAYWRIGHT_WS_ENDPOINT` in `.env`). Read the PNGs; compare them with the
-design when there is one.
+/ `--fill` / `--hover` first to open a menu or drawer or show a state,
+`--local-storage key=value` for what a returning visitor has stored, `--full`
+for the whole page in readable parts). It needs Playwright in the theme
+(`npm install --save-dev playwright`, then `npx playwright install chromium`,
+or a Playwright server at `PLAYWRIGHT_WS_ENDPOINT` in `.env`). Read the PNGs.
+Check every state a page remembers or toggles (stored, clicked, hovered), not
+only a new visitor's first screen.
+
+**Building from a design** (a URL or HTML files): measure, don't eyeball.
+`php gaffer render:compare <design> <path> [--within=footer] [--width=390]`
+pairs every text of the design with the same text on the page and lists what
+differs (size, weight, line height, letter spacing, font, colour, the gap
+above it) and what's missing; `php gaffer render:styles <design|path>
+<selector>... [--children]` gives one element's exact values (and its
+children's boxes, for alignment). Never read a design's CSS files to find a
+value, and never write your own Playwright scripts for this. A design behind
+a login: its cookie as `DESIGN_COOKIE=name=value` in `.env`. Run the compare
+at the design's widths after each round of fixes, until it lists nothing you
+didn't decide to keep.
 
 Fix what they report (exit code 1 = errors), including Gaffer API that is
 deprecated (`doctor` names the replacement; PHP also raises a deprecation

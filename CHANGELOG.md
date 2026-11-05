@@ -46,6 +46,11 @@ Nothing breaks; new warnings may show up. After updating, run `php gaffer ai:upd
   (`--slice=1200`, `{width}-{n}.png`; the output and the MCP tool's `files` list them, with the
   page height); `--hover=<selector>` as a step; `--local-storage key=value` for a returning
   visitor's stored state.
+- **`render:compare <design> <path>` and `render:styles <target> <selector>...`** (+ MCP
+  `gaffer-compare`/`gaffer-styles`): a design (URL or HTML file) against a page, text by text
+  (size, weight, line height, letter spacing, font, colour, gap above), and one element's
+  computed styles and children's boxes. A design behind a login: `DESIGN_COOKIE=name=value` in
+  `.env` (add it to `.env.example` commented out). Delete your own Playwright probe scripts.
 - **`wp_print_font_faces` is removed from `wp_head`** when the theme has no `theme.json`
   (~5 ms a page, it printed nothing). Remove a theme's own `remove_action` for it:
   `grep -rn "wp_print_font_faces" inc`.

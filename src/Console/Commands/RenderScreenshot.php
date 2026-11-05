@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Gaffer\Console\Commands;
 
 use Gaffer\Console\Command;
-use Gaffer\Console\Env;
+use Gaffer\Console\Render\BrowserPage;
 use Gaffer\Console\Render\Renderer;
 use Gaffer\Console\Render\Request;
 use Gaffer\Console\Render\StagedTheme;
-use Gaffer\Paths;
 use Gaffer\Storage;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -92,12 +91,11 @@ final class RenderScreenshot extends Command
             return $fail("{$path} redirects ({$render['http']}) to {$render['redirect']}: screenshot that instead");
         }
 
-        $out = Storage::private_dir('screenshots/' . self::slug($path));
+        $out = Storage::private_dir('screenshots/' . BrowserPage::slug($path));
         array_map('unlink', glob("{$out}/*.png") ?: []);
         file_put_contents("{$out}/page.html", $render['html'] ?? '');
         $home = (array) parse_url(\home_url('/'));
         $options = [
-            'theme' => Paths::base(),
             'url' => ($home['scheme'] ?? 'https') . '://' . ($home['host'] ?? 'localhost') . (isset($home['port']) ? ":{$home['port']}" : '') . $path,
             'html' => "{$out}/page.html",
             'http' => $render['http'],
@@ -108,10 +106,10 @@ final class RenderScreenshot extends Command
             'cookies' => (object) $cookies,
             'storage' => (object) $storage,
             'out' => $out,
-            'endpoint' => Env::get('PLAYWRIGHT_WS_ENDPOINT'),
         ];
 
-        $result = self::browser($options);
+        /** @var array{error: string}|array{shots: list<array{width: int, file: string, files: list<string>, height: int}>, console: list<string>, failed: list<string>} $result */
+        $result = BrowserPage::run('screenshot.cjs', $options);
         if (isset($result['error'])) {
             return $fail($result['error']);
         }
@@ -186,39 +184,5 @@ final class RenderScreenshot extends Command
         }
 
         return $steps;
-    }
-
-    /** The folder name for a path's screenshots: "/" is "home", "/winkel/?s=x" "winkel-s-x". */
-    public static function slug(string $path): string
-    {
-        return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($path)), '-') ?: 'home';
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     * @return array{error: string}|array{shots: list<array{width: int, file: string, files: list<string>, height: int}>, console: list<string>, failed: list<string>}
-     */
-    private static function browser(array $options): array
-    {
-        $command = ['node', dirname(__DIR__, 3) . '/bin/screenshot.cjs', (string) json_encode($options, JSON_UNESCAPED_SLASHES)];
-        $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, Paths::base());
-        if ($process === false) {
-            return ['error' => 'Could not start Node (`node`), which runs the browser.'];
-        }
-        $stdout = (string) stream_get_contents($pipes[1]);
-        $stderr = (string) stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        proc_close($process);
-
-        $lines = array_filter(explode("\n", trim($stdout)));
-        $result = json_decode((string) end($lines), true);
-        if (!is_array($result)) {
-            $tail = trim(mb_substr($stderr !== '' ? $stderr : $stdout, -500));
-            return ['error' => 'The browser script gave no result' . ($tail !== '' ? ": {$tail}" : ' (is Node, `node`, installed?)')];
-        }
-
-        /** @var array{error: string}|array{shots: list<array{width: int, file: string, files: list<string>, height: int}>, console: list<string>, failed: list<string>} $result */
-        return $result;
     }
 }

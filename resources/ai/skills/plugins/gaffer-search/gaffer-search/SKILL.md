@@ -69,6 +69,21 @@ return [
   'float']`) and they work in `facets`, `sortable` and `searchable`. Return
   null for a product without one. Its file counts in the version like a card
   method.
+- **Names for values without terms** (an ACF select or radio, a computed
+  string field, the built-in `stock_status`): `labels => [Theme\X::class,
+  'method']` returns `['fuel' => ['plugin_hybride' => 'Plug-in hybride']]`;
+  responses (`labels`) and hits (`hit.labels.fuel`) carry them like term
+  names, so facets and filter chips show names. Read the field's own choices
+  instead of writing them twice: `acf_get_field('field_post_type_product__brandstof')['choices'] ?? []`
+  (a `fields/` field's key). It runs during builds, in the language being
+  built, like the cards; its file counts in the version, but choices changed
+  elsewhere show after the next rebuild. Taxonomy fields keep their term
+  names. `doctor --wp` warns about values without a name in the archive's
+  facets and the labelled fields.
+- **Yes/no fields** (an ACF true/false): a computed field (`document`)
+  returning `'yes'`/`'no'` like the built-in `on_sale` (never `"1"`/`"0"`/
+  missing), declared in `fields` (`['direct' => 'string']`), filtered like it
+  (`filter[direct]=yes`).
 - **More layouts** (a list view with other markup than the grid card):
   `cards => ['grid' => 'product/card.twig', 'list' => 'product/list-item.twig']`
   renders a second card per document (`card_list`, also per variant; the

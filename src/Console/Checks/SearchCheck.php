@@ -31,7 +31,7 @@ final class SearchCheck implements Check
         $templates = Templates::all();
 
         foreach (Indexes::all() as $name => $definition) {
-            foreach (['card_context', 'card_variant', 'document'] as $key) {
+            foreach (['card_context', 'card_variant', 'document', 'labels'] as $key) {
                 if (isset($definition[$key]) && !is_callable($definition[$key])) {
                     $report->error('search', "Index \"{$name}\": {$key} is not callable", $file, null, 'Use [Theme\\Class::class, \'method\'] with a public static method.');
                 }

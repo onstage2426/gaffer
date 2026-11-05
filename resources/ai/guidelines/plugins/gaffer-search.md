@@ -12,8 +12,10 @@ Always:
 - **Cards are rendered into the index** from the `cards` templates: they come
   back as trusted markup (`{{ card }}`, no `|raw`). A changed card template, or
   anything it includes, rebuilds the index by itself.
-- **Values are term slugs, shown as labels:** filters, facet keys and URLs use
-  slugs; responses carry the names (`labels`). Never show a slug.
+- **Values are slugs, shown as labels:** filters, facet keys and URLs use
+  slugs; responses carry the names (`labels`): term names, and for other
+  fields (an ACF select) what the index's `labels` method returns. Never show
+  a slug.
 - **The browser continues the server's page** with Gaffer's JavaScript
   (`@gaffer/search.js`, the Vite alias for
   `vendor/onstage2426/gaffer/resources/js`): components add only UI state.

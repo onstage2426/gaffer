@@ -14,6 +14,7 @@ use Gaffer\Forms\FormTemplates;
 use Gaffer\Forms\GravityForm;
 use Gaffer\Mcp\Mcp;
 use Gaffer\Mcp\Tool;
+use Gaffer\Config;
 use Gaffer\Paths;
 use Gaffer\Search\Cards;
 use Gaffer\Search\Engine as SearchEngine;
@@ -586,6 +587,34 @@ final class WordPressCheck implements Check
                 $report->info('search', "Index \"{$name}\": built and current, {$state['documents']} documents", $file);
             }
             $this->search_card($report, $engine, $name);
+            $this->search_labels($report, $engine, $name);
+        }
+    }
+
+    /**
+     * Values a visitor would see as they are stored: the archive's facets and the fields the
+     * index's labels method names, with values the engine has no name for.
+     */
+    private function search_labels(Report $report, SearchEngine $engine, string $index): void
+    {
+        $definition = Indexes::get($index) ?? [];
+        $labelled = is_callable($definition['labels'] ?? null) ? array_keys((array) ($definition['labels'])()) : [];
+        $shown = \Gaffer\Search\Search::archive_index() === $index ? (array) Config::get('search.archive.facets') : [];
+        $fields = array_values(array_unique(array_map(strval(...), [...$shown, ...$labelled])));
+        if ($fields === []) {
+            return;
+        }
+        $response = $engine->search($index, ['limit' => 1, 'attributes' => ['id'], 'facets' => $fields, 'facet_values' => array_fill_keys($fields, 1000)]);
+        foreach ($fields as $field) {
+            if (isset($response['facetStats'][$field])) {
+                continue; // numbers: shown as numbers
+            }
+            $names = (array) ($response['labels'][$field] ?? []);
+            $missing = array_values(array_filter(array_map(strval(...), array_keys((array) ($response['facets'][$field] ?? []))), static fn(string $value): bool => !isset($names[$value])));
+            if ($missing !== []) {
+                $report->warning('search', "Index \"{$index}\": field \"{$field}\" has values without a name: visitors would see them as stored", Paths::base('config/search.php'), null,
+                    implode(', ', array_slice($missing, 0, 10)) . (count($missing) > 10 ? ', …' : '') . ". Name them in the index's labels method ([Theme\\X::class, 'method'] returning ['{$field}' => ['value' => 'Name']]).");
+            }
         }
     }
 

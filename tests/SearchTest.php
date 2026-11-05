@@ -70,6 +70,15 @@ final class SearchTest extends TestCase
         self::assertSame(['id' => 7], ($definitions['products']['document'])(['id' => 7], 'products'), 'a post that doesn\'t exist: nothing added');
     }
 
+    public function test_the_themes_labels_method_names_values(): void
+    {
+        self::boot_fixture();
+        $definitions = Indexes::definitions(['products' => ['type' => 'products', 'labels' => [self::class, 'labels']]]);
+
+        self::assertSame(['type', 'labels', 'version'], array_keys($definitions['products']), 'its own labels closure');
+        self::assertSame(['fuel' => ['plugin_hybride' => 'Plug-in hybride']], ($definitions['products']['labels'])('products'));
+    }
+
     public function test_the_first_cards_load_their_images_eagerly(): void
     {
         $card = '<article><img class="a" src="x.jpg" loading="lazy"><img src="y.jpg" loading=\'lazy\'></article>';
@@ -201,6 +210,12 @@ final class SearchTest extends TestCase
     public static function fields(mixed $post, array $document): array
     {
         return ['price_m2' => 1.5];
+    }
+
+    /** @return array<string, array<string, string>> */
+    public static function labels(): array
+    {
+        return ['fuel' => ['plugin_hybride' => 'Plug-in hybride']];
     }
 
     public static function business(): string

@@ -1,0 +1,21 @@
+{
+    "call": "problems",
+    "args": [
+        {
+            "cars": {
+                "type": "posts",
+                "labels": {
+                    "fuel": {
+                        "elektrisch": "Elektrisch"
+                    }
+                }
+            }
+        }
+    ],
+    "expect_contains": [
+        "cars: labels must be a closure"
+    ],
+    "expect": [
+        "cars: labels must be a closure"
+    ]
+}

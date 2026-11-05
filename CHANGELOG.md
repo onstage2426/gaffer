@@ -9,6 +9,34 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-05
 
+### Search: names for values of fields without terms (`labels`)
+
+An index can name the values of its other string fields (an ACF select mapped in `meta`, a
+`document` field, the built-in `stock_status`), the way taxonomy fields have their term names:
+`labels => [Theme\X::class, 'method']`, returning field => value => name. Responses (`labels`)
+and hits (`hit.labels`) then carry those names, so facets and filter chips show "Plug-in hybride"
+instead of `plugin_hybride`. Needs the gaffer-search plugin of the same day (`0.0.0+dfb5bca` or
+newer); an older plugin refuses the index (`doctor --wp`: unknown key "labels"), so update the
+plugin first. `doctor --wp` now warns about values without a name in the archive's `facets` and
+in labelled fields: such a warning on an existing site is a slug visitors see today.
+
+Find: the string fields a template shows from search data: `grep -n "facets\|meta" config/search.php`,
+then `grep -rn "hit\.\|facets\." views assets` for those field names shown as they are.
+
+```php
+// config/search.php
+'labels' => [Theme\Search::class, 'labels'],
+
+// app/Search.php
+public static function labels(): array
+{
+    return ['fuel' => acf_get_field('field_post_type_product__brandstof')['choices'] ?? []];
+}
+```
+
+Check: `php gaffer doctor --wp` (no "values without a name" warning), and the archive's facets
+show names.
+
 ### A staged copy reads the live site's object cache
 
 `php gaffer` (and `wp --require=…/bin/stage.php`) run from a staged copy of the theme used to

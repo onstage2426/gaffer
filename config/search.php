@@ -27,8 +27,10 @@ return [
     | the render, e.g. prices excl. VAT), card_variant ([class, method]
     | returning the visitor's variant or null) and document ([class, method]:
     | gets the post and the document, returns the `fields` it adds, e.g. a
-    | price per m²). A changed card template, anything it includes, or the
-    | file of one of these methods rebuilds the index.
+    | price per m²) and labels ([class, method]: returns field => value =>
+    | name for fields without terms, e.g. an ACF select's choices; responses
+    | carry them like term names). A changed card template, anything it
+    | includes, or the file of one of these methods rebuilds the index.
     |
     */
 

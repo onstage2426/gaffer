@@ -104,11 +104,14 @@
 - **Forms don't nest:** a template with a `<form>` (add to cart, a size
   picker) can't be included inside another form (a filter form around an
   archive): browsers drop the inner `<form>` tag. `doctor` warns.
-- **Alpine state classes only in `:class`:** Alpine adds `:class`'s classes
-  and never removes static ones, so a class in both `class` and `:class`
+- **Alpine state classes:** a string or array `:class` adds its classes and
+  removes only what it added, so a class in both `class` and such a `:class`
   stays on in the other state (a stored "incl. VAT" with both buttons dark).
-  `class` holds what never changes, `:class` every state:
-  `class="px-3" :class="incl ? 'bg-deep text-white' : 'bg-white text-deep'"`.
+  Either keep in `class` what never changes and put every state in `:class`:
+  `class="px-3" :class="incl ? 'bg-deep text-white' : 'bg-white text-deep'"`,
+  or use the object syntax, which removes a false key's classes even when
+  they're static (so the server-rendered starting state can stay in `class`):
+  `class="hidden" :class="{ hidden: !open }"`.
   The same for `hover:` next to a state variant (`peer-checked:text-white
   hover:text-deep` turns the active tab's text the background colour on
   hover): scope the hover to the inactive state. Directives need an `x-data`

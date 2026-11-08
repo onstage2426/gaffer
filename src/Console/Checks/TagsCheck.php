@@ -11,8 +11,9 @@ use Gaffer\Gaffer;
 /**
  * Mistakes inside one HTML tag of a template, which render without an error:
  * an alt attribute next to image.attrs() (two alts: browsers keep the first, the
- * media library's), and a class in both the static class and :class (Alpine adds
- * :class's classes and never removes static ones, so that state never goes away).
+ * media library's), and a class in both the static class and a string or array
+ * :class (Alpine adds those classes and removes only what it added, so a static one
+ * never goes away; the object syntax { a: cond } does remove a static class while false).
  */
 final class TagsCheck implements Check
 {
@@ -56,14 +57,15 @@ final class TagsCheck implements Check
                 }
             }
             if ($static !== [] && $dynamic !== '') {
-                preg_match_all('/([\'"])(.*?)\1/s', $dynamic, $strings);
-                // Every quoted class name (strings, object keys { 'a b': cond }) and unquoted object keys ({ hidden: !open }).
-                preg_match_all('/[{,]\s*([a-z_-][\w-]*)\s*:/i', $dynamic, $keys);
-                $toggled = preg_split('/\s+/', implode(' ', [...$strings[2], ...$keys[1]]), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                // Object literals ({ hidden: !open }) remove a false key's classes, static or not: only
+                // the quoted class names outside them (strings, arrays) are a problem.
+                $outside = (string) preg_replace('/\{(?:[^{}]|(?R))*\}/s', ' ', $dynamic);
+                preg_match_all('/([\'"])(.*?)\1/s', $outside, $strings);
+                $toggled = preg_split('/\s+/', implode(' ', $strings[2]), -1, PREG_SPLIT_NO_EMPTY) ?: [];
                 $both = array_values(array_unique(array_intersect($static, $toggled)));
                 if ($both !== []) {
-                    $problems[] = ['warning', 'A class in both class and :class: Alpine never removes the static one', $tag['line'],
-                        implode(' ', $both) . ' stays on when :class turns it off. Put each state\'s classes only in :class (open ? \'a\' : \'b\'), and keep in class what never changes.'];
+                    $problems[] = ['warning', 'A class in both class and a string :class: Alpine never removes the static one', $tag['line'],
+                        implode(' ', $both) . ' stays on when :class turns it off. Put each state\'s classes only in :class (open ? \'a\' : \'b\'), or use the object syntax ({ a: open }), which removes a static class while false.'];
                 }
             }
         }

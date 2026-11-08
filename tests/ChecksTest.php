@@ -577,13 +577,14 @@ final class ChecksTest extends TestCase
             <button class="px-3 bg-deep text-white" :class="incl ? 'bg-white text-deep' : 'bg-deep text-white'">x</button>
             <div class="{{ open ? 'a' : 'b' }} rotate-0 block" :class="{ 'rotate-45': open, hidden: !open }"></div>
             <p class="hidden" x-bind:class="{ hidden: !open }"></p>
+            <p class="hidden block" :class="open ? { hidden: false } : ['block', 'x']"></p>
             {{ "<img alt='x' class='q'>" }}
             {# <img {{ x.attrs() }} alt=""> #}
             TWIG;
         $problems = TagsCheck::problems($source);
-        self::assertSame([[1, 'error'], [3, 'warning'], [5, 'warning']], array_map(static fn(array $p): array => [$p[2], $p[0]], $problems));
+        self::assertSame([[1, 'error'], [3, 'warning'], [6, 'warning']], array_map(static fn(array $p): array => [$p[2], $p[0]], $problems));
         self::assertStringStartsWith('bg-deep text-white stays on', $problems[1][3]);
-        self::assertStringStartsWith('hidden stays on', $problems[2][3]);
+        self::assertStringStartsWith('block stays on', $problems[2][3], 'object keys are removed while false; arrays are strings');
     }
 
     public function test_tags_reads_twig_inside_attribute_values(): void

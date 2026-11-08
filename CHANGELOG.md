@@ -9,6 +9,17 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-08
 
+### `doctor`: "A class in both class and :class" only for string and array bindings
+
+Nothing breaks. Alpine's object syntax (`:class="{ hidden: !open }"`) removes a false key's
+classes even when they're in the static `class`, so `class="hidden" :class="{ hidden: !open }"`
+is fine and no longer warned about (a false positive since the check came in). String and array
+bindings (`open ? 'a' : 'b'`, `['a', x]`) still are: Alpine only removes what it added. The
+warning is now "A class in both class and a string :class".
+
+Find: `grep -n "both class and :class" doctor-baseline.json`. Check: `php gaffer doctor`; if you
+baselined these warnings, `php gaffer doctor --prune` drops the old entries.
+
 ### `archive.bounds`: only the ranges, with gaffer-search 0.2.0
 
 Nothing breaks. With a gaffer-search that has the feature `facet_stats` (0.2.0), the bounds

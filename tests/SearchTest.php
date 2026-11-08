@@ -204,13 +204,21 @@ final class SearchTest extends TestCase
         self::assertSame($engine->calls[0][1], $engine->tokens[0][1], 'what count() asks');
     }
 
+    public function test_a_searchbar_without_attributes_is_refused(): void
+    {
+        self::config(['indexes' => ['products' => ['type' => 'products']]]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        Search::searchbar('products', []);
+    }
+
     public function test_without_the_plugin_templates_get_empty_states(): void
     {
         self::config(['indexes' => ['products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig']]]]);
 
         self::assertFalse(Search::available());
         self::assertSame([], Search::cards('products', 4));
-        self::assertFalse(Search::searchbar('products')->available);
+        self::assertFalse(Search::searchbar('products', ['id'])->available);
         self::assertFalse(Search::counter('products')->available);
         self::assertSame('', Search::counter('products')->token);
         $archive = \Gaffer\Search\Archive::unavailable();

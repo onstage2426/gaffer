@@ -7,6 +7,32 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-08
+
+### `Search::searchbar()`: `attributes` is required, and second
+
+Breaks every searchbar. `Search::searchbar($index, $attributes, $limit = 8, $facets = [])`: the
+fields each hit carries come second and can't be left out (an empty list throws). Left out, a hit
+carried every stored field, its cards too: on a site with stored cards about 150 KB per keystroke
+instead of 7 KB. An old call fails with a TypeError (an int where the list goes).
+
+Find: `grep -rn "Search::searchbar(" --include=*.php --include=*.twig .`
+
+```php
+// before
+"search" => Search::searchbar("products", 10, ["price", "brand"]),
+"search" => Search::searchbar("products", 8, ["price", "category"], ["id", "url", "thumbnail", "price", "category"]),
+// after: the fields the searchbar template reads from `hit.` (`formatted` and `labels` come with every hit)
+"search" => Search::searchbar("products", ["id", "url", "thumbnail", "price", "brand"], 10, ["price", "brand"]),
+"search" => Search::searchbar("products", ["id", "url", "thumbnail", "price", "category"], 8, ["price", "category"]),
+```
+
+To list them: `grep -on "hit\.[a-z_]*" views/components/searchbar.twig | sort -u`. Also consider
+`createAlpineSearch({ minQueryLength: 2 })` in the searchbar's JS: one letter matches nearly the
+whole catalog and is the bar's slowest request.
+
+Check: the searchbar shows its hits with thumbnail, price and names, and `doctor --wp` is clean.
+
 ## 2026-11-05
 
 ### `Search::counter()`: counts from the browser, without booting WordPress

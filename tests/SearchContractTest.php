@@ -91,8 +91,8 @@ final class SearchContractTest extends TestCase
         Engine::reset(new Engine($engine));
 
         Search::cards('products', 4, ['total_sales:desc']);
-        Search::searchbar('products', 8, ['price'], ['id', 'url']);
-        Search::searchbar('news');
+        Search::searchbar('products', ['id', 'url'], 8, ['price']);
+        Search::searchbar('news', ['id', 'url']);
 
         self::assertCount(3, $engine->requests);
         foreach ($engine->requests as [$method, $request]) {

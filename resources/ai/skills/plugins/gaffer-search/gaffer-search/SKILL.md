@@ -224,9 +224,12 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
   too high; `createCounter()` logs the engine's warning to the console, and
   `doctor` can't see filters built in JavaScript. A CDN may keep an answer up
   to 5 minutes, so a count can briefly differ from the archive.
-- A searchbar: `Search::searchbar('products', 8, facets: ['price', 'category'],
-  attributes: ['id', 'url', 'thumbnail', 'price', 'category'])` gives
-  `endpoint`, `token`, `results_url` (the shop: append `?q=`).
+- A searchbar: `Search::searchbar('products', ['id', 'url', 'thumbnail', 'price', 'category'],
+  8, facets: ['price', 'category'])` gives `endpoint`, `token`, `results_url` (the shop: append
+  `?q=`). The attributes (required) are the fields the template shows: without them each hit
+  would carry every stored field, its cards too (150 KB instead of 7 KB per keystroke). Start the
+  search at 2 letters (`createAlpineSearch({ minQueryLength: 2 })`): one letter matches nearly
+  the whole catalog and is the bar's slowest request.
   **Keeping a product out of the searchbar but in the archive** ("coming
   soon"): WooCommerce's catalog visibility "Shop only"; "Hidden" removes it
   everywhere, "Search results only" the other way round. Never add a filter

@@ -115,11 +115,15 @@ final class Search
      * template shows) and the archive's URL for "all results". Products hidden from search are
      * left out.
      *
+     * @param list<string> $attributes the fields each hit carries: what the template shows, e.g.
+     *   ['id', 'url', 'thumbnail', 'price'] (left out, a hit would carry every stored field, cards too)
      * @param list<string> $facets
-     * @param list<string> $attributes the fields each hit carries, e.g. ['id', 'url', 'thumbnail', 'price']
      */
-    public static function searchbar(string $index, int $limit = 8, array $facets = [], array $attributes = []): Searchbar
+    public static function searchbar(string $index, array $attributes, int $limit = 8, array $facets = []): Searchbar
     {
+        if ($attributes === []) {
+            throw new \InvalidArgumentException('Search::searchbar() needs the fields its template shows (attributes), e.g. [\'id\', \'url\', \'title\'].');
+        }
         $engine = Engine::find();
         if ($engine === null) {
             return new Searchbar(false, '', '', '');
@@ -128,7 +132,7 @@ final class Search
         return new Searchbar(
             true,
             $engine->endpoint(),
-            $engine->token($index, [...self::scope($index, 'search'), 'limit' => $limit, 'facets' => $facets, ...($attributes !== [] ? ['attributes' => $attributes] : [])]),
+            $engine->token($index, [...self::scope($index, 'search'), 'limit' => $limit, 'facets' => $facets, 'attributes' => $attributes]),
             self::shop_url() ?? '',
         );
     }

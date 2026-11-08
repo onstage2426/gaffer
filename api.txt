@@ -61,7 +61,7 @@ final class Gaffer\Search\Search
   static cards(string $index, int $limit, array $sort = [], ?Gaffer\Types\Term $term = NULL, ?Gaffer\Types\Post $except = NULL, array $filter = []): array
   static count(string $index, ?Gaffer\Types\Term $term = NULL, array $filter = []): ?int
   static counter(string $index, ?Gaffer\Types\Term $term = NULL): Gaffer\Search\Counter
-  static searchbar(string $index, int $limit = 8, array $facets = [], array $attributes = []): Gaffer\Search\Searchbar
+  static searchbar(string $index, array $attributes, int $limit = 8, array $facets = []): Gaffer\Search\Searchbar
 final class Gaffer\Search\Searchbar
   readonly bool $available
   readonly string $endpoint

@@ -20,8 +20,8 @@ final class SearchContractTest extends TestCase
 {
     private const string DIR = __DIR__ . '/fixtures/search-contract';
 
-    /** The request keys of contract 1 (docs/contract.md, "Request"). */
-    private const array REQUEST_KEYS = ['query', 'limit', 'offset', 'sort', 'default_sort', 'filter', 'visibility', 'term', 'facets', 'attributes', 'ttl', 'limits', 'facet_values', 'max_docs'];
+    /** The request keys of contract 1 (docs/contract.md, "Request"), and of its features (supports()). */
+    private const array REQUEST_KEYS = ['query', 'limit', 'offset', 'sort', 'default_sort', 'filter', 'visibility', 'term', 'facets', 'attributes', 'ttl', 'limits', 'facet_values', 'max_docs', 'facet_stats'];
 
     #[\Override]
     protected function setUp(): void
@@ -100,6 +100,16 @@ final class SearchContractTest extends TestCase
         }
         self::assertSame('search', $engine->requests[1][1]['visibility'], 'a products searchbar hides what search hides');
         self::assertArrayNotHasKey('visibility', $engine->requests[2][1], 'posts have no catalog visibility');
+    }
+
+    public function test_bounds_ask_for_only_the_ranges_when_the_engine_can(): void
+    {
+        $request = ['visibility' => 'catalog', 'limit' => 24, 'attributes' => ['id', 'card'], 'facets' => ['brand']];
+
+        $stats = Search::bounds_request($request, ['price'], true);
+        self::assertSame(['visibility' => 'catalog', 'limit' => 1, 'attributes' => ['id'], 'facets' => [], 'facet_stats' => ['price']], $stats);
+        self::assertSame(['visibility' => 'catalog', 'limit' => 1, 'attributes' => ['id'], 'facets' => ['price']], Search::bounds_request($request, ['price'], false));
+        self::assertSame([], array_values(array_diff(array_keys($stats), self::REQUEST_KEYS)));
     }
 
     public function test_every_fixture_is_the_plugins_recorded_case(): void

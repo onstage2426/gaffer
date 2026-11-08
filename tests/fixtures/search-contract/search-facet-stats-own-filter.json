@@ -1,0 +1,52 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "filter": {
+                "price": {
+                    "min": 100,
+                    "max": 200
+                }
+            },
+            "limit": 1,
+            "attributes": [
+                "id"
+            ],
+            "facet_stats": [
+                "price"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 3,
+        "offset": 0,
+        "limit": 1,
+        "results": [
+            {
+                "id": 1,
+                "formatted": {
+                    "title": "Rode jurk",
+                    "snippet": "Een lange rode jurk van zijde."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": {
+            "price": {
+                "min": 35.0,
+                "max": 249.0
+            }
+        },
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

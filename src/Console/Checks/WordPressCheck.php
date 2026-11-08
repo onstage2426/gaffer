@@ -591,6 +591,10 @@ final class WordPressCheck implements Check
             $report->error('search', $problem, $file);
         }
         $this->search_taxonomies($report, $file);
+        if ((array) Config::get('search.archive.bounds') !== [] && !$engine->supports('facet_stats')) {
+            $report->info('search', 'archive.bounds counts every value of its fields on each archive page', $file, null,
+                'gaffer-search 0.2.0 (feature facet_stats) asks for only their ranges: a whole shop\'s price bounds in about 3 ms instead of 25.');
+        }
 
         $status = $engine->status();
         foreach ($definitions as $name => $definition) {

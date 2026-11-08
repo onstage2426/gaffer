@@ -1,0 +1,47 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "query": "jurk",
+            "limit": 1,
+            "attributes": [
+                "id"
+            ],
+            "facet_stats": [
+                "price"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "jurk",
+        "total": 5,
+        "offset": 0,
+        "limit": 1,
+        "results": [
+            {
+                "id": 1,
+                "formatted": {
+                    "title": "Rode <mark>jurk</mark>",
+                    "snippet": "Een lange rode <mark>jurk</mark> van zijde."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": {
+            "price": {
+                "min": 89.5,
+                "max": 249.0
+            }
+        },
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

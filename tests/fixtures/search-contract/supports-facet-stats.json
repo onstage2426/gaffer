@@ -1,0 +1,9 @@
+{
+    "call": "supports",
+    "args": [
+        "facet_stats"
+    ],
+    "expect": [
+        true
+    ]
+}

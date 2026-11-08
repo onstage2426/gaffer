@@ -9,6 +9,16 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-08
 
+### `archive.bounds`: only the ranges, with gaffer-search 0.2.0
+
+Nothing breaks. With a gaffer-search that has the feature `facet_stats` (0.2.0), the bounds
+search asks for the fields' ranges only, instead of counting every value: a whole shop's price
+bounds take about 3 ms instead of 25 at 30,000 products (on a 7,700-product shop 0.7 instead of
+4.4). Same `min`/`max`. Until the plugin is updated, `doctor --wp` says so (info).
+
+Find: `grep -n "bounds" config/search.php`. Check: the price slider's ends on the shop and a
+category are unchanged.
+
 ### `Search::searchbar()`: `attributes` is required, and second
 
 Breaks every searchbar. `Search::searchbar($index, $attributes, $limit = 8, $facets = [])`: the

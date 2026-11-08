@@ -1,0 +1,43 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "limit": 1,
+            "attributes": [
+                "id"
+            ],
+            "facet_stats": [
+                "colour"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 12,
+        "offset": 0,
+        "limit": 1,
+        "results": [
+            {
+                "id": 1,
+                "formatted": {
+                    "title": "Rode jurk",
+                    "snippet": "Een lange rode jurk van zijde."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": [
+            "Facet stats field 'colour' is not declared in the index; ignored."
+        ]
+    }
+}

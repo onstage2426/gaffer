@@ -279,7 +279,7 @@ final class Search
 
         // The ranges of these fields over the whole archive (a price slider's ends), not the results.
         $fields = array_values(array_map(strval(...), (array) ($config['bounds'] ?? [])));
-        $bounds = $fields !== [] ? $engine->search($index, [...$request, 'limit' => 1, 'attributes' => ['id'], 'facets' => $fields])['facetStats'] : [];
+        $bounds = $fields !== [] ? $engine->search($index, self::bounds_request($request, $fields, $engine->supports('facet_stats')))['facetStats'] : [];
 
         // The first row holds the largest image on screen: not lazy (`eager`), on every page (later
         // pages are landing pages too, with seo.index_pages); a count per layout (a list row is shorter).
@@ -309,6 +309,20 @@ final class Search
             $query,
             $view !== ($views[0] ?? '') ? $view : '',
         );
+    }
+
+    /**
+     * @internal The search for an archive's `bounds`: its own request, one hit, and the fields'
+     * ranges. With the engine's `facet_stats` only the ranges: the facet counts every value
+     * (on a whole shop's price, about 25 ms against 3 at 30,000 products).
+     *
+     * @param array<string, mixed> $request
+     * @param list<string> $fields
+     * @return array<string, mixed>
+     */
+    public static function bounds_request(array $request, array $fields, bool $stats_only): array
+    {
+        return [...$request, 'limit' => 1, 'attributes' => ['id'], ...($stats_only ? ['facets' => [], 'facet_stats' => $fields] : ['facets' => $fields])];
     }
 
     /** @var array{url: string, indexable: bool}|null the archive's canonical URL and whether it's indexable */

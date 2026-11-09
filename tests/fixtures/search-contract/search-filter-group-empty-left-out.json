@@ -1,0 +1,54 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "sort": [
+                "id:asc"
+            ],
+            "filter": {
+                "any": [],
+                "brand": "pumpkin"
+            }
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 2,
+        "offset": 0,
+        "limit": 20,
+        "results": [
+            {
+                "id": 5,
+                "formatted": {
+                    "title": "Rode schoenen",
+                    "snippet": "Pumps met een lage hak."
+                },
+                "labels": []
+            },
+            {
+                "id": 6,
+                "formatted": {
+                    "title": "Zwarte schoenen",
+                    "snippet": "Sneakers voor de hele dag."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": {
+            "brand": {
+                "pumpkin": "Pumpkin"
+            }
+        },
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

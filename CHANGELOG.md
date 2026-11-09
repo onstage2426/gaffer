@@ -7,6 +7,32 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-09
+
+### Search filters with `any`, `all` and `not`
+
+Nothing breaks. With gaffer-search 0.3.0 (feature `filter_groups`) a filter can say more than
+"these fields, these values": `'tags' => ['all' => ['sale', 'new']]` (every value), and groups
+`'any' => [filter, …]`, `'all' => [filter, …]`, `'not' => filter` of the usual filter shape, in
+`Search::cards()`/`count()`, the archive's URL (`filter[any][0][on_sale]=yes`) and JS
+(`{any: [{…}, {…}]}`); `createFilterForm()` has a field `type: "all"` (checkboxes named
+`filter[x][all][]`). A theme filter with them on an older plugin throws a `LogicException`
+(the plugin would drop them and find more); a visitor's groups in the URL are left out there.
+Pages whose URL has a group are noindex. `doctor` sees fields inside groups.
+
+So `any`, `all` and `not` can't be index field names any more (the plugin's `problems()`, so
+`doctor --wp`, names one, and the index isn't defined). Find: `grep -nE "=> '(any|all|not)'"
+config/search.php` and those names as keys of `fields`. Check: `php gaffer doctor --wp`.
+
+### gaffer-search 0.3.0 rebuilds every index once
+
+Not Gaffer's change, but it lands with this one: the plugin's new Fuzor stores indexes in a new
+layout, so each site rebuilds its indexes once after the plugin update (on the first request
+that loads WordPress, then the next WP-cron run). Until a site's rebuild is done, archives and
+filters show no products. On a large shop: update at a quiet hour and run
+`wp gaffer-search rebuild --url=<site>` per site straight away. Check: `php gaffer doctor --wp`
+(each index "built and current").
+
 ## 2026-11-08
 
 ### `doctor`: "A class in both class and :class" only for string and array bindings

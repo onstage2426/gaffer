@@ -60,19 +60,32 @@ function appendFilterValue(parts, key, value) {
     }
 }
 
-// A value is a string, a list (OR), {min, max} (range), or {not: <any of those>} (exclusion).
-function appendFilters(parts, filters) {
+// A value is a string, a list (OR), {min, max} (range), {not: <any of those>} (exclusion) or
+// {all: [values]} (every one of them). The keys any and all hold a list of filters of this same
+// shape, not a field: at least one / every one of them holds; not holds one filter that must
+// not hold (the engine's filter_groups).
+function appendFilters(parts, filters, prefix = "filter") {
     for (const [field, value] of Object.entries(filters ?? {})) {
-        if (isExclusion(value)) {
-            appendFilterValue(parts, `filter[${field}][not]`, value.not);
+        if ((field === "any" || field === "all") && Array.isArray(value)) {
+            value.forEach((entry, i) => appendFilters(parts, entry, `${prefix}[${field}][${i}]`));
+        } else if (field === "not" && value != null && typeof value === "object" && !Array.isArray(value)) {
+            appendFilters(parts, value, `${prefix}[not]`);
+        } else if (isExclusion(value)) {
+            appendFilterValue(parts, `${prefix}[${field}][not]`, value.not);
+        } else if (isAllOf(value)) {
+            appendFilterValue(parts, `${prefix}[${field}][all]`, [].concat(value.all ?? []));
         } else {
-            appendFilterValue(parts, `filter[${field}]`, value);
+            appendFilterValue(parts, `${prefix}[${field}]`, value);
         }
     }
 }
 
 function isExclusion(value) {
     return value != null && typeof value === "object" && !Array.isArray(value) && "not" in value;
+}
+
+function isAllOf(value) {
+    return value != null && typeof value === "object" && !Array.isArray(value) && "all" in value;
 }
 
 /**
@@ -213,10 +226,10 @@ function isBlank(value) {
 
 /**
  * Flattens a `filters` object (the same shape `buildSearchUrl`
- * accept: `{field: value[] | {min, max} | scalar | {not: …}}`) into a flat "active filter
- * chips" list — one entry per array value, one entry for a min/max range (if
+ * accept: `{field: value[] | {min, max} | scalar | {not: …} | {all: […]}}`) into a flat "active filter
+ * chips" list — one entry per array or `all` value, one entry for a min/max range (if
  * either bound is set), one entry for a scalar, and one per excluded value
- * (`exclude: true`, default label "≠ value").
+ * (`exclude: true`, default label "≠ value"). Groups (any/all/not) get no chips.
  *
  * @param {Object<string, *>} filterState
  * @param {Object<string, (field: string, value: *) => string>} [labels] - per-field label formatter; falls back to the raw value
@@ -229,8 +242,15 @@ function getActiveFilters(filterState, labels = {}) {
         // (assigning null there breaks the <select>'s DOM binding) — treat
         // both as equally empty so scalar fields need no special-casing.
         if (value == null || value === "") continue;
+        // A group (any/all/not) is the page's own: no chip.
+        if (["any", "all", "not"].includes(field)) continue;
         const format = labels[field];
-        if (isExclusion(value)) {
+        if (isAllOf(value)) {
+            for (const v of [].concat(value.all ?? [])) {
+                if (v == null || v === "") continue;
+                chips.push({ field, value: v, label: format ? format(field, v) : String(v) });
+            }
+        } else if (isExclusion(value)) {
             const excluded = value.not;
             if (excluded != null && typeof excluded === "object" && !Array.isArray(excluded)) {
                 if (isBlank(excluded.min) && isBlank(excluded.max)) continue;
@@ -269,7 +289,12 @@ function getActiveFilters(filterState, labels = {}) {
  */
 function removeFilter(filterState, field, value) {
     const current = filterState?.[field];
-    if (isExclusion(current) && Array.isArray(current.not) && value !== undefined) {
+    if (isAllOf(current) && Array.isArray(current.all) && value !== undefined) {
+        const i = current.all.indexOf(value);
+        if (i !== -1) current.all.splice(i, 1);
+    } else if (isAllOf(current)) {
+        filterState[field] = {};
+    } else if (isExclusion(current) && Array.isArray(current.not) && value !== undefined) {
         const i = current.not.indexOf(value);
         if (i !== -1) current.not.splice(i, 1);
     } else if (isExclusion(current)) {

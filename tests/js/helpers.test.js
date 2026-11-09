@@ -29,6 +29,19 @@ describe("buildSearchUrl", () => {
         );
     });
 
+    test("encode all values and any/all/not groups with numbered entries", () => {
+        const url = F.buildSearchUrl({
+            endpoint: "/s",
+            token: "t",
+            filters: { tags: { all: ["sale", "new"] }, any: [{ on_sale: "1" }, { color: "wit", price: { max: 60 } }], not: { brand: "x", size: ["s", "m"] } },
+        });
+        expect(url).toBe(
+            "/s?q=&token=t&filter[tags][all][]=sale&filter[tags][all][]=new"
+            + "&filter[any][0][on_sale]=1&filter[any][1][color]=wit&filter[any][1][price][max]=60"
+            + "&filter[not][brand]=x&filter[not][size][]=s&filter[not][size][]=m",
+        );
+    });
+
     test("leave out empty optional params", () => {
         expect(F.buildSearchUrl({ token: "t", endpoint: "/s" })).toBe("/s?q=&token=t");
     });
@@ -57,6 +70,18 @@ describe("facet and filter helpers", () => {
             { field: "visibility", value: "x", exclude: true, label: "≠ x" },
         ]);
         expect(F.getActiveFilters({ color: "rood" }, { color: (f, v) => v.toUpperCase() })[0].label).toBe("ROOD");
+    });
+
+    test("all values are chips, groups aren't; removing one of them keeps the rest", () => {
+        const state = { tags: { all: ["sale", "new"] }, any: [{ color: "wit" }] };
+        expect(F.getActiveFilters(state)).toEqual([
+            { field: "tags", value: "sale", label: "sale" },
+            { field: "tags", value: "new", label: "new" },
+        ]);
+        F.removeFilter(state, "tags", "sale");
+        expect(state.tags).toEqual({ all: ["new"] });
+        F.removeFilter(state, "tags");
+        expect(state.tags).toEqual({});
     });
 
     test("removeFilter changes the state in place", () => {

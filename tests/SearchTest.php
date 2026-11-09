@@ -186,6 +186,26 @@ final class SearchTest extends TestCase
         self::assertSame(['products', ['visibility' => 'catalog', 'limit' => 4, 'sort' => ['total_sales:desc'], 'attributes' => ['id', 'card']]], $engine->calls[0]);
     }
 
+    public function test_a_filter_with_groups_needs_an_engine_that_reads_them(): void
+    {
+        self::config(['indexes' => ['products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig']]]]);
+        $engine = new FakeEngine([]);
+        Engine::reset(new Engine($engine));
+        $filter = ['any' => [['on_sale' => 'yes'], ['tags' => 'new']]];
+
+        try {
+            Search::count('products', filter: $filter);
+            self::fail('an older engine would drop the group and find more');
+        } catch (\LogicException $e) {
+            self::assertStringContainsString('gaffer-search 0.3.0', $e->getMessage());
+        }
+        self::assertCount(0, $engine->calls);
+
+        $engine->features = ['filter_groups'];
+        Search::count('products', filter: $filter);
+        self::assertSame($filter, $engine->calls[0][1]['filter']);
+    }
+
     public function test_a_counter_signs_counts_scope_for_the_cheapest_request_and_searches_nothing(): void
     {
         self::config(['indexes' => ['products' => ['type' => 'products'], 'news' => ['type' => 'posts']]]);
@@ -272,8 +292,16 @@ final class FakeEngine
     /** @var list<array{string, array<string, mixed>}> */
     public array $tokens = [];
 
+    /** @var list<string> */
+    public array $features = [];
+
     /** @param list<mixed> $hits */
     public function __construct(private readonly array $hits) {}
+
+    public function supports(string $feature): bool
+    {
+        return in_array($feature, $this->features, true);
+    }
 
     /**
      * @param array<string, mixed> $request

@@ -135,4 +135,19 @@ final class ArchiveUrlTest extends TestCase
         );
         self::assertSame(10000, ArchiveUrl::request(['offset' => '99999'])['offset']);
     }
+
+    public function test_groups_keep_their_entries_in_the_url_and_are_never_indexable(): void
+    {
+        $filter = ['any' => [['color' => 'wit', 'price' => ['max' => '60']], ['brand' => 'pumpkin']], 'tags' => ['all' => ['sale', 'new']]];
+        $url = ArchiveUrl::url('/winkel/', ['filter' => $filter]);
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        self::assertSame([['color' => 'wit', 'price' => ['max' => '60']], ['brand' => 'pumpkin']], $query['filter']['any'], 'an entry with two conditions stays one entry');
+        self::assertSame(['all' => ['new', 'sale']], $query['filter']['tags']);
+        self::assertFalse(ArchiveUrl::indexable(['filter' => ['not' => ['brand' => 'x']]]));
+        self::assertFalse(ArchiveUrl::indexable(['filter' => ['on_sale' => ['all' => ['yes']]]], [], 0, ['on_sale' => ['yes']]));
+        self::assertTrue(ArchiveUrl::uses_groups($filter));
+        self::assertFalse(ArchiveUrl::uses_groups(['brand' => ['a', 'b'], 'price' => ['min' => 1], 'color' => ['not' => 'x']]));
+        self::assertSame(['brand' => 'a'], ArchiveUrl::without_groups(['brand' => 'a', 'not' => ['b' => 'c'], 'tags' => ['all' => ['x']]]));
+    }
 }

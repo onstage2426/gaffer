@@ -1,0 +1,65 @@
+{
+    "call": "token",
+    "args": [
+        "products",
+        {
+            "limit": 10,
+            "attributes": [
+                "id"
+            ],
+            "filter": {
+                "category": {
+                    "all": [
+                        "kleding",
+                        "jurken"
+                    ]
+                },
+                "any": [
+                    {
+                        "brand": "stella"
+                    },
+                    {
+                        "color": "wit"
+                    }
+                ],
+                "not": {
+                    "price": {
+                        "max": 50
+                    }
+                }
+            }
+        }
+    ],
+    "expect": {
+        "payload": {
+            "index": "products",
+            "limit": 10,
+            "attributes": [
+                "id"
+            ],
+            "filter": {
+                "category": {
+                    "all": [
+                        "kleding",
+                        "jurken"
+                    ]
+                },
+                "any": [
+                    {
+                        "brand": "stella"
+                    },
+                    {
+                        "color": "wit"
+                    }
+                ],
+                "not": {
+                    "price": {
+                        "max": 50
+                    }
+                }
+            },
+            "site": 1,
+            "c": 1
+        }
+    }
+}

@@ -248,13 +248,16 @@ function createAlpineSearch({ minQueryLength = 0, initial, form, onBeforeRun, on
  * field, the shape of its state; everything about how a field is *rendered*
  * is entirely the consumer's concern.
  *
- * @param {{ field: string, type?: "single"|"multi"|"range"|"toggle", multi?: boolean, value?: string, label?: string, sort?: "count"|"alpha"|"index" }[]} fields
+ * @param {{ field: string, type?: "single"|"multi"|"all"|"range"|"toggle", multi?: boolean, value?: string, label?: string, sort?: "count"|"alpha"|"index" }[]} fields
  *   field — the *indexed* field name (the facets/filter[] key), not
  *     necessarily whatever WP-side slug it may have started from.
  *   type — the field's state, and the form controls it pairs with:
  *     "single" (default): a string, "" for none — a <select> or radios
  *       named filter[x].
  *     "multi" (or `multi: true`): an array — checkboxes named filter[x][].
+ *     "all": an array — checkboxes named filter[x][all][]: documents with
+ *       every checked value (multi is any of them). Its facet counts what
+ *       each value would leave.
  *     "range": { min, max }, "" for an open end — two inputs named
  *       filter[x][min] and filter[x][max] (the range slider's).
  *     "toggle": a boolean — one checkbox named filter[x] with `value` as
@@ -270,7 +273,7 @@ function createFilterForm(fields, searchOptions) {
     const sortFor = Object.fromEntries(fields.map((f) => [f.field, f.sort ?? "count"]));
     const typeOf = (f) => f.type ?? (f.multi ? "multi" : "single");
     const toggleValue = (f) => String(f.value ?? "yes");
-    const cleared = (f) => ({ multi: [], range: { min: "", max: "" }, toggle: false })[typeOf(f)] ?? "";
+    const cleared = (f) => ({ multi: [], all: [], range: { min: "", max: "" }, toggle: false })[typeOf(f)] ?? "";
     const byField = Object.fromEntries(fields.map((f) => [f.field, f]));
 
     return {
@@ -300,6 +303,7 @@ function createFilterForm(fields, searchOptions) {
                 const name = `filter[${f.field}]`;
                 this.filters[f.field] = {
                     multi: () => params.getAll(`${name}[]`),
+                    all: () => params.getAll(`${name}[all][]`),
                     range: () => ({ min: params.get(`${name}[min]`) ?? "", max: params.get(`${name}[max]`) ?? "" }),
                     toggle: () => params.get(name) === toggleValue(f),
                 }[typeOf(f)]?.() ?? params.get(name) ?? params.get(`${name}[]`) ?? "";

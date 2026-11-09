@@ -92,6 +92,7 @@ final class Engine
      */
     public function search(string $index, array $request): array
     {
+        $this->check_filter($request);
         $response = self::response($this->call('search', $index, $request));
         foreach ($response['warnings'] as $warning) {
             self::$warnings["{$index}: {$warning}"] = true;
@@ -114,7 +115,23 @@ final class Engine
     /** @param array<string, mixed> $request */
     public function token(string $index, array $request): string
     {
+        $this->check_filter($request);
+
         return (string) $this->call('token', $index, $request);
+    }
+
+    /**
+     * A filter with groups or `all` values needs the engine's `filter_groups`: an older engine
+     * reads `any`/`all`/`not` as field names and drops what it can't parse, so the search would
+     * find more than the filter allows.
+     *
+     * @param array<string, mixed> $request
+     */
+    private function check_filter(array $request): void
+    {
+        if (is_array($request['filter'] ?? null) && ArchiveUrl::uses_groups($request['filter']) && !$this->supports('filter_groups')) {
+            throw new \LogicException('This filter uses any, all or not, which needs gaffer-search 0.3.0 or later: update the plugin.');
+        }
     }
 
     private function call(string $method, mixed ...$arguments): mixed

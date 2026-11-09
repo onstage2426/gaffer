@@ -629,6 +629,8 @@ final class ChecksTest extends TestCase
     {
         self::assertSame(['expected' => 2, 'price' => 2, 'brand' => 3], SearchCheck::filtered_fields("<?php\nSearch::cards('p', 4, filter: ['expected' => 'yes', 'price' => ['min' => 1]]);\n\$r = ['filter' => ['brand' => ['a']]];", true));
         self::assertSame(['expected' => 1, 'fuel' => 1], SearchCheck::filtered_fields('<a href="?filter[expected]=yes&amp;filter%5Bfuel%5D=x">', false));
+        self::assertSame(['tags' => 2, 'on_sale' => 2, 'brand' => 2, 'price' => 2, 'color' => 3], SearchCheck::filtered_fields("<?php\nSearch::cards('p', 4, filter: ['tags' => ['all' => ['a', 'b']], 'any' => [['on_sale' => 'yes'], ['brand' => 'x', 'price' => ['max' => 2]]],\n'not' => ['color' => 'rood']]);", true), 'fields inside groups, not the groups or a range\'s min/max');
+        self::assertSame(['on_sale' => 1, 'color' => 1, 'size' => 1], SearchCheck::filtered_fields('<input name="filter[any][0][on_sale]"><input name="filter[not][color]"><input name="filter[all][1][any][0][size]">', false));
 
         mkdir("{$this->theme}/views", 0755, true);
         file_put_contents("{$this->theme}/config/search.php", "<?php return ['indexes' => ['products' => ['type' => 'products', 'facets' => ['fuel'], 'meta' => ['_fuel' => 'fuel', '_x' => ['expected', 'string']], 'fields' => ['per_m2' => 'float']]]];");

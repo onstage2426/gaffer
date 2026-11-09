@@ -44,7 +44,8 @@ final class Search
      * catalog are left out.
      *
      * @param list<string> $sort e.g. ['total_sales:desc']
-     * @param array<string, mixed> $filter e.g. ['on_sale' => 'yes'], ['brand' => ['a', 'b']], ['price' => ['min' => 10]]
+     * @param array<string, mixed> $filter e.g. ['on_sale' => 'yes'], ['brand' => ['a', 'b']], ['price' => ['min' => 10]],
+     *     ['tags' => ['all' => ['sale', 'new']]], ['any' => [['on_sale' => 'yes'], ['tags' => 'new']]] (the contract's Filter)
      * @return list<Markup>
      */
     public static function cards(string $index, int $limit, array $sort = [], ?Term $term = null, ?Post $except = null, array $filter = []): array
@@ -241,7 +242,12 @@ final class Search
             // A variant's page (business prices) is that visitor's: its token stops working after a day.
             ...(Indexes::variant($definition) !== null ? ['ttl' => DAY_IN_SECONDS] : []),
         ];
-        $results = $engine->search($index, [...$request, ...ArchiveUrl::request($query), 'limit' => $limit]);
+        $visitor = ArchiveUrl::request($query);
+        if (!$engine->supports('filter_groups')) {
+            // A visitor's groups an older engine can't read: theirs to lose, not an error page.
+            $visitor['filter'] = ArchiveUrl::without_groups($visitor['filter']);
+        }
+        $results = $engine->search($index, [...$request, ...$visitor, 'limit' => $limit]);
 
         $sorts = [];
         foreach ((array) ($config['sorts'] ?? []) as $value => $label) {

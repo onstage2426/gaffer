@@ -123,18 +123,22 @@ final class SearchCheck implements Check
     {
         $found = [];
         $line = static fn(int $offset): int => substr_count($code, "\n", 0, $offset) + 1;
-        preg_match_all('/filter(?:\[|%5B)([a-z0-9_]+)(?:\]|%5D)/i', $code, $m, PREG_OFFSET_CAPTURE);
+        // filter[field], also inside groups: filter[any][0][field], filter[not][field].
+        preg_match_all('/filter(?:(?:\[|%5B)(?:any|all|not)(?:\]|%5D)(?:(?:\[|%5B)\d*(?:\]|%5D))?)*(?:\[|%5B)([a-z0-9_]+)(?:\]|%5D)/i', $code, $m, PREG_OFFSET_CAPTURE);
         foreach ($m[1] as [$field, $offset]) {
-            $found[$field] ??= $line($offset);
+            if (!in_array(strtolower($field), ArchiveUrl::GROUPS, true)) {
+                $found[$field] ??= $line($offset);
+            }
         }
         if ($php) {
-            preg_match_all('/[\'"]?filter[\'"]?\s*(?:=>|:)\s*\[((?:[^\[\]]|\[[^\[\]]*\])*)\]/', $code, $m, PREG_OFFSET_CAPTURE);
+            preg_match_all('/[\'"]?filter[\'"]?\s*(?:=>|:)\s*(\[(?:[^\[\]]++|(?1))*\])/', $code, $m, PREG_OFFSET_CAPTURE);
             foreach ($m[1] as [$array, $offset]) {
-                // Only the top level: a range's min/max are no fields.
-                $top = (string) preg_replace_callback('/\[[^\[\]]*\]/', static fn(array $n): string => str_repeat(' ', strlen($n[0])), $array);
-                preg_match_all('/[\'"]([a-z0-9_]+)[\'"]\s*=>/i', $top, $keys, PREG_OFFSET_CAPTURE);
+                // Keys at any depth: fields, groups (any/all/not) and a condition's own (min/max, not, all).
+                preg_match_all('/[\'"]([a-z0-9_]+)[\'"]\s*=>/i', $array, $keys, PREG_OFFSET_CAPTURE);
                 foreach ($keys[1] as [$field, $at]) {
-                    $found[$field] ??= $line($offset + $at);
+                    if (!in_array(strtolower($field), [...ArchiveUrl::GROUPS, 'min', 'max'], true)) {
+                        $found[$field] ??= $line($offset + $at);
+                    }
                 }
             }
         }

@@ -188,7 +188,25 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
   it) and leave the searchbar out (`Search::searchbar()` has `available` too).
 - Sliders: `Search::cards('products', 10, ['total_sales:desc'], $category, except: $post)`;
   `filter: ['on_sale' => 'yes']` for an "on sale" tab (the Filter shape: a value,
-  a list, `['not' => …]`, `['min' => …, 'max' => …]`).
+  a list (any of), `['not' => …]`, `['min' => …, 'max' => …]`, `['all' => [...]]`
+  (every one of: tagged both)). Conditions of a filter all hold; for anything else, the
+  groups `any`, `all` and `not` hold filters of the same shape (gaffer-search 0.3.0;
+  older plugins throw a `LogicException`, never widen):
+  ```php
+  filter: [
+      'stock_status' => 'instock',
+      'any' => [['on_sale' => 'yes'], ['tags' => 'new']],      // on sale, or new
+      'not' => ['category' => 'outlet', 'color' => 'rood'],     // but not red outlet items
+  ]
+  ```
+  So `any`, `all` and `not` are never field names (`doctor --wp` reports one). In the
+  browser the same shapes are `filter[tags][all][]=sale`, `filter[any][0][on_sale]=yes&filter[any][1][tags]=new`,
+  `filter[not][color]=rood` (form field names work as they are), and in JS the same
+  object (`{tags: {all: [...]}, any: [{...}, {...}], not: {...}}`). A visitor's group
+  only narrows the archive's own lock. `createFilterForm()`'s `type: "all"` is a
+  "match every checked value" list (checkboxes named `filter[x][all][]`). Facets: a field
+  inside a group, or with `all`, is counted over the filtered result (what each value would
+  leave); a field's own list stays counted without it. Pages with a group are noindex.
 - Counts (a finder's "14 cars", a count per brand):
   `Search::count('products', $category, filter: ['brand' => 'volvo'])`, the
   same scope as the archive (catalog visibility applied), one index lookup.

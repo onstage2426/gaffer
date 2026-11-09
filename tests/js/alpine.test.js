@@ -211,6 +211,16 @@ describe("createFilterForm field types", () => {
         { field: "brand", type: "multi" },
     ];
 
+    test("an all field's checked values come from filter[x][all][]", () => {
+        history.replaceState(null, "", "/winkel/?filter[tags][all][]=sale&filter[tags][all][]=new&filter[tags][]=other");
+        const c = component(F.createFilterForm([{ field: "tags", type: "all" }]));
+
+        expect(c.filters.tags).toEqual(["sale", "new"]);
+        expect(c.activeFilters().map((chip) => chip.value)).toEqual(["sale", "new"]);
+        c._clear("tags", "sale");
+        expect(c.filters.tags).toEqual(["new"]);
+    });
+
     test("ranges, toggles and the sort come from the URL, also on back/forward", () => {
         history.replaceState(null, "", "/winkel/?filter[price][min]=10&filter[on_sale]=yes&filter[stock_status]=outofstock&sort[]=price:asc&sort[]=title_sort:asc");
         const c = component(F.createFilterForm(fields));

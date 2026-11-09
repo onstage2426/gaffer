@@ -17,6 +17,37 @@ final class ArchiveUrl
     /** The archive's own params, in the order a URL has them. */
     public const array PARAMS = ['q', 'filter', 'sort', 'offset', 'limit'];
 
+    /** A filter's group keys (the engine's `filter_groups`): never field names. */
+    public const array GROUPS = ['any', 'all', 'not'];
+
+    /**
+     * Whether a filter needs the engine's `filter_groups`: a group (`any`, `all`, `not`) or a
+     * field's `['all' => …]`.
+     *
+     * @param array<mixed> $filter
+     */
+    public static function uses_groups(array $filter): bool
+    {
+        foreach ($filter as $field => $value) {
+            if (in_array((string) $field, self::GROUPS, true) || (is_array($value) && array_key_exists('all', $value))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * $filter without what uses_groups() looks for.
+     *
+     * @param array<mixed> $filter
+     * @return array<mixed>
+     */
+    public static function without_groups(array $filter): array
+    {
+        return array_filter($filter, static fn(mixed $value, int|string $field): bool => !self::uses_groups([$field => $value]), ARRAY_FILTER_USE_BOTH);
+    }
+
     /**
      * The normalized URL of an archive page: only the archive's params, without empty values or
      * offset 0, filter fields and values in a fixed order, lists written as a form sends them
@@ -67,7 +98,10 @@ final class ArchiveUrl
         }
         $filter = self::normalized_filter($query['filter'] ?? null);
         foreach (is_array($filter) ? array_diff_key($filter, array_flip($term_fields)) : [] as $field => $value) {
-            // A range or an exclusion is never a listed value.
+            // A range, an exclusion or a group is never a listed value.
+            if (in_array((string) $field, self::GROUPS, true)) {
+                return false;
+            }
             $values = is_string($value) ? [$value] : (is_array($value) && array_is_list($value) ? $value : null);
             if ($values === null || array_diff($values, $filters[(string) $field] ?? []) !== []) {
                 return false;
@@ -264,14 +298,16 @@ final class ArchiveUrl
     }
 
     /**
-     * A query string with lists written as a form sends them (key[]=a), not PHP's numbered keys.
+     * A query string with lists of values written as a form sends them (key[]=a), not PHP's
+     * numbered keys. A list of maps (a filter group's entries) keeps its numbers: key[][a]=1&key[][b]=2
+     * would be two entries, not one with both.
      *
      * @param array<mixed> $params
      */
     private static function query_string(array $params, string $prefix = ''): string
     {
         $pairs = [];
-        $list = array_is_list($params);
+        $list = array_is_list($params) && array_filter($params, is_array(...)) === [];
         foreach ($params as $key => $value) {
             $name = $prefix === '' ? rawurlencode((string) $key) : $prefix . '%5B' . ($list ? '' : rawurlencode((string) $key)) . '%5D';
             if (is_array($value)) {

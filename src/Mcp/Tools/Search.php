@@ -27,7 +27,7 @@ final class Search implements Tool
     public function description(): string
     {
         return 'Searches one of the theme\'s gaffer-search indexes (config/search.php) the way the site does and returns the index\'s status (built, documents, '
-            . 'whether it is current, the last build error), the total, the hits (id, title, url and the fields asked for; rendered cards left out), facet counts with '
+            . 'whether it is current, the last build error, content changes not applied yet and since when), the total, the hits (id, title, url and the fields asked for; rendered cards left out), facet counts with '
             . 'their labels, and warnings (an undeclared field). Use to check a synonym, a facet, a filter or why something isn\'t found, without a browser. '
             . 'Filters: {"field": "value"}, {"field": ["a", "b"]}, {"field": {"not": "a"}}, {"field": {"min": 10, "max": 50}}; taxonomy values are slugs.';
     }

@@ -112,6 +112,39 @@ final class SearchContractTest extends TestCase
         self::assertSame([], array_values(array_diff(array_keys($stats), self::REQUEST_KEYS)));
     }
 
+    public function test_gaffer_reads_every_recorded_status(): void
+    {
+        $read = 0;
+        foreach (glob(self::DIR . '/*.json') ?: [] as $file) {
+            $case = (array) json_decode((string) file_get_contents($file), true);
+            if (!in_array($case['call'] ?? null, ['status', 'define_then_status'], true)) {
+                continue;
+            }
+            $answer = (array) $case['expect'];
+            $engine = new Engine(new class ($answer) {
+                /** @param array<string, mixed> $answer */
+                public function __construct(private readonly array $answer) {}
+
+                /** @return array<string, mixed> */
+                public function status(): array
+                {
+                    return $this->answer;
+                }
+            });
+            foreach ($engine->status() as $index => $state) {
+                foreach ($state as $key => $value) {
+                    if (array_key_exists($key, (array) $answer[$index])) {
+                        self::assertSame($answer[$index][$key], $value, basename($file) . ": {$index}.{$key}");
+                    } else {
+                        self::assertNull($value, basename($file) . ": {$index}.{$key} is null when the engine doesn't say");
+                    }
+                }
+                $read++;
+            }
+        }
+        self::assertGreaterThan(0, $read);
+    }
+
     public function test_every_fixture_is_the_plugins_recorded_case(): void
     {
         $manifest = [];

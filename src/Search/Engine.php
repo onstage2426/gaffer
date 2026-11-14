@@ -63,7 +63,12 @@ final class Engine
         return self::strings($this->call('problems', $indexes));
     }
 
-    /** @return array<string, array{built: bool, documents: int, version: ?string, building: bool, error: ?string}> */
+    /**
+     * pending/pending_since (feature pending_updates): content changes the index hasn't taken in
+     * yet, and when the oldest was logged (Unix time); null when the engine doesn't say.
+     *
+     * @return array<string, array{built: bool, documents: int, version: ?string, building: bool, error: ?string, pending: ?int, pending_since: ?int}>
+     */
     public function status(): array
     {
         $status = [];
@@ -75,6 +80,8 @@ final class Engine
                 'version' => is_string($state['version'] ?? null) ? $state['version'] : null,
                 'building' => ($state['building'] ?? false) === true,
                 'error' => is_string($state['error'] ?? null) ? $state['error'] : null,
+                'pending' => is_int($state['pending'] ?? null) ? $state['pending'] : null,
+                'pending_since' => is_int($state['pending_since'] ?? null) ? $state['pending_since'] : null,
             ];
         }
 

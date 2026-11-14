@@ -6,6 +6,7 @@ namespace Gaffer\Mcp\Tools;
 
 use Gaffer\Console\Commands\DoctorRender;
 use Gaffer\Console\Render\HtmlDiff;
+use Gaffer\Console\Render\SeoHead;
 use Gaffer\Console\Render\StagedTheme;
 use Gaffer\Mcp\GafferCli;
 use Gaffer\Mcp\Tool;
@@ -32,7 +33,8 @@ final class Render implements Tool
     {
         return 'Renders one URL of this site the way doctor does (in a fresh WordPress, Twig strict variables on, as a '
             . 'logged-out visitor unless `user` is given) and returns status (ok/redirect/error), the HTTP status (404 for a missing page), the redirect target, the error with file and '
-            . 'line, PHP notices from theme files, time_ms, queries and twig_ms (template render time; compiling is extra while the Twig cache is off), and the HTML. '
+            . 'line, PHP notices from theme files, time_ms, queries and twig_ms (template render time; compiling is extra while the Twig cache is off), `seo` '
+            . '(the page\'s title, meta description, canonical and robots as the SEO plugin printed them: check SEO here, its PHP API answers differently from WP-CLI), and the HTML. '
             . 'Pass a CSS selector to get only the matching elements: whole pages are often 50-100 KB. `user` (a user ID) renders logged in; '
             . '`cart` (WooCommerce) puts products in the cart first: cart, checkout and account pages are where shops break. Nothing is written '
             . '(no session, the user\'s saved cart untouched). `theme` renders a staged copy of the theme (a full copy next to it) instead of the live one. Use to check a page after a change.';
@@ -82,6 +84,10 @@ final class Render implements Tool
             $result = DoctorRender::parse($output);
         } catch (RuntimeException $e) {
             return new WP_Error('gaffer_render', ucfirst($e->getMessage()));
+        }
+
+        if (is_string($result['html'] ?? null) && $result['html'] !== '') {
+            $result['seo'] = SeoHead::read($result['html']);
         }
 
         $selector = $input['selector'] ?? null;

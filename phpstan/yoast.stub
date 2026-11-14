@@ -1,0 +1,8 @@
+<?php
+
+// Yoast SEO, only what Gaffer calls (WordPressCheck::yoast()).
+
+/** @return object{helpers: object{indexable: object}} */
+function YoastSEO(): object
+{
+}

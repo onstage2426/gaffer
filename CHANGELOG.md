@@ -7,6 +7,25 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-14
+
+Nothing breaks; three things `doctor --wp` and `gaffer-render` now say.
+
+- **Search changes that never reach the index.** With gaffer-search 0.4.0 (feature
+  `pending_updates`), `doctor --wp` warns when content changes have waited more than 5 minutes
+  for an index: WP-cron applies them, and it doesn't run on a password-protected site or with
+  `DISABLE_WP_CRON` and no system cron (WP-CLI never runs it either). Fix: `wp gaffer-search
+  update` now, and a system cron running it every minute (the plugin's `docs/hosting.md`).
+  `wp gaffer-search verify` and the `gaffer-search` MCP tool show the same.
+- **SEO in `gaffer-render`.** Every render has `seo`: title, meta description, canonical and
+  robots read from the page. Use it instead of an SEO plugin's PHP API from WP-CLI (Yoast
+  answers differently there).
+- **Yoast outside production.** Yoast SEO only writes its SEO data (indexables) on production,
+  so on a dev copy, content changed or imported there keeps the titles and descriptions of
+  Yoast's older rows. `doctor --wp` says so (info) with the command that rebuilds them.
+
+Check: `php gaffer doctor --wp`.
+
 ## 2026-11-09
 
 ### Search filters with `any`, `all` and `not`

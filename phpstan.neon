@@ -6,6 +6,7 @@ parameters:
         - phpstan/gravityforms.stub
         - phpstan/mcp-adapter.stub
         - phpstan/acf.stub
+        - phpstan/yoast.stub
     level: 6
     paths:
         - src

@@ -45,6 +45,7 @@ final class WordPressCheck implements Check
         $this->woocommerce_templates($report);
         $this->forms($report);
         $this->search($report);
+        $this->yoast($report);
         $this->menus($report);
         $this->image_sizes($report);
         $this->served_assets($report);
@@ -597,6 +598,10 @@ final class WordPressCheck implements Check
         }
 
         $status = $engine->status();
+        if (!$engine->supports('pending_updates')) {
+            $report->info('search', 'gaffer-search doesn\'t report content changes its indexes haven\'t taken in', $file, null,
+                'gaffer-search 0.4.0 (feature pending_updates) does: doctor then warns when WP-cron doesn\'t apply them (a password-protected site).');
+        }
         foreach ($definitions as $name => $definition) {
             $state = $status[$name] ?? null;
             if ($state === null) {
@@ -623,9 +628,56 @@ final class WordPressCheck implements Check
                     $report->info('search', "Index \"{$name}\": built and current, {$state['documents']} documents", $file);
                 }
             }
+            $this->search_pending($report, $state, $name, $file);
             $this->search_card($report, $engine, $name);
             $this->search_labels($report, $engine, $name);
         }
+    }
+
+    /**
+     * Yoast SEO keeps each post's title, description and canonical in its own table (indexables)
+     * and writes it only on production: on a dev copy, content changed or imported there is shown
+     * with the rows Yoast had before (a live database's), silently. Asked from Yoast itself.
+     */
+    private function yoast(Report $report): void
+    {
+        if (!function_exists('YoastSEO')) {
+            return;
+        }
+        try {
+            $writes = (bool) \YoastSEO()->helpers->indexable->should_index_indexables();
+        } catch (\Throwable) {
+            return; // another Yoast than this was written for: nothing to say
+        }
+        if ($writes) {
+            return;
+        }
+        $report->info('wp', 'Yoast SEO doesn\'t update its SEO data on this site (WP_ENVIRONMENT_TYPE is ' . \wp_get_environment_type() . ', not production)', null, null,
+            'Titles, descriptions and canonicals of content changed or imported here still come from Yoast\'s older rows (a copied live database has them). '
+            . 'Check them in gaffer-render\'s seo; rebuild them with wp eval \'add_filter("Yoast\\WP\\SEO\\should_index_indexables", "__return_true"); '
+            . 'WP_CLI::runcommand("yoast index --reindex --skip-confirmation", ["launch" => false]);\' (their URLs are this site\'s: '
+            . 'after moving to production, wp yoast index --reindex there).');
+    }
+
+    /** Minutes an unapplied content change may wait before doctor calls the updates stuck (they run seconds after a change). */
+    private const int PENDING_MINUTES = 5;
+
+    /**
+     * Content changes the index hasn't taken in for a while: the update job runs from WP-cron,
+     * which a password-protected site (its loopback request is refused) or WP-CLI never runs.
+     *
+     * @param array{pending: ?int, pending_since: ?int} $state
+     */
+    private function search_pending(Report $report, array $state, string $index, string $file): void
+    {
+        $since = $state['pending_since'];
+        if ($since === null || $since > time() - self::PENDING_MINUTES * 60) {
+            return;
+        }
+        $report->warning('search', "Index \"{$index}\": content changes wait for the index for more than " . self::PENDING_MINUTES . ' minutes', $file, null,
+            "{$state['pending']} change(s), the oldest from " . intdiv(time() - $since, 60) . ' minutes ago: WP-cron doesn\'t run here (HTTP auth or a firewall refuses its loopback request, '
+            . 'or DISABLE_WP_CRON without a system cron), so search shows stale results. wp gaffer-search update applies them now; '
+            . 'a system cron runs it every minute (gaffer-search docs/hosting.md).');
     }
 
     /**

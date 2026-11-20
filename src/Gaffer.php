@@ -1,0 +1,199 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer;
+
+use Gaffer\Mcp\Mcp;
+use Gaffer\Twig\Extension;
+use Twig\Environment;
+use Twig\Extension\AttributeExtension;
+use Twig\Extension\DebugExtension;
+use Twig\Extra\String\StringExtension;
+use Twig\Loader\FilesystemLoader;
+
+/**
+ * Boots Gaffer for the theme: config, Twig, the theme's inc/ files, ACF blocks and fields.
+ */
+final class Gaffer
+{
+    private static bool $configured = false;
+    private static bool $twig = false;
+    private static bool $booted = false;
+
+    /**
+     * Theme root + config only. Safe before WordPress is loaded (ajax.php, CLI).
+     *
+     * @internal
+     */
+    public static function configure(string $dir): void
+    {
+        if (self::$configured) {
+            return;
+        }
+        self::$configured = true;
+
+        Paths::set_base($dir);
+        Config::load(Paths::base('config'));
+    }
+
+    /**
+     * Full boot, called from the theme's functions.php once WordPress is loaded.
+     */
+    public static function boot(string $dir): void
+    {
+        if (self::$booted) {
+            return;
+        }
+        self::$booted = true;
+
+        self::configure($dir);
+        self::twig();
+        self::includes();
+        self::acf();
+        self::blocks();
+        self::font_faces();
+        AdminBar::register();
+        Turnstile::register();
+        Mcp::register();
+        Search\Integration::register();
+    }
+
+    /**
+     * The Twig environment only (also used for SHORTINIT ajax, where functions.php never runs).
+     *
+     * @internal
+     */
+    public static function twig(): void
+    {
+        if (self::$twig) {
+            return;
+        }
+        self::$twig = true;
+
+        $loader = new FilesystemLoader();
+        foreach ([FilesystemLoader::MAIN_NAMESPACE => Paths::views(), ...Paths::view_namespaces()] as $namespace => $path) {
+            if (is_dir($path)) {
+                $loader->addPath($path, $namespace);
+            }
+        }
+        $loader->addPath(Paths::gaffer_views(), 'gaffer');
+
+        $debug = self::debug();
+
+        $twig = new Environment($loader, [
+            'cache' => Config::get('theme.cache') ? Paths::twig_cache() : false,
+            // A changed template recompiles without twig:clear (a stat per template): else a deploy,
+            // doctor's renders and the search index's cards would use the old one.
+            'auto_reload' => true,
+            'debug' => $debug,
+            'strict_variables' => $debug,
+            'use_yield' => true,
+        ]);
+
+        if ($debug) {
+            $twig->addExtension(new DebugExtension());
+        }
+        $twig->addExtension(new AttributeExtension(Extension::class));
+        $twig->addExtension(new StringExtension());
+        foreach (Config::get('theme.twig_extensions') ?? [] as $class) {
+            $twig->addExtension(new AttributeExtension($class));
+        }
+
+        View::set_env($twig);
+    }
+
+    /**
+     * Twig debug mode (DebugExtension, strict_variables): on when WordPress's
+     * WP_DEBUG is, so it's set per server in wp-config.php, never in theme config.
+     *
+     * @internal
+     */
+    public static function debug(): bool
+    {
+        return defined('WP_DEBUG') && WP_DEBUG;
+    }
+
+    /**
+     * Installed Gaffer version, e.g. "0.x-dev @ 1a2b3c4", or "dev" when Gaffer
+     * isn't installed as a Composer dependency (its own repository).
+     *
+     * Reads the theme's vendor/composer/installed.php directly: plugins bundle
+     * their own copy of Composer\InstalledVersions, and whichever loads first
+     * may not know the theme's packages.
+     *
+     * @internal
+     */
+    public static function version(): string
+    {
+        $installed = dirname(__DIR__, 3) . '/composer/installed.php';
+        $package = is_file($installed) ? ((require $installed)['versions']['onstage2426/gaffer'] ?? null) : null;
+
+        if (!is_array($package)) {
+            return 'dev';
+        }
+
+        $reference = (string) ($package['reference'] ?? '');
+
+        return ($package['pretty_version'] ?? 'unknown') . ($reference !== '' ? ' @ ' . substr($reference, 0, 7) : '');
+    }
+
+    /**
+     * inc/*.php, then inc/*\/*.php.
+     */
+    private static function includes(): void
+    {
+        foreach ([...glob(Paths::includes() . '/*.php') ?: [], ...glob(Paths::includes() . '/*/*.php') ?: []] as $file) {
+            include_once $file;
+        }
+    }
+
+    /**
+     * ACF local JSON is saved to and loaded from storage/acf-json; block data is read
+     * without kses's "&amp;" (AcfValues).
+     */
+    private static function acf(): void
+    {
+        $dir = Paths::storage() . '/acf-json';
+        AcfValues::register();
+
+        add_filter('acf/settings/save_json', fn(): string => $dir);
+        add_filter('acf/settings/load_json', function (array $paths) use ($dir): array {
+            $paths[] = $dir;
+            return $paths;
+        });
+    }
+
+    /**
+     * Without a theme.json there are no theme.json fonts: WordPress's wp_print_font_faces still
+     * resolves the theme.json data on every page (~5 ms) to print nothing. A theme loads its own
+     * fonts (assets/). With a theme.json it stays.
+     */
+    private static function font_faces(): void
+    {
+        if (function_exists('remove_action') && !is_file(Paths::base('theme.json'))) {
+            \remove_action('wp_head', 'wp_print_font_faces', 50);
+        }
+    }
+
+    /**
+     * Every blocks/*\/block.json, their fields.php and fields/*\/*.php as ACF field groups.
+     */
+    private static function blocks(): void
+    {
+        // On init, as WordPress expects: registering runs plugin filters that may load
+        // translations (WooCommerce's), which is "too early" before init.
+        $register = static function (): void {
+            foreach (glob(Paths::blocks() . '/*/block.json') ?: [] as $block) {
+                $type = register_block_type($block);
+                if ($type instanceof \WP_Block_Type && $type->render_callback !== null) {
+                    $type->render_callback = Acf::rendering($type->render_callback); // Acf::block_array() knows it's in a block
+                }
+            }
+        };
+        // Booted after init only by the CLI when the theme isn't the active one.
+        did_action('init') ? $register() : add_action('init', $register);
+        add_action('acf/include_fields', BlockFields::register(...));
+        add_action('acf/include_fields', FieldGroups::register(...));
+    }
+}

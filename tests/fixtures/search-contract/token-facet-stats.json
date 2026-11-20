@@ -1,0 +1,29 @@
+{
+    "call": "token",
+    "args": [
+        "products",
+        {
+            "limit": 1,
+            "attributes": [
+                "id"
+            ],
+            "facet_stats": [
+                "price"
+            ]
+        }
+    ],
+    "expect": {
+        "payload": {
+            "index": "products",
+            "limit": 1,
+            "facet_stats": [
+                "price"
+            ],
+            "attributes": [
+                "id"
+            ],
+            "site": 1,
+            "c": 1
+        }
+    }
+}

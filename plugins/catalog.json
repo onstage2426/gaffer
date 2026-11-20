@@ -1,0 +1,8 @@
+{
+    "gaffer-search": {
+        "repo": "https://github.com/onstage2426/gaffer-search.git",
+        "branch": "0.x",
+        "filter": "gaffer_search_engine",
+        "fixtures": "tests/fixtures/search-contract"
+    }
+}

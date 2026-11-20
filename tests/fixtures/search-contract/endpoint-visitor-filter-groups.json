@@ -1,0 +1,97 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "default_sort": [
+                "id:asc"
+            ],
+            "facets": [
+                "color"
+            ]
+        }
+    ],
+    "query": {
+        "filter": {
+            "category": {
+                "all": [
+                    "kleding",
+                    "jurken"
+                ]
+            },
+            "any": [
+                {
+                    "color": "rood"
+                },
+                {
+                    "color": "wit"
+                }
+            ]
+        }
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 3,
+            "offset": 0,
+            "limit": 20,
+            "results": [
+                {
+                    "id": 1,
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 3,
+                    "formatted": {
+                        "title": "Jurk &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                        "snippet": "Feestelijke jurk met kant."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 11,
+                    "formatted": {
+                        "title": "Geheime jurk",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": {
+                "color": {
+                    "rood": 2,
+                    "blauw": 1,
+                    "goud": 1,
+                    "wit": 1
+                }
+            },
+            "facetStats": [],
+            "labels": {
+                "category": {
+                    "kleding": "Kleding",
+                    "jurken": "Jurken"
+                },
+                "color": {
+                    "rood": "Rood",
+                    "blauw": "Blauw",
+                    "goud": "Goud",
+                    "wit": "Wit"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

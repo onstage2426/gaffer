@@ -1,0 +1,23 @@
+{
+    "call": "problems",
+    "args": [
+        {
+            "cars": {
+                "type": "posts",
+                "searchable": [
+                    "title",
+                    "brand"
+                ],
+                "taxonomies": {
+                    "category": "brand"
+                }
+            }
+        }
+    ],
+    "expect_contains": [
+        "cars: searchable names \"brand\", a taxonomy field"
+    ],
+    "expect": [
+        "cars: searchable names \"brand\", a taxonomy field"
+    ]
+}

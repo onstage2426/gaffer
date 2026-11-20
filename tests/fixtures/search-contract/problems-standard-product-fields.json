@@ -1,0 +1,37 @@
+{
+    "call": "problems",
+    "args": [
+        {
+            "products": {
+                "type": "products",
+                "facets": [
+                    "price",
+                    "stock_status",
+                    "on_sale",
+                    "rating"
+                ],
+                "sortable": [
+                    "sku"
+                ],
+                "meta": {
+                    "_price": [
+                        "price",
+                        "float"
+                    ],
+                    "_stock": [
+                        "stock_quantity",
+                        "int"
+                    ]
+                }
+            }
+        }
+    ],
+    "expect_contains": [
+        "remove the meta line \"_price\"",
+        "built in"
+    ],
+    "expect": [
+        "remove the meta line \"_price\"",
+        "built in"
+    ]
+}

@@ -1,0 +1,160 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Maintainer tool (not for themes): which themes use which part of Gaffer's API.
+ * For deprecation and breaking decisions: "who breaks if I change X".
+ *
+ *   bin/dev/usage                     every theme in local/usage-paths + themes/ in this repo
+ *   bin/dev/usage <theme dir>...      these themes
+ *   --member=View::fetch              only members whose name contains this
+ *   --unused                          also list public members no theme uses
+ *
+ * Exact: class references and static members (imports resolved, GafferReferences).
+ * By name (~): instance methods and properties (`->title(`, Twig `.title`): the
+ * receiver's class isn't known, so a theme's own method of that name counts too.
+ * Internal or missing symbols in use are listed first: they break without notice.
+ */
+
+declare(strict_types=1);
+
+use Gaffer\Console\GafferReferences;
+use Gaffer\Console\PublicApi;
+
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
+
+$args = array_slice($argv, 1);
+$filter = null;
+$unused = false;
+$themes = [];
+foreach ($args as $arg) {
+    match (true) {
+        str_starts_with($arg, '--member=') => $filter = substr($arg, 9),
+        $arg === '--unused' => $unused = true,
+        default => $themes[] = rtrim($arg, '/'),
+    };
+}
+if ($themes === []) {
+    // Theme globs on this host: local/usage-paths (untracked, one per line, ~ for $HOME), plus themes/.
+    $paths = is_file(dirname(__DIR__, 2) . '/local/usage-paths') ? file(dirname(__DIR__, 2) . '/local/usage-paths', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] : [];
+    $paths[] = dirname(__DIR__, 2) . '/themes/*';
+    $candidates = [];
+    foreach ($paths as $path) {
+        $candidates = [...$candidates, ...glob(preg_replace('/^~/', (string) getenv('HOME'), trim($path)), GLOB_ONLYDIR) ?: []];
+    }
+    foreach ($candidates as $dir) {
+        if (is_file("{$dir}/composer.json") && str_contains((string) file_get_contents("{$dir}/composer.json"), 'onstage2426/gaffer')) {
+            $themes[] = $dir;
+        }
+    }
+}
+
+/** A short label per theme: site/theme for host themes, the folder for copies here. */
+$label = static fn(string $dir): string => preg_match('~websites/([^/]+)/wp-content/themes/([^/]+)$~', $dir, $m) ? "{$m[1]}" . ($m[2] !== $m[1] ? "/{$m[2]}" : '') : 'copy:' . basename($dir);
+
+// Public instance members, by name => list of Class::name.
+$instance = [];
+$static = [];
+$constants = [];
+foreach (PublicApi::classes() as $class) {
+    $r = new ReflectionClass($class);
+    foreach ($r->getMethods(ReflectionMethod::IS_PUBLIC) as $m) {
+        if ($m->getDeclaringClass()->getName() !== $class || PublicApi::internal($m->getDocComment()) || str_starts_with($m->getName(), '__')) {
+            continue;
+        }
+        $m->isStatic() ? $static["{$class}::{$m->getName()}"] = true : $instance[$m->getName()][] = "{$class}::{$m->getName()}";
+    }
+    foreach ($r->getProperties(ReflectionProperty::IS_PUBLIC) as $p) {
+        if ($p->getDeclaringClass()->getName() === $class && !PublicApi::internal($p->getDocComment())) {
+            $instance[$p->getName()][] = "{$class}::\${$p->getName()}";
+        }
+    }
+    foreach ($r->getReflectionConstants(ReflectionClassConstant::IS_PUBLIC) as $c) {
+        if ($c->getDeclaringClass()->getName() === $class && !PublicApi::internal($c->getDocComment())) {
+            $static["{$class}::{$c->getName()}"] = true;
+            $constants[$c->getName()][] = "{$class}::{$c->getName()}"; // a subclass declaring it overrides it
+        }
+    }
+    $static[$class] = true;
+}
+
+$uses = [];      // symbol => theme => count
+$bad = [];       // symbol => theme => list of file:line
+$by_name = [];   // Class::member => theme => count
+foreach ($themes as $dir) {
+    $theme = $label($dir);
+    $files = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        static fn(SplFileInfo $f): bool => !($f->isDir() && in_array($f->getFilename(), ['vendor', 'node_modules', '.git', 'storage', 'public'], true)),
+    ));
+    foreach ($files as $file) {
+        $ext = $file->getFilename() === 'gaffer' ? 'php' : $file->getExtension(); // the theme's CLI entry has no extension
+        if ($ext !== 'php' && $ext !== 'twig') {
+            continue;
+        }
+        $code = (string) file_get_contents($file->getPathname());
+        $relative = substr($file->getPathname(), strlen($dir) + 1);
+        if ($ext === 'php') {
+            foreach (GafferReferences::in($code) as ['class' => $class, 'member' => $member, 'line' => $line]) {
+                $status = PublicApi::status($class);
+                if ($status === 'public' && $member !== null) {
+                    $status = PublicApi::status($class, $member);
+                } else {
+                    $member = null;
+                }
+                $symbol = $class . ($member !== null ? "::{$member}" : '');
+                if ($status === 'public') {
+                    $uses[$symbol][$theme] = ($uses[$symbol][$theme] ?? 0) + 1;
+                } else {
+                    $bad["{$symbol} ({$status})"][$theme][] = "{$relative}:{$line}";
+                }
+            }
+            preg_match_all('/->\s*(\w+)\b/', $code, $m);
+            preg_match_all('/\bconst\s+(?:\w+\s+)?(\w+)\s*=/', $code, $declared);
+            foreach ($declared[1] as $name) {
+                foreach ($constants[$name] ?? [] as $member) {
+                    $by_name[$member][$theme] = ($by_name[$member][$theme] ?? 0) + 1;
+                }
+            }
+        } else {
+            preg_match_all('/\.(\w+)\b/', (string) preg_replace('/\{#.*?#\}/s', '', $code), $m);
+        }
+        foreach ($m[1] as $name) {
+            foreach ($instance[$name] ?? [] as $member) {
+                $by_name[$member][$theme] = ($by_name[$member][$theme] ?? 0) + 1;
+            }
+        }
+    }
+}
+
+$matches = static fn(string $symbol): bool => $filter === null || stripos($symbol, $filter) !== false;
+$short = static fn(string $symbol): string => str_replace('Gaffer\\', '', $symbol);
+$sites = static fn(array $per): string => implode(', ', array_map(static fn(string $t, int|array $n): string => is_array($n) ? "{$t} (" . implode(', ', array_slice($n, 0, 3)) . (count($n) > 3 ? ', …' : '') . ')' : "{$t} {$n}", array_keys($per), $per));
+
+echo 'Themes: ' . implode(', ', array_map($label, $themes)) . "\n\n";
+echo "Internal or missing in use (break without notice):\n";
+ksort($bad);
+foreach (array_filter($bad, $matches, ARRAY_FILTER_USE_KEY) as $symbol => $per) {
+    echo '  ' . $short($symbol) . ': ' . $sites($per) . "\n";
+}
+echo "\nPublic API in use (exact):\n";
+ksort($uses);
+foreach (array_filter($uses, $matches, ARRAY_FILTER_USE_KEY) as $symbol => $per) {
+    printf("  %-40s %d themes: %s\n", $short($symbol), count($per), $sites($per));
+}
+echo "\nInstance members by name (~, a theme method of that name counts too):\n";
+ksort($by_name);
+foreach (array_filter($by_name, $matches, ARRAY_FILTER_USE_KEY) as $symbol => $per) {
+    printf("  %-40s %d themes: %s\n", $short($symbol), count($per), $sites($per));
+}
+if ($unused) {
+    echo "\nPublic, used by no theme:\n";
+    $all = [...array_keys($static), ...array_merge(...array_values($instance))];
+    sort($all);
+    foreach ($all as $symbol) {
+        $members_used = !str_contains($symbol, '::') && array_any([...array_keys($uses), ...array_keys($by_name)], static fn(string $u): bool => str_starts_with($u, "{$symbol}::"));
+        if ($matches($symbol) && !isset($uses[$symbol]) && !isset($by_name[$symbol]) && !$members_used) {
+            echo '  ' . $short($symbol) . "\n";
+        }
+    }
+}

@@ -1,0 +1,163 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer\Tests;
+
+use Gaffer\Search\ArchiveUrl;
+
+final class ArchiveUrlTest extends TestCase
+{
+    /** An index as config/search.php defines it: colors from pa_kleur (the price is built in). */
+    private const array PRODUCTS = [
+        'type' => 'products',
+        'facets' => ['price'],
+        'taxonomies' => ['product_cat' => 'category', 'pa_kleur' => 'color'],
+        'sortable' => ['title'],
+    ];
+
+    public function test_one_url_per_page_with_lists_as_the_form_sends_them(): void
+    {
+        $url = ArchiveUrl::url('https://shop.test/winkel/', [
+            'token' => 'abc',
+            'utm_source' => 'mail',
+            'q' => ' jurk ',
+            'offset' => '0',
+            'sort' => ['price:desc', 'title_sort:asc', ''],
+            'filter' => ['merk' => ['stella', 'mbi', ''], 'price' => ['min' => '10', 'max' => ''], 'color' => '', 'visibility' => ['not' => ['b', 'a']]],
+            'limit' => '24',
+            'view' => 'list',
+        ]);
+
+        self::assertSame('https://shop.test/winkel/?q=jurk&filter%5Bmerk%5D%5B%5D=mbi&filter%5Bmerk%5D%5B%5D=stella&filter%5Bprice%5D%5Bmin%5D=10'
+            . '&filter%5Bvisibility%5D%5Bnot%5D%5B%5D=a&filter%5Bvisibility%5D%5Bnot%5D%5B%5D=b&sort%5B%5D=price%3Adesc&sort%5B%5D=title_sort%3Aasc&limit=24', $url);
+        self::assertSame('https://shop.test/winkel/', ArchiveUrl::url('https://shop.test/winkel/', ['token' => 'abc', 'offset' => '0']));
+        self::assertSame('https://shop.test/winkel/?lang=en&offset=24', ArchiveUrl::url('https://shop.test/winkel/?lang=en', ['offset' => '24']), 'the base\'s own query stays');
+        self::assertSame('/afwatering/?show=all&offset=24', ArchiveUrl::url('/afwatering/?show=all', ['show' => 'all', 'offset' => '24']), 'a base param once');
+        self::assertSame(
+            ArchiveUrl::url('/', ['filter' => ['b' => ['y', 'x'], 'a' => 'z']]),
+            ArchiveUrl::url('/', ['filter' => ['a' => 'z', 'b' => ['x', 'y']]]),
+            'one page, one URL',
+        );
+    }
+
+    public function test_a_list_with_an_empty_entry_stays_a_list_and_keeps_distinct_values(): void
+    {
+        // A plain form submit: filter[c][]=&filter[c][]=red
+        // Before: filter[c][1]=red, a map.
+        self::assertSame('/winkel/?filter%5Bc%5D%5B%5D=red', ArchiveUrl::url('/winkel/', ['filter' => ['c' => ['', 'red']]]));
+        self::assertSame(['01', '1'], ArchiveUrl::request(['filter' => ['maat' => ['1', '01']]])['filter']['maat']);
+    }
+
+    public function test_indexable_pages(): void
+    {
+        self::assertTrue(ArchiveUrl::indexable([]), 'the archive itself');
+        self::assertFalse(ArchiveUrl::indexable(['filter' => ['brand' => 'rosa-clara']]), 'a filter besides the term');
+        self::assertTrue(ArchiveUrl::indexable(['filter' => ['category' => 'jurken']], ['category']), 'the term\'s own field');
+        self::assertFalse(ArchiveUrl::indexable(['sort' => ['price:asc']]));
+        self::assertFalse(ArchiveUrl::indexable(['q' => 'jurk']), 'a search');
+        self::assertFalse(ArchiveUrl::indexable(['limit' => '48']), 'the same products, more per page');
+        self::assertTrue(ArchiveUrl::indexable(['q' => ' ', 'limit' => '', 'sort' => ['']]), 'empty params count as absent');
+
+        self::assertFalse(ArchiveUrl::indexable(['offset' => '24']));
+        self::assertTrue(ArchiveUrl::indexable(['offset' => '24'], [], 24), 'later pages with a page size');
+        self::assertFalse(ArchiveUrl::indexable(['offset' => '25'], [], 24), 'an offset between pages isn\'t a page');
+
+        $sale = ['on_sale' => ['yes']];
+        self::assertTrue(ArchiveUrl::indexable(['filter' => ['on_sale' => 'yes']], [], 0, $sale), 'a listed value');
+        self::assertTrue(ArchiveUrl::indexable(['filter' => ['on_sale' => ['yes']]], [], 0, $sale), 'as a list too');
+        self::assertFalse(ArchiveUrl::indexable(['filter' => ['on_sale' => 'no']], [], 0, $sale), 'another value');
+        self::assertFalse(ArchiveUrl::indexable(['filter' => ['on_sale' => 'yes', 'brand' => 'x']], [], 0, $sale), 'with a field not listed');
+        self::assertFalse(ArchiveUrl::indexable(['filter' => ['on_sale' => ['not' => 'yes']]], [], 0, $sale), 'an exclusion');
+    }
+
+    public function test_woocommerces_params_become_the_archives_own(): void
+    {
+        self::assertSame(['q' => 'x'], ArchiveUrl::translate(self::PRODUCTS, ['q' => 'x']), 'nothing to translate');
+        self::assertSame([
+            'q' => 'x',
+            'filter' => ['category' => 'jurken', 'color' => ['rood', 'wit'], 'price' => ['min' => '10', 'max' => '50']],
+            'sort' => ['price:desc'],
+        ], ArchiveUrl::translate(self::PRODUCTS, [
+            'q' => 'x',
+            'filter' => ['category' => 'jurken'],
+            'filter_kleur' => 'rood,wit',
+            'query_type_kleur' => 'or',
+            'filter_maat' => 'm',
+            'min_price' => '10',
+            'max_price' => '50',
+            'orderby' => 'price-desc',
+            'rating_filter' => '4',
+        ]), 'pa_kleur → color; no field for pa_maat or a rating');
+        self::assertSame(['q' => 'x', 'sort' => ['total_sales:desc']], ArchiveUrl::translate(self::PRODUCTS, ['q' => 'x', 'orderby' => 'popularity']));
+        self::assertSame(['q' => 'x', 'filter' => ['price' => ['min' => '10']], 'sort' => ['price:asc']], ArchiveUrl::translate(['type' => 'products'], ['q' => 'x', 'min_price' => '10', 'orderby' => 'price']), 'products have a price without facets or meta');
+        self::assertSame(['sort' => ['rating:desc']], ArchiveUrl::translate(['type' => 'products'], ['orderby' => 'rating']), 'the built-in rating');
+        self::assertSame(['q' => 'x'], ArchiveUrl::translate(['type' => 'posts'], ['q' => 'x', 'min_price' => '10', 'orderby' => 'price']), 'no price field: dropped');
+        self::assertSame(['onsale_filter' => '1'], ArchiveUrl::translate(self::PRODUCTS, ['onsale_filter' => '1']), 'other plugins\' params are left alone');
+    }
+
+    public function test_redirects_of_old_urls(): void
+    {
+        self::assertNull(ArchiveUrl::redirect(self::PRODUCTS, ['q' => 'x'], 0, 24, '/winkel/'));
+        self::assertSame('/winkel/?q=x&offset=48', ArchiveUrl::redirect(self::PRODUCTS, ['q' => 'x'], 3, 24, '/winkel/'), '/page/3/');
+        self::assertSame(
+            '/winkel/?filter%5Bcolor%5D%5B%5D=rood&filter%5Bcolor%5D%5B%5D=wit&filter%5Bprice%5D%5Bmin%5D=50&sort%5B%5D=price%3Adesc',
+            ArchiveUrl::redirect(self::PRODUCTS, ['orderby' => 'price-desc', 'min_price' => '50', 'filter_kleur' => 'rood,wit', 'query_type_kleur' => 'or'], 0, 24, '/winkel/'),
+        );
+        self::assertSame('/afwatering/?show=all&offset=24', ArchiveUrl::redirect(self::PRODUCTS, ['show' => 'all'], 2, 24, '/afwatering/?show=all'), 'base params ride in the query');
+        // ?paged=2 (plain permalinks, old links): kept, WordPress would read it again and loop.
+        self::assertSame('/winkel/?offset=24', ArchiveUrl::redirect(self::PRODUCTS, ['paged' => '2'], 2, 24, '/winkel/'));
+    }
+
+    public function test_the_themes_old_params_after_woocommerces(): void
+    {
+        // Like a live shop's theme: YITH's params and a price filter over mixed units go.
+        $theme = static function (array $query): array {
+            unset($query['yith_wcan'], $query['top'], $query['filter']['price']);
+            if (($query['filter'] ?? null) === []) {
+                unset($query['filter']);
+            }
+            return $query;
+        };
+
+        self::assertSame('/assortiment/', ArchiveUrl::redirect(self::PRODUCTS, ['yith_wcan' => '1'], 0, 24, '/assortiment/', $theme), 'a dropped param is a 301');
+        self::assertSame('/afwatering/?utm_source=mail', ArchiveUrl::redirect(self::PRODUCTS, ['top' => '10', 'utm_source' => 'mail'], 0, 24, '/afwatering/', $theme), 'what it keeps stays');
+        self::assertSame('/assortiment/', ArchiveUrl::redirect(self::PRODUCTS, ['min_price' => '10', 'max_price' => '50'], 0, 24, '/assortiment/', $theme), 'it sees what WooCommerce\'s params became');
+        self::assertNull(ArchiveUrl::redirect(self::PRODUCTS, ['utm_source' => 'mail', 'q' => 'tegel'], 0, 24, '/assortiment/', $theme), 'nothing changed: no redirect');
+        self::assertNull(ArchiveUrl::redirect(self::PRODUCTS, ['b' => '1', 'a' => '2'], 0, 24, '/', static fn(array $query): array => ['a' => '2', 'b' => '1']), 'the same params in another order are the same page');
+    }
+
+    public function test_a_form_submitted_without_javascript_redirects_to_its_normalized_url(): void
+    {
+        self::assertSame(
+            '/afwatering/?show=all&filter%5Bbrand%5D%5B%5D=x&view=list',
+            ArchiveUrl::redirect(self::PRODUCTS, ['token' => 'abc', 'show' => 'all', 'q' => '', 'offset' => '0', 'sort' => [''], 'filter' => ['brand' => ['x'], 'price' => ['min' => '', 'max' => '']], 'view' => 'list'], 0, 24, '/afwatering/?show=all'),
+        );
+        self::assertSame('/assortiment/?filter%5Bon_sale%5D=yes', ArchiveUrl::redirect(self::PRODUCTS, ['token' => 'abc', 'filter' => ['on_sale' => 'yes'], 'limit' => '24'], 0, 24, '/assortiment/'), 'the default page size goes: the indexable sale page');
+        self::assertSame('/assortiment/?filter%5Bon_sale%5D=yes&limit=48', ArchiveUrl::redirect(self::PRODUCTS, ['token' => 'abc', 'filter' => ['on_sale' => 'yes'], 'limit' => '48'], 0, 24, '/assortiment/'), 'a chosen one stays');
+    }
+
+    public function test_the_urls_params_as_the_search_request(): void
+    {
+        self::assertSame(
+            ['query' => 'tegel', 'filter' => ['color' => ['rood', 'wit'], 'price' => ['min' => '10']], 'sort' => ['price:asc'], 'offset' => 24],
+            ArchiveUrl::request(['q' => ' tegel ', 'filter' => ['color' => ['wit', 'rood'], 'price' => ['min' => '10', 'max' => '']], 'sort' => ['price:asc'], 'offset' => '24', 'view' => 'list']),
+        );
+        self::assertSame(10000, ArchiveUrl::request(['offset' => '99999'])['offset']);
+    }
+
+    public function test_groups_keep_their_entries_in_the_url_and_are_never_indexable(): void
+    {
+        $filter = ['any' => [['color' => 'wit', 'price' => ['max' => '60']], ['brand' => 'pumpkin']], 'tags' => ['all' => ['sale', 'new']]];
+        $url = ArchiveUrl::url('/winkel/', ['filter' => $filter]);
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        self::assertSame([['color' => 'wit', 'price' => ['max' => '60']], ['brand' => 'pumpkin']], $query['filter']['any'], 'an entry with two conditions stays one entry');
+        self::assertSame(['all' => ['new', 'sale']], $query['filter']['tags']);
+        self::assertFalse(ArchiveUrl::indexable(['filter' => ['not' => ['brand' => 'x']]]));
+        self::assertFalse(ArchiveUrl::indexable(['filter' => ['on_sale' => ['all' => ['yes']]]], [], 0, ['on_sale' => ['yes']]));
+        self::assertTrue(ArchiveUrl::uses_groups($filter));
+        self::assertFalse(ArchiveUrl::uses_groups(['brand' => ['a', 'b'], 'price' => ['min' => 1], 'color' => ['not' => 'x']]));
+        self::assertSame(['brand' => 'a'], ArchiveUrl::without_groups(['brand' => 'a', 'not' => ['b' => 'c'], 'tags' => ['all' => ['x']]]));
+    }
+}

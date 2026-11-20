@@ -1,0 +1,421 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer\Search;
+
+use Gaffer\Config;
+use Gaffer\Types\Post;
+use Gaffer\Types\Term;
+use Twig\Markup;
+
+/**
+ * Search for templates, from the gaffer-search plugin's indexes as config/search.php defines
+ * them. Without the plugin everything still renders: unavailable states, no cards.
+ */
+final class Search
+{
+    private static ?Archive $archive = null;
+    private static bool $archived = false;
+
+    /**
+     * The current page as an archive (config/search.php `archive`): the shop, a product category
+     * or the shop's search results (?q=). Null on any other page.
+     */
+    public static function archive(): ?Archive
+    {
+        if (!self::$archived) {
+            self::$archived = true;
+            self::$archive = self::make_archive();
+        }
+
+        return self::$archive;
+    }
+
+    /**
+     * Cards from an index, for a slider: the most popular products of a category without the
+     * product of the page, say, or only those on sale (`filter`). Products hidden from the
+     * catalog are left out.
+     *
+     * @param list<string> $sort e.g. ['total_sales:desc']
+     * @param array<string, mixed> $filter e.g. ['on_sale' => 'yes'], ['brand' => ['a', 'b']], ['price' => ['min' => 10]],
+     *     ['tags' => ['all' => ['sale', 'new']]], ['any' => [['on_sale' => 'yes'], ['tags' => 'new']]] (the contract's Filter)
+     * @return list<Markup>
+     */
+    public static function cards(string $index, int $limit, array $sort = [], ?Term $term = null, ?Post $except = null, array $filter = []): array
+    {
+        $engine = Engine::find();
+        $field = Indexes::card_field($index);
+        if ($engine === null || $field === null) {
+            return [];
+        }
+        $results = $engine->search($index, [
+            ...self::scope($index, 'catalog'),
+            'limit' => $limit,
+            'sort' => $sort,
+            'attributes' => ['id', $field],
+            ...($term !== null ? ['term' => $term->id()] : []),
+            ...($filter !== [] || $except !== null ? ['filter' => [...$filter, ...($except !== null ? ['id' => ['not' => (string) $except->id()]] : [])]] : []),
+        ]);
+
+        return self::cards_of($results['results'], $field);
+    }
+
+    /**
+     * How many documents an index has in the archive's scope (products hidden from the catalog
+     * left out, as on the archive and in cards()), in a category (`term`) or with a filter: a
+     * finder's "14 cars", a count per brand. One lookup in the index, not a query over posts.
+     * Null when search is unavailable (the plugin inactive).
+     *
+     * @param array<string, mixed> $filter as for cards()
+     */
+    public static function count(string $index, ?Term $term = null, array $filter = []): ?int
+    {
+        $engine = Engine::find();
+        if ($engine === null) {
+            return null;
+        }
+
+        return $engine->search($index, [
+            ...self::scope($index, 'catalog'),
+            'limit' => 1,
+            'attributes' => ['id'],
+            ...($term !== null ? ['term' => $term->id()] : []),
+            ...($filter !== [] ? ['filter' => $filter] : []),
+        ])['total'];
+    }
+
+    /**
+     * count() per value of these fields, in one search: field => (value (a term field's slug)
+     * => number of documents, most first). Values without documents aren't listed. The fields
+     * must be in the index's facets. A field's own filter is left out of its counts (as for any
+     * facet), so a brand overview filtered on `['brand' => [...]]` still counts every brand.
+     * Null without the engine.
+     *
+     * @param list<string> $fields e.g. ['brand'], or ['on_sale', 'fuel'] for a menu's counts
+     * @param array<string, mixed> $filter as for cards()
+     * @return ?array<string, array<string, int>>
+     */
+    public static function facet_counts(string $index, array $fields, ?Term $term = null, array $filter = []): ?array
+    {
+        if ($fields === []) {
+            throw new \InvalidArgumentException('Search::facet_counts() takes a list of fields, e.g. [\'brand\'].');
+        }
+        $engine = Engine::find();
+        if ($engine === null) {
+            return null;
+        }
+
+        $facets = $engine->search($index, [
+            ...self::scope($index, 'catalog'),
+            'limit' => 1,
+            'attributes' => ['id'],
+            'facets' => $fields,
+            'facet_values' => array_fill_keys($fields, 1000),
+            ...($term !== null ? ['term' => $term->id()] : []),
+            ...($filter !== [] ? ['filter' => $filter] : []),
+        ])['facets'];
+
+        $result = [];
+        foreach ($fields as $field) {
+            $result[$field] = [];
+            foreach (is_array($facets[$field] ?? null) ? $facets[$field] : [] as $value => $count) {
+                if (is_numeric($count)) {
+                    $result[$field][(string) $value] = (int) $count;
+                }
+            }
+            arsort($result[$field]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * A count() the browser asks for itself: endpoint and token, for a count that changes with
+     * the visitor's choices or sits on a cached page (the token doesn't expire). The same scope
+     * as count(); the browser adds the filter. Signing it searches nothing.
+     */
+    public static function counter(string $index, ?Term $term = null): Counter
+    {
+        $engine = Engine::find();
+        if ($engine === null) {
+            return new Counter(false, '', '');
+        }
+
+        return new Counter(true, $engine->endpoint(), $engine->token($index, [
+            ...self::scope($index, 'catalog'),
+            'limit' => 1,
+            'attributes' => ['id'],
+            ...($term !== null ? ['term' => $term->id()] : []),
+        ]));
+    }
+
+    /**
+     * A searchbar's form data: endpoint, token (with these facets and the hit fields its
+     * template shows) and the archive's URL for "all results". Products hidden from search are
+     * left out.
+     *
+     * @param list<string> $attributes the fields each hit carries: what the template shows, e.g.
+     *   ['id', 'url', 'thumbnail', 'price'] (left out, a hit would carry every stored field, cards too)
+     * @param list<string> $facets
+     */
+    public static function searchbar(string $index, array $attributes, int $limit = 8, array $facets = []): Searchbar
+    {
+        if ($attributes === []) {
+            throw new \InvalidArgumentException('Search::searchbar() needs the fields its template shows (attributes), e.g. [\'id\', \'url\', \'title\'].');
+        }
+        $engine = Engine::find();
+        if ($engine === null) {
+            return new Searchbar(false, '', '', '');
+        }
+
+        return new Searchbar(
+            true,
+            $engine->endpoint(),
+            $engine->token($index, [...self::scope($index, 'search'), 'limit' => $limit, 'facets' => $facets, 'attributes' => $attributes]),
+            self::shop_url() ?? '',
+        );
+    }
+
+    /**
+     * A link to an archive with a search: the shop, or a product category or other product
+     * taxonomy's term, with a filter, sort or query (brand logos → ['filter' => ['brand' =>
+     * ['x']]], a sale banner → ['filter' => ['on_sale' => 'yes']]). Normalized like the canonical;
+     * `urls.base_params` in $query are kept (['show' => 'all']). Null when the theme has no
+     * archive or the term has no page.
+     *
+     * @param array<mixed> $query the archive's URL params: q, filter, sort, offset, limit, and base params
+     */
+    public static function archive_url(?Term $term = null, array $query = []): ?string
+    {
+        $base = $term !== null ? $term->link() : self::shop_url();
+        if (self::archive_index() === null || $base === null || $base === '') {
+            return null;
+        }
+        $own = array_intersect_key($query, array_flip(array_map(strval(...), (array) Config::get('search.archive.urls.base_params'))));
+        $own = array_filter($own, static fn(mixed $value): bool => is_scalar($value) && (string) $value !== '');
+
+        return ArchiveUrl::url($own !== [] ? $base . (str_contains($base, '?') ? '&' : '?') . http_build_query($own, '', '&', PHP_QUERY_RFC3986) : $base, $query);
+    }
+
+    /** @internal The archive config's index, when the shop's archives come from one. */
+    public static function archive_index(): ?string
+    {
+        $index = Config::get('search.archive.index');
+
+        return is_string($index) && Indexes::get($index) !== null ? $index : null;
+    }
+
+    /** @internal Whether this request is a page the archive answers. */
+    public static function on_archive(): bool
+    {
+        return self::archive_index() !== null && function_exists('is_shop') && function_exists('is_product_taxonomy') && (\is_shop() || \is_product_taxonomy());
+    }
+
+    /**
+     * @internal The archive's first page for this request: without a query, except the params
+     * `urls.base_params` names (a category's `?show=all` is another page than the category).
+     */
+    public static function archive_base(): string
+    {
+        $base = (string) strtok(\get_pagenum_link(1, false), '?');
+        $own = array_intersect_key((array) \wp_unslash($_GET), array_flip(array_map(strval(...), (array) Config::get('search.archive.urls.base_params'))));
+        $own = array_filter($own, static fn(mixed $value): bool => is_scalar($value) && (string) $value !== '');
+
+        return $own !== [] ? $base . '?' . http_build_query($own, '', '&', PHP_QUERY_RFC3986) : $base;
+    }
+
+    /** @internal */
+    public static function shop_url(): ?string
+    {
+        if (self::archive_index() === null || !function_exists('wc_get_page_id')) {
+            return null;
+        }
+        $url = \get_permalink(\wc_get_page_id('shop'));
+
+        return is_string($url) ? $url : null;
+    }
+
+    /** @internal Forget the archive built (tests). */
+    public static function reset(): void
+    {
+        self::$archive = null;
+        self::$archived = false;
+    }
+
+    private static function make_archive(): ?Archive
+    {
+        $index = self::archive_index();
+        if ($index === null || !self::on_archive()) {
+            return null;
+        }
+        $engine = Engine::find();
+        if ($engine === null) {
+            return Archive::unavailable();
+        }
+        $config = (array) Config::get('search.archive');
+        $seo = (array) ($config['seo'] ?? []);
+        $term = function_exists('is_product_taxonomy') && \is_product_taxonomy() ? Term::current() : null;
+        $definition = (array) Indexes::get($index);
+        $query = (array) \wp_unslash($_GET);
+        $base = self::archive_base();
+
+        // ?view= one of the index's `cards` (a list layout): its own page, with that card.
+        $views = array_keys(Indexes::templates($definition));
+        $view = is_string($query['view'] ?? null) && in_array($query['view'], $views, true) ? $query['view'] : ($views[0] ?? '');
+        $field = Indexes::card_field($index, $view !== '' ? $view : null);
+        $per_page = max(1, (int) ($config['per_page'] ?? 24));
+        $limits = array_values(array_map(intval(...), (array) ($config['limits'] ?? [])));
+        $limit = is_numeric($query['limit'] ?? null) && in_array((int) $query['limit'], $limits, true) ? (int) $query['limit'] : $per_page;
+
+        // What every page of this archive searches: the token signs it, the first page adds the URL's query.
+        $request = [
+            ...self::scope($index, 'catalog'),
+            ...($term !== null ? ['term' => $term->id()] : []),
+            'limit' => $per_page,
+            'attributes' => ['id', ...($field !== null ? [$field] : [])],
+            'default_sort' => array_values(array_map(strval(...), (array) ($config['default_sort'] ?? []))),
+            'facets' => array_values(array_map(strval(...), (array) ($config['facets'] ?? []))),
+            ...($limits !== [] ? ['limits' => $limits] : []),
+            ...array_intersect_key($config, array_flip(['facet_values', 'max_docs'])),
+            // A variant's page (business prices) is that visitor's: its token stops working after a day.
+            ...(Indexes::variant($definition) !== null ? ['ttl' => DAY_IN_SECONDS] : []),
+        ];
+        $visitor = ArchiveUrl::request($query);
+        if (!$engine->supports('filter_groups')) {
+            // A visitor's groups an older engine can't read: theirs to lose, not an error page.
+            $visitor['filter'] = ArchiveUrl::without_groups($visitor['filter']);
+        }
+        $results = $engine->search($index, [...$request, ...$visitor, 'limit' => $limit]);
+
+        $sorts = (array) ($config['sorts'] ?? []);
+        if (!array_is_list($sorts)) {
+            throw new \LogicException("config/search.php archive.sorts is a list of sort values (['', 'price:asc']); the labels go in the template.");
+        }
+        $sorts = array_map(strval(...), $sorts);
+        $sort = is_array($query['sort'] ?? null) ? (string) (reset($query['sort']) ?: '') : '';
+
+        // For search engines: one URL per page (a chosen page size or layout shows the same products).
+        $term_field = $term !== null ? ((array) ($definition['taxonomies'] ?? []))[$term->wp->taxonomy] ?? null : null;
+        $on_shop = $term === null && function_exists('is_shop') && \is_shop();
+        // The term lock replaces a visitor's filter on the term's own field: such a URL shows
+        // the term's page, so that's its canonical.
+        $own = $query;
+        if (is_string($term_field) && is_array($own['filter'] ?? null)) {
+            unset($own['filter'][$term_field]);
+        }
+        self::$seo = [
+            'url' => ArchiveUrl::url($base, array_diff_key($own, ['limit' => true])),
+            'indexable' => $view === ($views[0] ?? '') && ArchiveUrl::indexable(
+                $own,
+                is_string($term_field) ? [$term_field] : [],
+                ($seo['index_pages'] ?? false) === true ? $per_page : 0,
+                // A filtered page search engines may index is the shop's (its sale page), not a category's or brand's.
+                $on_shop ? (array) ($seo['indexable_filters'] ?? []) : [],
+            ),
+        ];
+
+        // The layouts to switch to: this page's search (first page) in each.
+        $links = [];
+        if (count($views) > 1) {
+            $page = ArchiveUrl::url($base, [...$query, 'offset' => 0]);
+            foreach ($views as $i => $name) {
+                $links[] = [
+                    'name' => $name,
+                    'value' => $i === 0 ? '' : $name, // ?view=: none for the default
+                    'url' => $i === 0 ? $page : $page . (str_contains($page, '?') ? '&' : '?') . 'view=' . rawurlencode($name),
+                    'current' => $name === $view,
+                ];
+            }
+        }
+
+        // The ranges of these fields over the whole archive (a price slider's ends), not the results.
+        $fields = array_values(array_map(strval(...), (array) ($config['bounds'] ?? [])));
+        $bounds = $fields !== [] ? $engine->search($index, self::bounds_request($request, $fields, $engine->supports('facet_stats')))['facetStats'] : [];
+
+        // The first row holds the largest image on screen: not lazy (`eager`), on every page (later
+        // pages are landing pages too, with seo.index_pages); a count per layout (a list row is shorter).
+        $cards = $field !== null ? self::cards_of($results['results'], $field) : [];
+        $eager = $config['eager'] ?? 0;
+        $eager = max(0, (int) (is_array($eager) ? ($eager[$view] ?? 0) : $eager));
+        foreach (array_slice(array_keys($cards), 0, $eager) as $i) {
+            // trusted: the stored card, with its img attributes changed
+            $cards[$i] = new Markup(Cards::eager((string) $cards[$i], $i === 0), 'UTF-8');
+        }
+
+        return new Archive(
+            true,
+            $engine->endpoint(),
+            $engine->token($index, $request),
+            $results['query'],
+            $results['total'],
+            $cards,
+            $results,
+            $sorts,
+            $sort,
+            $field ?? 'card',
+            $view,
+            $links,
+            $bounds,
+            $base,
+            $query,
+            $view !== ($views[0] ?? '') ? $view : '',
+        );
+    }
+
+    /**
+     * @internal The search for an archive's `bounds`: its own request, one hit, and the fields'
+     * ranges. With the engine's `facet_stats` only the ranges: the facet counts every value
+     * (on a whole shop's price, about 25 ms against 3 at 30,000 products).
+     *
+     * @param array<string, mixed> $request
+     * @param list<string> $fields
+     * @return array<string, mixed>
+     */
+    public static function bounds_request(array $request, array $fields, bool $stats_only): array
+    {
+        return [...$request, 'limit' => 1, 'attributes' => ['id'], ...($stats_only ? ['facets' => [], 'facet_stats' => $fields] : ['facets' => $fields])];
+    }
+
+    /** @var array{url: string, indexable: bool}|null the archive's canonical URL and whether it's indexable */
+    private static ?array $seo = null;
+
+    /**
+     * @internal For the canonical and robots hooks (Integration).
+     *
+     * @return array{url: string, indexable: bool}|null
+     */
+    public static function seo(): ?array
+    {
+        self::archive();
+
+        return self::$seo;
+    }
+
+    /**
+     * Products: what WooCommerce's catalog visibility hides from that use.
+     *
+     * @return array{visibility?: string}
+     */
+    private static function scope(string $index, string $use): array
+    {
+        return (Indexes::get($index)['type'] ?? null) === 'products' ? ['visibility' => $use] : [];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $hits
+     * @return list<Markup>
+     */
+    private static function cards_of(array $hits, string $field): array
+    {
+        $cards = [];
+        foreach ($hits as $hit) {
+            if (is_string($hit[$field] ?? null)) {
+                // trusted: rendered from the theme's card template when the index was built
+                $cards[] = new Markup($hit[$field], 'UTF-8');
+            }
+        }
+
+        return $cards;
+    }
+}

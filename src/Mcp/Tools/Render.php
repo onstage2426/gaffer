@@ -1,0 +1,113 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer\Mcp\Tools;
+
+use Gaffer\Console\Commands\RenderPage;
+use Gaffer\Console\Render\Visitor;
+use Gaffer\Console\Render\HtmlDiff;
+use Gaffer\Console\Render\SeoHead;
+use Gaffer\Console\Render\StagedTheme;
+use Gaffer\Mcp\GafferCli;
+use Gaffer\Mcp\Tool;
+use InvalidArgumentException;
+use RuntimeException;
+use WP_Error;
+
+final class Render implements Tool
+{
+    #[\Override]
+    public function name(): string
+    {
+        return 'render';
+    }
+
+    #[\Override]
+    public function label(): string
+    {
+        return 'Render a URL';
+    }
+
+    #[\Override]
+    public function description(): string
+    {
+        return 'Renders one URL of this site the way doctor does (in a fresh WordPress, Twig strict variables on, as a '
+            . 'logged-out visitor unless `user` is given) and returns status (ok/redirect/error), the HTTP status (404 for a missing page), the redirect target, the error with file and '
+            . 'line, PHP notices from theme files, time_ms, queries and twig_ms (template render time; compiling is extra while the Twig cache is off), `seo` '
+            . '(the page\'s title, meta description, canonical and robots as the SEO plugin printed them: check SEO here, its PHP API answers differently from WP-CLI), and the HTML. '
+            . 'Pass a CSS selector to get only the matching elements: whole pages are often 50-100 KB. `user` (a user ID) renders logged in; '
+            . '`cart` (WooCommerce) puts products in the cart first: cart, checkout and account pages are where shops break. Nothing is written '
+            . '(no session, the user\'s saved cart untouched). `theme` renders a staged copy of the theme (a full copy next to it) instead of the live one. Use to check a page after a change.';
+    }
+
+    #[\Override]
+    public function input_schema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'path' => ['type' => 'string', 'pattern' => '^/', 'description' => 'URL path with query string, e.g. "/contact/" or "/winkel/?s=shirt"; front-end pages only (/wp-admin/ and wp-login.php are refused)'],
+                'selector' => ['type' => 'string', 'description' => 'CSS selector, e.g. "main" or "#form-contact"; returns the outer HTML of every match'],
+                'user' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Render logged in as this user ID'],
+                'theme' => ['type' => 'string', 'description' => 'Render with a full copy of the theme next to it (its directory name, e.g. "blueprint-stage"): staged code before switching'],
+                'cart' => [
+                    'type' => 'array',
+                    'description' => 'WooCommerce: products to put in the cart first (a variation by its own ID)',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => ['product' => ['type' => 'integer', 'minimum' => 1], 'quantity' => ['type' => 'integer', 'minimum' => 1]],
+                        'required' => ['product'],
+                    ],
+                ],
+            ],
+            'required' => ['path'],
+        ];
+    }
+
+    #[\Override]
+    public function run(array $input): array|WP_Error
+    {
+        try {
+            $visitor = Visitor::from(
+                isset($input['user']) ? (int) $input['user'] : null,
+                array_map(static fn(mixed $item): string => (int) (is_array($item) ? ($item['product'] ?? 0) : 0) . ':' . max(1, (int) (is_array($item) ? ($item['quantity'] ?? 1) : 1)), is_array($input['cart'] ?? null) ? $input['cart'] : []),
+            );
+            $entry = is_string($input['theme'] ?? null) ? StagedTheme::entry($input['theme']) : null;
+        } catch (InvalidArgumentException $e) {
+            return new WP_Error('gaffer_render', $e->getMessage());
+        }
+        $args = ['render:page', (string) $input['path'], '--html', ...$visitor->arguments()];
+        $output = GafferCli::run($args, $entry);
+        try {
+            $result = RenderPage::parse($output);
+        } catch (RuntimeException $e) {
+            return new WP_Error('gaffer_render', ucfirst($e->getMessage()));
+        }
+
+        if (is_string($result['html'] ?? null) && $result['html'] !== '') {
+            $result['seo'] = SeoHead::read($result['html']);
+        }
+
+        $selector = $input['selector'] ?? null;
+        if (!is_string($selector) || $selector === '') {
+            return $result;
+        }
+
+        $html = $result['html'] ?? '';
+        unset($result['html']);
+        try {
+            $result['matches'] = HtmlDiff::select_all($html, $selector);
+        } catch (InvalidArgumentException $e) {
+            return new WP_Error('gaffer_render', $e->getMessage());
+        }
+
+        return $result;
+    }
+
+    #[\Override]
+    public function available(): bool
+    {
+        return true;
+    }
+}

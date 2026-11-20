@@ -1,0 +1,15 @@
+/vendor/
+/node_modules/
+/tmp/
+.phpactor.json
+.phpunit.result.cache
+
+# Maintainer-only, never committed (see AGENTS.md)
+/local/
+/themes/*
+!/themes/README.md
+/plugins/*
+!/plugins/README.md
+!/plugins/catalog.json
+/.claude/worktrees/
+/.claude/settings.local.json

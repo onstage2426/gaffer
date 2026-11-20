@@ -1,0 +1,60 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "limit": 1,
+            "attributes": [
+                "id"
+            ],
+            "default_sort": [
+                "id:asc"
+            ],
+            "facets": [
+                "color"
+            ],
+            "facet_values": {
+                "color": 2
+            }
+        }
+    ],
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 12,
+            "offset": 0,
+            "limit": 1,
+            "results": [
+                {
+                    "id": 1,
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": {
+                "color": {
+                    "wit": 4,
+                    "rood": 3
+                }
+            },
+            "facetStats": [],
+            "labels": {
+                "color": {
+                    "wit": "Wit",
+                    "rood": "Rood"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [
+                "color"
+            ],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

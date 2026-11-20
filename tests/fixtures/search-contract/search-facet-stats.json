@@ -1,0 +1,61 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "limit": 1,
+            "attributes": [
+                "id"
+            ],
+            "facets": [
+                "brand"
+            ],
+            "facet_stats": [
+                "price"
+            ],
+            "sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 12,
+        "offset": 0,
+        "limit": 1,
+        "results": [
+            {
+                "id": 1,
+                "formatted": {
+                    "title": "Rode jurk",
+                    "snippet": "Een lange rode jurk van zijde."
+                },
+                "labels": []
+            }
+        ],
+        "facets": {
+            "brand": {
+                "rosa-clara": 5,
+                "stella": 5,
+                "pumpkin": 2
+            }
+        },
+        "facetStats": {
+            "price": {
+                "min": 35.0,
+                "max": 249.0
+            }
+        },
+        "labels": {
+            "brand": {
+                "rosa-clara": "Rosa Clará",
+                "stella": "Stella",
+                "pumpkin": "Pumpkin"
+            }
+        },
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "call": "supports",
+    "args": [
+        "filter_groups"
+    ],
+    "expect": [
+        true
+    ]
+}

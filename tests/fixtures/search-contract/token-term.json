@@ -1,0 +1,29 @@
+{
+    "setup": {
+        "terms": [
+            {
+                "id": 5,
+                "taxonomy": "product_cat",
+                "name": "Jurken",
+                "slug": "jurken"
+            }
+        ]
+    },
+    "call": "token",
+    "args": [
+        "products",
+        {
+            "term": 5
+        }
+    ],
+    "expect": {
+        "payload": {
+            "index": "products",
+            "filter": {
+                "category": "jurken"
+            },
+            "site": 1,
+            "c": 1
+        }
+    }
+}

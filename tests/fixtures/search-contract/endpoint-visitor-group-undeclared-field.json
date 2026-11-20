@@ -1,0 +1,69 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "default_sort": [
+                "id:asc"
+            ]
+        }
+    ],
+    "query": {
+        "filter": {
+            "brand": "pumpkin",
+            "any": [
+                {
+                    "nope": "x"
+                },
+                {
+                    "color": "rood"
+                }
+            ]
+        }
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 2,
+            "offset": 0,
+            "limit": 20,
+            "results": [
+                {
+                    "id": 5,
+                    "formatted": {
+                        "title": "Rode schoenen",
+                        "snippet": "Pumps met een lage hak."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 6,
+                    "formatted": {
+                        "title": "Zwarte schoenen",
+                        "snippet": "Sneakers voor de hele dag."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": {
+                "brand": {
+                    "pumpkin": "Pumpkin"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [
+                "Filter field 'nope' is not declared in the index; ignored."
+            ],
+            "time": "*"
+        }
+    }
+}

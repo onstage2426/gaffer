@@ -1,0 +1,17 @@
+/.claude export-ignore
+/AGENTS.md export-ignore
+/tests export-ignore
+/phpunit.xml.dist export-ignore
+/phpstan.neon export-ignore
+/package.json export-ignore
+/bun.lock export-ignore
+/bunfig.toml export-ignore
+/bin/dev export-ignore
+/.github export-ignore
+/.editorconfig export-ignore
+/docs export-ignore
+/prompts export-ignore
+/themes export-ignore
+/rector.php export-ignore
+/phpstan export-ignore
+/plugins export-ignore

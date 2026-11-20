@@ -1,0 +1,31 @@
+{
+    "call": "define_then_status",
+    "args": [
+        {
+            "news": {
+                "type": "posts",
+                "post_types": [
+                    "post"
+                ],
+                "label": "News",
+                "version": "v1"
+            }
+        }
+    ],
+    "expect": {
+        "products": {
+            "built": true,
+            "documents": 12,
+            "version": null,
+            "building": false,
+            "error": null
+        },
+        "news": {
+            "built": false,
+            "documents": 0,
+            "version": null,
+            "building": false,
+            "error": null
+        }
+    }
+}

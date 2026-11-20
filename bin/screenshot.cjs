@@ -1,0 +1,214 @@
+/**
+ * Screenshots of one rendered page; render:screenshot starts it. The page's HTML comes
+ * from Gaffer's render (the browser gets it as the answer to its first request), the rest
+ * (styles, scripts, images, ajax) from the site itself. Playwright is the theme's own
+ * dev dependency, resolved from the theme directory.
+ *
+ * node screenshot.cjs <options as JSON>
+ *   {theme, url, html?, http?, widths, full, slice, clip, steps, cookies, storage, out, endpoint}
+ * Without html (a design's URL or file) the page is loaded as it is.
+ * A step is {click}, {hover}, {fill, value}, {select, value} (an option's value or text) or
+ * {scroll}: pixels from the top, or a selector.
+ * Prints one JSON line: {shots: [{width, file, files, height}], console: [...], failed: [...]} or {error}.
+ * A full page comes in parts of `slice` pixels (files; file is the first): a model can't read a
+ * 390x8000 image. A full page stops at MAX_HEIGHT pixels (an endless feed, a layout bug that
+ * grows the page): its shot says `truncated`.
+ *
+ * @internal
+ */
+
+'use strict';
+
+const { createRequire } = require('node:module');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const MAX_HEIGHT = 20000;
+
+const done = (result) => {
+    process.stdout.write(JSON.stringify(result) + '\n');
+};
+
+async function main() {
+    const options = JSON.parse(process.argv[2] || '{}');
+    let chromium;
+    try {
+        ({ chromium } = createRequire(path.join(options.theme, 'package.json'))('playwright'));
+    } catch {
+        return done({ error: 'Playwright is not installed in the theme: run `npm install --save-dev playwright` and `npx playwright install chromium`.' });
+    }
+
+    let browser;
+    try {
+        browser = options.endpoint ? await chromium.connect(options.endpoint) : await chromium.launch();
+    } catch (e) {
+        return done({ error: `The browser didn't start: ${String(e.message).split('\n').slice(0, 12).join('\n')}\n${startHint(options)}` });
+    }
+
+    const html = options.html ? fs.readFileSync(options.html) : null;
+    const messages = new Set();
+    const failed = new Set();
+    const shots = [];
+    try {
+        for (const width of options.widths) {
+            const context = await browser.newContext({ viewport: { width, height: width <= 480 ? 844 : 900 } });
+            // An ajax:call session's cookies (render:screenshot --session), or a design's DESIGN_COOKIE.
+            if (options.cookies?.length) await context.addCookies(options.cookies);
+            // A returning visitor's stored state (localStorage), there before the page's scripts run, once per tab.
+            if (Object.keys(options.storage ?? {}).length) {
+                await context.addInitScript((items) => {
+                    if (sessionStorage.getItem('gaffer-screenshot-storage')) return;
+                    for (const [key, value] of Object.entries(items)) localStorage.setItem(key, value);
+                    sessionStorage.setItem('gaffer-screenshot-storage', '1');
+                }, options.storage);
+            }
+            const page = await context.newPage();
+            let served = false;
+            // Only the first request for the page itself is the render; links clicked later go to the site.
+            await page.route('**/*', (route) => {
+                const request = route.request();
+                if (html !== null && !served && request.isNavigationRequest() && request.frame() === page.mainFrame()) {
+                    served = true;
+                    return route.fulfill({ status: options.http, contentType: 'text/html; charset=utf-8', body: html });
+                }
+                return route.continue();
+            });
+            // The page's own frame only: embedded widgets (Turnstile, video players) log and fail requests of their own.
+            const own = new Set();
+            page.on('request', (request) => {
+                if (request.frame() === page.mainFrame()) own.add(request.url());
+            });
+            // Requests in flight, for settle(): Playwright's networkidle is reached once per page, not after each step.
+            page.inflight = 0;
+            page.on('request', () => page.inflight++);
+            for (const event of ['requestfinished', 'requestfailed']) page.on(event, () => page.inflight--);
+            page.on('console', (message) => {
+                const source = message.location().url;
+                // "Failed to load resource" repeats a failed request (listed in failed).
+                if (message.type() === 'error' && (!source || own.has(source) || source === options.url) && !message.text().startsWith('Failed to load resource')) {
+                    messages.add(message.text());
+                }
+            });
+            page.on('pageerror', (error) => messages.add(String(error.message)));
+            page.on('requestfailed', (request) => {
+                if (request.frame() === page.mainFrame()) failed.add(`${short(request.url())} (${request.failure()?.errorText ?? 'failed'})`);
+            });
+            page.on('response', async (response) => {
+                const request = response.request();
+                if (response.status() < 400 || request.frame() !== page.mainFrame() || response.url() === options.url) return;
+                // An ajax answer's body usually says why (an error message, a JSON code).
+                const body = ['fetch', 'xhr'].includes(request.resourceType()) ? await response.text().catch(() => '') : '';
+                const why = body.replace(/\s+/g, ' ').trim().slice(0, 200);
+                failed.add(`${short(response.url())} (HTTP ${response.status()})${why ? `: ${why}` : ''}`);
+            });
+
+            await page.goto(options.url, { waitUntil: 'load' });
+            await settle(page);
+            for (const step of options.steps) {
+                // The first visible match: themes often have a hidden mobile or desktop twin of an element.
+                const action = ['click', 'hover', 'scroll', 'select'].find((a) => step[a] !== undefined) ?? 'fill';
+                if (action === 'scroll' && /^\d+$/.test(step.scroll)) {
+                    // Like a visitor: the page's scroll listeners run (a bar shown past 320 px).
+                    await page.mouse.wheel(0, Number(step.scroll) - (await page.evaluate(() => window.scrollY)));
+                    await page.waitForFunction((y) => Math.abs(window.scrollY - y) < 2 || window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1, Number(step.scroll), { timeout: 5000 }).catch(() => {});
+                    await settle(page);
+                    continue;
+                }
+                const target = page.locator(step[action]).filter({ visible: true }).first();
+                try {
+                    if (action === 'scroll') await target.evaluate((el) => el.scrollIntoView({ block: 'start' }), null, { timeout: 5000 });
+                    else if (action === 'select') await target.selectOption([{ value: step.value }], { timeout: 5000 }).catch(() => target.selectOption([{ label: step.value }], { timeout: 5000 }));
+                    else if (action === 'click') await target.click({ timeout: 5000 });
+                    else if (action === 'hover') await target.hover({ timeout: 5000 });
+                    else await target.fill(step.value, { timeout: 5000 });
+                } catch (e) {
+                    throw new Error(`--${action} "${step[action]}" at ${width}px: ${String(e.message).split('\n')[0].replace(/^locator\.\w+: /, '')} (no visible element matches, or it doesn't take this action)`);
+                }
+                await settle(page);
+            }
+            const element = options.clip ? page.locator(options.clip).filter({ visible: true }).first() : null;
+            await element?.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {
+                throw new Error(`--clip "${options.clip}" at ${width}px: no visible element matches`);
+            });
+            // This width's earlier files (a --full run's parts), once its new shot is about to be
+            // written: other widths', and a failed run's, stay.
+            for (const name of fs.readdirSync(options.out)) {
+                if (new RegExp(`^${width}(-\\d+)?\\.png$`).test(name)) fs.unlinkSync(path.join(options.out, name));
+            }
+            if (options.clip) {
+                const file = path.join(options.out, `${width}.png`);
+                await element.screenshot({ path: file, animations: 'disabled', timeout: 5000 });
+                const box = await element.boundingBox();
+                shots.push({ width, file, files: [file], height: Math.round(box?.height ?? 0) });
+                await context.close();
+                continue;
+            }
+            if (!options.full) {
+                const file = path.join(options.out, `${width}.png`);
+                await page.screenshot({ path: file, animations: 'disabled' });
+                shots.push({ width, file, files: [file], height: await page.evaluate(() => document.documentElement.scrollHeight) });
+                await context.close();
+                continue;
+            }
+
+            // Lazy images and scroll-triggered content (x-intersect, sliders) load only when scrolled
+            // to: scroll through the page like a visitor, then back to the top.
+            await page.evaluate(() => document.querySelectorAll('img[loading="lazy"]').forEach((img) => (img.loading = 'eager')));
+            const viewport = page.viewportSize().height;
+            for (let y = 0; y < Math.min(MAX_HEIGHT, await page.evaluate(() => document.documentElement.scrollHeight)); y += viewport) {
+                await page.evaluate((top) => window.scrollTo(0, top), y);
+                await page.waitForTimeout(150);
+            }
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await settle(page);
+
+            const height = await page.evaluate(() => document.documentElement.scrollHeight);
+            const shown = Math.min(height, MAX_HEIGHT);
+            const slice = options.slice > 0 ? options.slice : shown;
+            const files = [];
+            for (let y = 0, part = 1; y < shown; y += slice, part++) {
+                const file = path.join(options.out, slice >= shown ? `${width}.png` : `${width}-${part}.png`);
+                await page.screenshot({ path: file, fullPage: true, animations: 'disabled', clip: { x: 0, y, width, height: Math.min(slice, shown - y) } });
+                files.push(file);
+            }
+            shots.push({ width, file: files[0], files, height, ...(height > shown ? { truncated: shown } : {}) });
+            await context.close();
+        }
+    } catch (e) {
+        return done({ error: String(e.message).split('\n')[0], shots, console: [...messages], failed: [...failed] });
+    } finally {
+        await browser.close();
+    }
+
+    done({ shots, console: [...messages], failed: [...failed] });
+}
+
+/** A URL without its query string, at most 150 characters: tokens make them long. */
+function short(url) {
+    const bare = url.split('?')[0];
+    return bare.length > 150 ? bare.slice(0, 150) + '…' : bare;
+}
+
+/** Until no request has been in flight for 500 ms (htmx, Alpine, fonts, transitions), at most 5 s: some pages never are. */
+async function settle(page) {
+    const until = Date.now() + 5000;
+    let quiet = 0;
+    while (quiet < 500 && Date.now() < until) {
+        await page.waitForTimeout(100);
+        quiet = page.inflight > 0 ? 0 : quiet + 100;
+    }
+}
+
+/** What to try when the browser doesn't start: a server, or the server's version. */
+function startHint(options) {
+    if (!options.endpoint) {
+        return 'Chromium can\'t run on this machine (missing system libraries, no root)? Use a Playwright server: PLAYWRIGHT_WS_ENDPOINT=wss://user:pass@host/ in the theme\'s .env.';
+    }
+    let version = 'the theme\'s';
+    try {
+        version = createRequire(path.join(options.theme, 'package.json'))('playwright/package.json').version;
+    } catch {}
+    return `The Playwright server at PLAYWRIGHT_WS_ENDPOINT must run Playwright ${version} exactly (the theme's), and takes basic auth in the URL (wss://user:pass@host/).`;
+}
+
+main().catch((e) => done({ error: String(e.message) }));

@@ -1,0 +1,164 @@
+{
+    "setup": {
+        "terms": [
+            {
+                "id": 801,
+                "taxonomy": "category",
+                "name": "Suv",
+                "slug": "suv",
+                "parent": 0
+            }
+        ],
+        "build": {
+            "index": "cars",
+            "definition": {
+                "type": "posts",
+                "meta": {
+                    "brandstof": [
+                        "fuel",
+                        "string"
+                    ]
+                },
+                "taxonomies": {
+                    "category": "category"
+                },
+                "facets": [
+                    "fuel",
+                    "category"
+                ],
+                "sortable": [
+                    "title"
+                ]
+            },
+            "labels": {
+                "fuel": {
+                    "elektrisch": "Elektrisch",
+                    "plugin_hybride": "Plug-in hybride"
+                },
+                "category": {
+                    "suv": "Not the term's name"
+                }
+            },
+            "posts": [
+                {
+                    "id": 811,
+                    "title": "Model Y",
+                    "meta": {
+                        "brandstof": "elektrisch"
+                    },
+                    "terms": {
+                        "category": [
+                            801
+                        ]
+                    }
+                },
+                {
+                    "id": 812,
+                    "title": "Kuga",
+                    "meta": {
+                        "brandstof": "plugin_hybride"
+                    },
+                    "terms": {
+                        "category": [
+                            801
+                        ]
+                    }
+                },
+                {
+                    "id": 813,
+                    "title": "Golf",
+                    "meta": {
+                        "brandstof": "diesel"
+                    }
+                }
+            ]
+        }
+    },
+    "call": "search",
+    "args": [
+        "cars",
+        {
+            "limit": 10,
+            "attributes": [
+                "id",
+                "fuel",
+                "category"
+            ],
+            "filter": {
+                "fuel": [
+                    "plugin_hybride",
+                    "diesel"
+                ]
+            },
+            "facets": [
+                "fuel",
+                "category"
+            ],
+            "sort": [
+                "title_sort:asc"
+            ]
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 2,
+        "offset": 0,
+        "limit": 10,
+        "results": [
+            {
+                "id": 813,
+                "fuel": "diesel",
+                "category": [],
+                "formatted": {
+                    "title": "Golf",
+                    "snippet": ""
+                },
+                "labels": {
+                    "fuel": "diesel",
+                    "category": []
+                }
+            },
+            {
+                "id": 812,
+                "fuel": "plugin_hybride",
+                "category": [
+                    "suv"
+                ],
+                "formatted": {
+                    "title": "Kuga",
+                    "snippet": ""
+                },
+                "labels": {
+                    "fuel": "Plug-in hybride",
+                    "category": [
+                        "Suv"
+                    ]
+                }
+            }
+        ],
+        "facets": {
+            "fuel": {
+                "diesel": 1,
+                "elektrisch": 1,
+                "plugin_hybride": 1
+            },
+            "category": {
+                "suv": 1
+            }
+        },
+        "facetStats": [],
+        "labels": {
+            "fuel": {
+                "elektrisch": "Elektrisch",
+                "plugin_hybride": "Plug-in hybride"
+            },
+            "category": {
+                "suv": "Suv"
+            }
+        },
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

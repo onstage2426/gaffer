@@ -1,0 +1,38 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Gaffer's plugins as their own repositories in plugins/{name}/ (gitignored), from plugins/catalog.json.
+ *
+ *   bin/dev/plugins          each plugin: branch, uncommitted files, commits not pushed, last tag
+ *   bin/dev/plugins clone    clones the ones missing
+ */
+
+declare(strict_types=1);
+
+$root = dirname(__DIR__, 2);
+$catalog = json_decode((string) file_get_contents("{$root}/plugins/catalog.json"), true, flags: JSON_THROW_ON_ERROR);
+$clone = ($argv[1] ?? '') === 'clone';
+$exit = 0;
+
+$git = static function (string $dir, string $args): string {
+    return trim((string) shell_exec('git -C ' . escapeshellarg($dir) . " {$args} 2>/dev/null"));
+};
+
+foreach ($catalog as $name => $plugin) {
+    $dir = "{$root}/plugins/{$name}";
+    if (!is_dir("{$dir}/.git")) {
+        if (!$clone) {
+            echo "{$name}: not cloned (bin/dev/plugins clone)\n";
+            continue;
+        }
+        passthru('git clone --branch ' . escapeshellarg($plugin['branch']) . ' ' . escapeshellarg($plugin['repo']) . ' ' . escapeshellarg($dir), $code);
+        $exit = max($exit, $code);
+        continue;
+    }
+    $dirty = $git($dir, 'status --porcelain') === '' ? 0 : count(explode("\n", $git($dir, 'status --porcelain')));
+    $ahead = $git($dir, 'log @{upstream}..HEAD --oneline') === '' ? 0 : count(explode("\n", $git($dir, 'log @{upstream}..HEAD --oneline')));
+    echo "{$name}: branch " . $git($dir, 'branch --show-current') . ", {$dirty} uncommitted, {$ahead} not pushed, last tag " . ($git($dir, "describe --tags --abbrev=0 --match 'v*'") ?: 'none') . "\n";
+}
+
+exit($exit);

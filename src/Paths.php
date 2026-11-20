@@ -1,0 +1,136 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer;
+
+/**
+ * The theme's fixed layout: views/, inc/, blocks/, fields/, app/Ajax/, public/, storage/.
+ */
+final class Paths
+{
+    private static ?string $base = null;
+
+    private static ?string $wordpress = null;
+
+    /** @internal */
+    public static function set_base(string $dir): void
+    {
+        self::$base = rtrim($dir, '/');
+        self::$wordpress = null;
+    }
+
+    /**
+     * Theme root, or a path inside it.
+     */
+    public static function base(string $path = ''): string
+    {
+        if (self::$base === null) {
+            throw new \LogicException('Gaffer::configure() or Gaffer::boot() has not run yet.');
+        }
+
+        return $path === '' ? self::$base : self::$base . '/' . ltrim($path, '/');
+    }
+
+    /** @internal */
+    public static function views(): string
+    {
+        return self::base('views');
+    }
+
+    /** @internal */
+    public static function includes(): string
+    {
+        return self::base('inc');
+    }
+
+    /** @internal */
+    public static function blocks(): string
+    {
+        return self::base('blocks');
+    }
+
+    /** @internal */
+    public static function fields(): string
+    {
+        return self::base('fields');
+    }
+
+    /** @internal */
+    public static function ajax(): string
+    {
+        return self::base('app/Ajax');
+    }
+
+    /** @internal */
+    public static function public(): string
+    {
+        return self::base('public');
+    }
+
+    /**
+     * Twig namespaces next to views/: `@block/x/x.twig`.
+     *
+     * @return array<string, string>
+     *
+     * @internal
+     */
+    public static function view_namespaces(): array
+    {
+        return ['block' => self::blocks()];
+    }
+
+    /**
+     * Gaffer's own partials (`@gaffer/forms/meta.twig`): the template halves of pairs Gaffer
+     * checks itself, so both change together in an update.
+     *
+     * @internal
+     */
+    public static function gaffer_views(): string
+    {
+        return dirname(__DIR__) . '/resources/views';
+    }
+
+    /**
+     * Writable runtime files: Twig cache, ACF JSON, logs. storage/ in the theme,
+     * unless the server defines GAFFER_STORAGE in wp-config.php (e.g. when the
+     * theme directory isn't writable).
+     *
+     * @internal
+     */
+    public static function storage(): string
+    {
+        return defined('GAFFER_STORAGE') ? rtrim((string) constant('GAFFER_STORAGE'), '/') : self::base('storage');
+    }
+
+    /**
+     * Compiled Twig templates (when theme.cache is on).
+     *
+     * @internal
+     */
+    public static function twig_cache(): string
+    {
+        return self::storage() . '/cache/views';
+    }
+
+    /**
+     * The WordPress root (the directory with wp-load.php), found by walking up
+     * from the theme. Used by ajax.php and the CLI to load WordPress.
+     *
+     * @internal
+     */
+    public static function wordpress(): string
+    {
+        if (self::$wordpress !== null) {
+            return self::$wordpress;
+        }
+
+        for ($dir = self::base(); $dir !== dirname($dir); $dir = dirname($dir)) {
+            if (is_file("{$dir}/wp-load.php")) {
+                return self::$wordpress = $dir;
+            }
+        }
+
+        throw new \RuntimeException('wp-load.php not found in any parent directory of ' . self::base());
+    }
+}

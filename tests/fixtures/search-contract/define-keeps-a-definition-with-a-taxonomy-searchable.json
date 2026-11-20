@@ -1,0 +1,33 @@
+{
+    "call": "define_then_status",
+    "args": [
+        {
+            "cars": {
+                "type": "posts",
+                "searchable": [
+                    "title",
+                    "brand"
+                ],
+                "taxonomies": {
+                    "category": "brand"
+                }
+            }
+        }
+    ],
+    "expect": {
+        "products": {
+            "built": true,
+            "documents": 12,
+            "version": null,
+            "building": false,
+            "error": null
+        },
+        "cars": {
+            "built": false,
+            "documents": 0,
+            "version": null,
+            "building": false,
+            "error": null
+        }
+    }
+}

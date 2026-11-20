@@ -1,0 +1,29 @@
+{
+    "call": "problems",
+    "args": [
+        {
+            "cars": {
+                "type": "posts",
+                "searchable": [
+                    "title"
+                ],
+                "meta": {
+                    "range_km": [
+                        "range",
+                        "int"
+                    ]
+                },
+                "sortable": [
+                    "title",
+                    "range"
+                ]
+            }
+        }
+    ],
+    "expect_contains": [
+        "cars: sortable names \"range\", a number"
+    ],
+    "expect": [
+        "cars: sortable names \"range\", a number"
+    ]
+}

@@ -1,0 +1,36 @@
+{
+    "call": "problems",
+    "args": [
+        {
+            "products": {
+                "type": "posts",
+                "taxonomies": {
+                    "category": "category"
+                },
+                "direct_terms": [
+                    "product_cat"
+                ]
+            },
+            "news": {
+                "type": "posts",
+                "fields": {
+                    "price_m2": "float"
+                }
+            },
+            "blog": {
+                "type": "posts",
+                "direct_terms": "category"
+            }
+        }
+    ],
+    "expect_contains": [
+        "direct_terms names \"product_cat\", which taxonomies doesn't map",
+        "fields are what the document closure adds",
+        "direct_terms must be a list of strings"
+    ],
+    "expect": [
+        "direct_terms names \"product_cat\", which taxonomies doesn't map",
+        "fields are what the document closure adds",
+        "direct_terms must be a list of strings"
+    ]
+}

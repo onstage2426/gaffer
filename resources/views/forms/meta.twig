@@ -1,0 +1,19 @@
+{#
+    What every form sends besides its fields, written by Gaffer because Gaffer checks it
+    (Forms\FormAction): the form's name, the honeypot and, when Turnstile is on, its widget.
+    Include it inside the <form>:
+
+        {{ include('@gaffer/forms/meta.twig', { form: form }, with_context = false) }}
+
+    form: Gaffer\Forms\FormState. turnstile (optional): the widget's options, e.g.
+    { appearance: 'interaction-only', language: 'nl', theme: 'light', size: 'flexible', class: 'mb-5' }.
+    Gaffer loads Cloudflare's script and renders widgets after htmx swaps.
+#}
+<input type="hidden" name="form_name" value="{{ form.name }}">
+<div style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label>Website <input type="text" name="website" value="" tabindex="-1" autocomplete="off"></label></div>
+{% set site_key = form.turnstile_site_key() %}
+{% if site_key %}
+    {% set options = turnstile ?? {} %}
+    <div class="cf-turnstile{{ options.class is defined ? ' ' ~ options.class }}" data-sitekey="{{ site_key }}" data-response-field-name="turnstile"
+        {%- for option in ['appearance', 'language', 'theme', 'size'] %}{% if options[option] is defined %} data-{{ option }}="{{ options[option] }}"{% endif %}{% endfor %}></div>
+{% endif %}

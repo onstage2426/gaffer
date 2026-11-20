@@ -1,0 +1,14 @@
+{
+    "call": "endpoint",
+    "token": [
+        "unbuilt",
+        []
+    ],
+    "expect": {
+        "status": 503,
+        "body": {
+            "error": "Index 'unbuilt' not built yet.",
+            "code": "index_not_built"
+        }
+    }
+}

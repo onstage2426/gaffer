@@ -1,0 +1,17 @@
+<?php
+
+// The part of the MCP Adapter plugin (wordpress/mcp-adapter) Gaffer uses.
+
+namespace WP\MCP\Core;
+
+class McpAdapter
+{
+    /**
+     * @param list<class-string> $mcp_transports
+     * @param list<string> $tools
+     * @param list<string> $resources
+     * @param list<string> $prompts
+     * @return \WP_Error|self
+     */
+    public function create_server(string $server_id, string $server_route_namespace, string $server_route, string $server_name, string $server_description, string $server_version, array $mcp_transports, ?string $error_handler, ?string $observability_handler = null, array $tools = array(), array $resources = array(), array $prompts = array(), ?callable $transport_permission_callback = null) {}
+}

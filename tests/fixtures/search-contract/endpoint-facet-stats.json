@@ -1,0 +1,59 @@
+{
+    "call": "endpoint",
+    "token": [
+        "products",
+        {
+            "limit": 1,
+            "attributes": [
+                "id"
+            ],
+            "default_sort": [
+                "id:asc"
+            ],
+            "facet_stats": [
+                "price"
+            ]
+        }
+    ],
+    "query": {
+        "filter": {
+            "brand": "stella"
+        }
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 5,
+            "offset": 0,
+            "limit": 1,
+            "results": [
+                {
+                    "id": 1,
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": {
+                "price": {
+                    "min": 45,
+                    "max": 199
+                }
+            },
+            "labels": {
+                "brand": {
+                    "stella": "Stella"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

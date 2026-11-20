@@ -1,0 +1,11 @@
+{
+    "call": "endpoint",
+    "raw_token": "not-a-token",
+    "expect": {
+        "status": 400,
+        "body": {
+            "error": "Invalid token.",
+            "code": "invalid_token"
+        }
+    }
+}

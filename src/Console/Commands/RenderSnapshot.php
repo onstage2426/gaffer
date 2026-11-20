@@ -1,0 +1,119 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer\Console\Commands;
+
+use Gaffer\Console\Command;
+use Gaffer\Console\Render\Renderer;
+use Gaffer\Console\Render\Snapshot;
+use Gaffer\Console\Render\StagedTheme;
+use Gaffer\Console\Render\Visitor;
+use Gaffer\Paths;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+
+/**
+ * Saves how pages look now, to compare with render:diff after changing code
+ * (migrating a block, rewriting a template). The pages: doctor's sample plus every
+ * published post using an ACF block (or the given blocks), plus any --page. Rendered here like
+ * doctor does, or with --from fetched from a site over HTTP (the live site on the
+ * old theme, while this copy runs the new one).
+ */
+#[AsCommand('render:snapshot', 'Save the rendered HTML of pages to compare with render:diff after a code change')]
+final class RenderSnapshot extends Command
+{
+    protected bool $wordpress = true;
+
+    #[\Override]
+    protected function configure(): void
+    {
+        $this->addArgument('name', InputArgument::OPTIONAL, 'Snapshot name', 'snapshot');
+        $this->addOption('block', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Only doctor\'s sample and pages using this block (repeatable), e.g. acf/content-faq');
+        $this->addOption('page', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Also this page, by its URL path (repeatable), e.g. /afwatering/ or "/winkel/?filter=x"');
+        $this->addOption('user', null, InputOption::VALUE_REQUIRED, 'Render logged in as this user ID (render:diff does the same)');
+        $this->addOption('cart', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'WooCommerce: render with this product in the cart, ID or ID:quantity (repeatable)');
+        $this->addOption('session', null, InputOption::VALUE_REQUIRED, 'Render as the visitor of this ajax:call session (its cookies: cart, login; render:diff does the same)');
+        $this->addOption('theme', null, InputOption::VALUE_REQUIRED, 'Render with a full copy of this theme next to it (e.g. blueprint-stage: cp -r, vendor/ included): staged code against live, before switching');
+        $this->addOption('from', null, InputOption::VALUE_REQUIRED, 'Fetch the pages over HTTP from this site instead of rendering them, e.g. https://www.example.com');
+    }
+
+    #[\Override]
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $name = (string) $input->getArgument('name');
+        $from = $input->getOption('from');
+        $blocks = array_values(array_map('strval', (array) $input->getOption('block')));
+        $file = Snapshot::file($name);
+        try {
+            $visitor = Visitor::from($input->getOption('user'), (array) $input->getOption('cart'), $input->getOption('session'));
+            $entry = is_string($theme = $input->getOption('theme')) ? StagedTheme::entry($theme) : null;
+        } catch (\InvalidArgumentException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            return self::FAILURE;
+        }
+        if (is_string($from) && (!$visitor->is_anonymous() || $entry !== null)) {
+            $output->writeln('<error>--user, --cart, --session and --theme render here; --from fetches over HTTP. Use one or the other.</error>');
+            return self::FAILURE;
+        }
+
+        $extra = array_values(array_map('strval', (array) $input->getOption('page')));
+        foreach ($extra as $path) {
+            if (!str_starts_with($path, '/')) {
+                $output->writeln("<error>\"{$path}\" is not a URL path (it starts with /)</error>");
+                return self::FAILURE;
+            }
+        }
+        $paths = array_values(array_unique([...Renderer::sample(), ...Renderer::using_blocks($blocks), ...$extra]));
+        $output->writeln('Saving ' . count($paths) . ' pages ' . (is_string($from) ? "from {$from}" : 'rendered with this code') . '...');
+        $progress = static function (string $path) use ($output): void {
+            if ($output->isVerbose()) {
+                $output->writeln("<comment>rendering</comment> {$path}");
+            }
+        };
+
+        $rendered = is_string($from) ? [] : new Renderer(is_string($url = $input->getOption('url')) ? $url : null, $progress, $visitor, $entry)->render($paths, true);
+        $pages = is_string($from)
+            ? array_map(self::fetch(...), array_combine($paths, array_map(static fn(string $p): string => rtrim($from, '/') . $p, $paths)))
+            : array_map(Snapshot::page(...), $rendered);
+        RenderDiff::warn_without_engine($rendered, $output);
+
+        $redirected = Snapshot::redirected($pages);
+        if ($redirected !== null) {
+            $output->writeln("<error>Most pages redirect to {$redirected}: not saved.</error> A login, maintenance or geo plugin answers instead of the site, so a comparison against this snapshot would compare nothing. Render as a user it lets through (--user=<id>), or turn it off while you snapshot.");
+            return self::FAILURE;
+        }
+
+        new Snapshot($name, is_string($from) ? $from : 'rendered' . ($entry !== null ? ' with ' . basename(dirname($entry)) : '') . (!$visitor->is_anonymous() ? ' ' . $visitor->label() : ''), gmdate('c'), $pages, $visitor)->save();
+
+        foreach ($pages as $path => $page) {
+            if ($page['error'] !== null) {
+                $output->writeln("  <comment>{$path}: {$page['error']}</comment>");
+            }
+        }
+        $output->writeln('Saved ' . substr($file, strlen(Paths::base()) + 1) . ". After the change: php gaffer render:diff {$name}");
+
+        return self::SUCCESS;
+    }
+
+    /** @return array{http: int, redirect: ?string, error: ?string, html: string} */
+    private static function fetch(string $url): array
+    {
+        $response = \wp_remote_get($url, ['timeout' => 30, 'redirection' => 0]);
+        if (\is_wp_error($response)) {
+            return ['http' => 0, 'redirect' => null, 'error' => $response->get_error_message(), 'html' => ''];
+        }
+        $http = (int) \wp_remote_retrieve_response_code($response);
+        $location = \wp_remote_retrieve_header($response, 'location');
+
+        return [
+            'http' => $http,
+            'redirect' => $http >= 300 && $http < 400 && is_string($location) && $location !== '' ? $location : null,
+            'error' => null,
+            'html' => \wp_remote_retrieve_body($response),
+        ];
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "call": "token",
+    "args": [
+        "products",
+        {
+            "limit": 8,
+            "ttl": 3600
+        }
+    ],
+    "expect": {
+        "payload": {
+            "index": "products",
+            "limit": 8,
+            "expires": "*",
+            "site": 1,
+            "c": 1
+        }
+    }
+}

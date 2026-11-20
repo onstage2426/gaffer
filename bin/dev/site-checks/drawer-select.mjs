@@ -1,0 +1,22 @@
+// Maintainer tool: see README.md in this folder.
+import { createRequire } from "node:module";
+const [theme, base] = process.argv.slice(2);
+const { chromium } = createRequire(theme + "/package.json")("playwright");
+const browser = await chromium.launch();
+const page = await browser.newPage({ ignoreHTTPSErrors: true });
+const errors = [];
+page.on("pageerror", (e) => errors.push(String(e)));
+await page.goto(base + "/winkel/", { waitUntil: "load" });
+await page.waitForTimeout(1000);
+await page.locator("form[hx-post*='CartAdd'] button").first().click();
+await page.waitForSelector("#drawerBody form[hx-post*='CartUpdate'] select", { timeout: 15000 });
+const sel = page.locator("#drawerBody form[hx-post*='CartUpdate'] select").first();
+console.log("after add:", await sel.inputValue());
+const upd = page.waitForResponse((r) => r.url().includes("CartUpdate"));
+await sel.selectOption("3"); await upd; await page.waitForTimeout(600);
+console.log("after select 3 (Alpine $dispatch -> hx-trigger=submit-qty):", await page.locator("#drawerBody form[hx-post*='CartUpdate'] select").first().inputValue());
+const rem = page.waitForResponse((r) => r.url().includes("CartRemove"));
+await page.locator("#drawerBody a[hx-post*='CartRemove']").first().click(); await rem; await page.waitForTimeout(600);
+console.log("after remove: items", await page.locator("#drawerBody form[hx-post*='CartUpdate']").count(), "| url", page.url());
+console.log("page errors:", errors);
+await browser.close();

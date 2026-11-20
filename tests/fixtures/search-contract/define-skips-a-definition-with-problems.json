@@ -1,0 +1,22 @@
+{
+    "call": "define_then_status",
+    "args": [
+        {
+            "broken": {
+                "type": "pages"
+            },
+            "Bad": {
+                "type": "posts"
+            }
+        }
+    ],
+    "expect": {
+        "products": {
+            "built": true,
+            "documents": 12,
+            "version": null,
+            "building": false,
+            "error": null
+        }
+    }
+}

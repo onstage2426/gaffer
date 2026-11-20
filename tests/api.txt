@@ -1,0 +1,164 @@
+final class Gaffer\Acf
+  static block_array(string $selector): array
+  static option_array(string $selector): array
+  static post_array(string $selector, Gaffer\Types\Post $post): array
+final class Gaffer\Ajax
+  static boot(string $dir): void
+  static url(string $action): string
+abstract class Gaffer\AjaxAction
+  const METHOD = 'POST'
+  const SHORTINIT = false
+final class Gaffer\Blocks
+  static markup(string $block, array $values): string
+final class Gaffer\Config
+  static get(string $key): mixed
+final class Gaffer\Console\Console
+  static boot(string $dir): int
+abstract class Gaffer\Forms\FormAction extends Gaffer\AjaxAction
+  const METHOD = 'POST'
+  final run(string $form_name = '', array $fields = [], array $kept_files = [], string $form = ''): void
+final class Gaffer\Forms\FormState
+  readonly string $name
+  readonly bool $sent
+  readonly ?string $message
+  readonly bool $failed
+  static blank(string $name): Gaffer\Forms\FormState
+  checked(string $field, ?string $choice = NULL): bool
+  error(string $field): ?string
+  files(string $field): array
+  value(string $field): string
+final class Gaffer\Forms\KeptFile
+  readonly string $name
+  readonly string $value
+final class Gaffer\Forms\Spam
+  static check(string $form): ?string
+  static log(string $form, string $reason): void
+final class Gaffer\Gaffer
+  static boot(string $dir): void
+final class Gaffer\Paths
+  static base(string $path = ''): string
+final class Gaffer\Search\Archive
+  readonly bool $available
+  readonly string $endpoint
+  readonly string $token
+  readonly string $query
+  readonly int $total
+  readonly array $cards
+  readonly array $results
+  readonly array $sorts
+  readonly string $sort
+  readonly string $card_field
+  readonly string $view
+  readonly array $views
+  readonly array $bounds
+  initial(): Twig\Markup
+  page_url(int $page): string
+final class Gaffer\Search\Counter
+  readonly bool $available
+  readonly string $endpoint
+  readonly string $token
+final class Gaffer\Search\Search
+  static archive(): ?Gaffer\Search\Archive
+  static archive_url(?Gaffer\Types\Term $term = NULL, array $query = []): ?string
+  static cards(string $index, int $limit, array $sort = [], ?Gaffer\Types\Term $term = NULL, ?Gaffer\Types\Post $except = NULL, array $filter = []): array
+  static count(string $index, ?Gaffer\Types\Term $term = NULL, array $filter = []): ?int
+  static counter(string $index, ?Gaffer\Types\Term $term = NULL): Gaffer\Search\Counter
+  static facet_counts(string $index, array $fields, ?Gaffer\Types\Term $term = NULL, array $filter = []): ?array
+  static searchbar(string $index, array $attributes, int $limit = 8, array $facets = []): Gaffer\Search\Searchbar
+final class Gaffer\Search\Searchbar
+  readonly bool $available
+  readonly string $endpoint
+  readonly string $token
+  readonly string $results_url
+final class Gaffer\Storage
+  static private_dir(string $relative): string
+final class Gaffer\Turnstile
+  static enabled(): bool
+  static verify(string $token): bool #[Deprecated]
+class Gaffer\Types\Attachment extends Gaffer\Types\Post
+  final mime(): string
+  final url(): ?string
+final class Gaffer\Types\Image extends Gaffer\Types\Attachment
+  alt(): string
+  attrs(string $size = 'full', ?string $sizes = NULL, bool $decorative = false): Twig\Markup
+  height(): ?int
+  path(string $size = 'full'): ?string
+  src(string $size = 'full'): ?string
+  width(): ?int
+final class Gaffer\Types\Menu
+  items(): array
+  static location(string $location): ?Gaffer\Types\Menu
+final class Gaffer\Types\MenuItem
+  readonly WP_Post $wp
+  children(): array
+  classes(): array
+  has_children(): bool
+  id(): int
+  is_current(): bool
+  is_current_ancestor(): bool
+  is_external(): bool
+  link(): string
+  meta(string $key): mixed
+  object(): Gaffer\Types\Post|Gaffer\Types\Term|null
+  target(): ?string
+  title(): string
+final class Gaffer\Types\Pagination
+  readonly int $page
+  readonly int $total_pages
+  readonly int $total_items
+  readonly int $per_page
+  readonly int $results_start
+  readonly int $results_end
+  static current(): Gaffer\Types\Pagination
+  next(): ?int
+  next_link(): ?string
+  pages(int $padding = 2): array
+  previous(): ?int
+  previous_link(): ?string
+final class Gaffer\Types\PaginationPage
+  readonly ?int $number
+  readonly ?string $link
+  readonly bool $current
+  readonly bool $gap
+class Gaffer\Types\Post
+  readonly WP_Post $wp
+  final ancestors(): array
+  final blocks(): array
+  final children(): array
+  final content(): string
+  final static current(): ?static
+  final date(?string $format = NULL): string
+  final excerpt(): string
+  final static from(int $id): ?static
+  final id(): int
+  final is_current(): bool
+  final link(): string
+  final static main_query(): array
+  final meta(string $key): mixed
+  final modified_date(?string $format = NULL): string
+  final parent(): ?Gaffer\Types\Post
+  final static query(array $args): array
+  final terms(string $taxonomy): array
+  thumbnail(): ?Gaffer\Types\Image
+  final title(): string
+class Gaffer\Types\Term
+  readonly WP_Term $wp
+  final ancestors(): array
+  final children(): array
+  final static current(): ?static
+  final description(): string
+  final static from(int $id): ?static
+  final id(): int
+  final link(): string
+  final meta(string $key): mixed
+  final parent(): ?Gaffer\Types\Term
+  final static query(array $args): array
+  thumbnail(): ?Gaffer\Types\Image
+  final title(): string
+final class Gaffer\View
+  static fetch(string $template, array $data = []): string
+  static render(string $template, array $data = []): void
+  static share(string $key, mixed $value): void
+final class Gaffer\Vite
+  static tags(array $assets): void
+  static url(string $asset): ?string

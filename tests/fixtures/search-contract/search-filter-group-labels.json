@@ -1,0 +1,59 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "limit": 1,
+            "attributes": [
+                "id"
+            ],
+            "sort": [
+                "id:asc"
+            ],
+            "filter": {
+                "any": [
+                    {
+                        "color": "rood"
+                    },
+                    {
+                        "brand": "pumpkin"
+                    }
+                ],
+                "not": {
+                    "color": "zwart"
+                }
+            }
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 3,
+        "offset": 0,
+        "limit": 1,
+        "results": [
+            {
+                "id": 1,
+                "formatted": {
+                    "title": "Rode jurk",
+                    "snippet": "Een lange rode jurk van zijde."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": {
+            "brand": {
+                "pumpkin": "Pumpkin"
+            },
+            "color": {
+                "rood": "Rood",
+                "zwart": "Zwart"
+            }
+        },
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

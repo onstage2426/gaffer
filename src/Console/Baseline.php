@@ -1,0 +1,170 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer\Console;
+
+use Gaffer\Paths;
+use RuntimeException;
+
+/**
+ * Warnings doctor already knows about (doctor-baseline.json in the theme root,
+ * committed): `doctor --baseline` writes the current ones, later runs hide them so
+ * new warnings stand out. A warning matches by check, file and message (not line:
+ * lines shift); each entry has a count. Errors are never baselined.
+ *
+ * @phpstan-type Entry array{check: string, file: ?string, message: string, count: int}
+ */
+final class Baseline
+{
+    public const string FILE = 'doctor-baseline.json';
+
+    /** The file's format; a file without `version` is version 1 (written before the key existed). */
+    public const int VERSION = 1;
+
+    /** @param list<Entry> $entries */
+    public function __construct(
+        public readonly bool $wp,
+        public readonly array $entries,
+    ) {}
+
+    public static function file(): string
+    {
+        return Paths::base(self::FILE);
+    }
+
+    public static function load(): ?self
+    {
+        if (!is_file(self::file())) {
+            return null;
+        }
+
+        return self::parse((string) file_get_contents(self::file()));
+    }
+
+    /**
+     * A baseline from the file's contents. A file without `version` is version 1 (the next
+     * --baseline or --prune writes the key).
+     *
+     * @throws RuntimeException on anything but a baseline of a version this Gaffer reads
+     */
+    public static function parse(string $json): self
+    {
+        $data = json_decode($json, true);
+        if (!is_array($data) || !is_array($data['warnings'] ?? null)) {
+            throw new RuntimeException(self::FILE . " isn't a baseline Gaffer can read: write it again with php gaffer doctor --baseline");
+        }
+        $version = $data['version'] ?? 1;
+        if (!is_int($version) || $version < 1) {
+            throw new RuntimeException(self::FILE . ' has an unknown version: write it again with php gaffer doctor --baseline');
+        }
+        if ($version > self::VERSION) {
+            throw new RuntimeException(self::FILE . " is version {$version}, written by a newer Gaffer (this one reads version " . self::VERSION . '): update Gaffer, or write it again with php gaffer doctor --baseline');
+        }
+
+        $entries = [];
+        foreach ($data['warnings'] as $entry) {
+            $entries[] = [
+                'check' => (string) ($entry['check'] ?? ''),
+                'file' => is_string($entry['file'] ?? null) ? $entry['file'] : null,
+                'message' => (string) ($entry['message'] ?? ''),
+                'count' => max(1, (int) ($entry['count'] ?? 1)),
+            ];
+        }
+
+        return new self((bool) ($data['wp'] ?? false), $entries);
+    }
+
+    /**
+     * @param list<array{level: string, check: string, message: string, file: ?string, line: ?int, hint: ?string}> $findings
+     */
+    public static function from(array $findings, bool $wp): self
+    {
+        $entries = [];
+        foreach ($findings as $f) {
+            if ($f['level'] !== 'warning') {
+                continue;
+            }
+            $key = self::key($f);
+            $entries[$key] ??= ['check' => $f['check'], 'file' => $f['file'], 'message' => $f['message'], 'count' => 0];
+            $entries[$key]['count']++;
+        }
+        ksort($entries);
+
+        return new self($wp, array_values($entries));
+    }
+
+    /**
+     * Without what no longer occurs (doctor --prune): each entry keeps at most as many as
+     * occur now; nothing is added, so a warning just caused stays visible.
+     *
+     * @param list<array{level: string, check: string, message: string, file: ?string, line: ?int, hint: ?string}> $findings
+     */
+    public function prune(array $findings): self
+    {
+        $now = self::from($findings, $this->wp)->entries;
+        $counts = array_combine(array_map(self::key(...), $now), array_column($now, 'count'));
+
+        $entries = [];
+        foreach ($this->entries as $entry) {
+            $count = min($entry['count'], $counts[self::key($entry)] ?? 0);
+            if ($count > 0) {
+                $entries[] = [...$entry, 'count' => $count];
+            }
+        }
+
+        return new self($this->wp, $entries);
+    }
+
+    /** The file's contents (always with the current `version`). */
+    public function encode(): string
+    {
+        return json_encode(['version' => self::VERSION, 'wp' => $this->wp, 'warnings' => $this->entries], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
+    }
+
+    public function save(): void
+    {
+        if (file_put_contents(self::file(), $this->encode()) === false) {
+            throw new RuntimeException('Could not write ' . self::file());
+        }
+    }
+
+    public function count(): int
+    {
+        return array_sum(array_column($this->entries, 'count'));
+    }
+
+    /**
+     * Splits warnings into new ones and known ones; also how many known ones no longer occur.
+     *
+     * @param list<array{level: string, check: string, message: string, file: ?string, line: ?int, hint: ?string}> $findings
+     * @return array{findings: list<array{level: string, check: string, message: string, file: ?string, line: ?int, hint: ?string}>, known: int, gone: int}
+     */
+    public function apply(array $findings): array
+    {
+        $left = [];
+        foreach ($this->entries as $entry) {
+            $left[self::key($entry)] = $entry['count'];
+        }
+
+        $kept = [];
+        $known = 0;
+        foreach ($findings as $f) {
+            $key = self::key($f);
+            if ($f['level'] === 'warning' && ($left[$key] ?? 0) > 0) {
+                $left[$key]--;
+                $known++;
+                continue;
+            }
+            $kept[] = $f;
+        }
+
+        return ['findings' => $kept, 'known' => $known, 'gone' => array_sum($left)];
+    }
+
+    /** @param array{check: string, file: ?string, message: string} $finding */
+    private static function key(array $finding): string
+    {
+        return "{$finding['check']}\0{$finding['file']}\0{$finding['message']}";
+    }
+}

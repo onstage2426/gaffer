@@ -1,0 +1,132 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer\Types;
+
+use Gaffer\ImageSizes;
+use Twig\Markup;
+
+/**
+ * An image in the media library: what an `<img>` tag needs, per registered size.
+ */
+final class Image extends Attachment
+{
+    /**
+     * Everything inside an <img> tag for the given size: src, srcset, sizes,
+     * width/height of that size and the escaped alt. The tag itself (class,
+     * loading, fetchpriority, data/Alpine attributes) stays in the template:
+     * <img class="..." {{ image.attrs('large') }} loading="lazy">
+     *
+     * sizes starts with "auto", which browsers only honor on lazy images and
+     * skip otherwise. $sizes replaces it where the image is wider than its box:
+     * object-fit: cover in a box of another aspect ratio needs box height × the
+     * image's aspect ratio, which neither "auto" nor the size's width knows:
+     * <img class="object-cover" {{ image.attrs('large', '(min-width: 1024px) 60vw, 150vw') }}>
+     * WordPress's "auto, " for lazy images in content is taken off again (ImageSizes).
+     *
+     * Writes the size's own width and height: set the shown size with CSS (h-20 w-auto),
+     * not a width or height attribute on the tag, which would be a second one.
+     *
+     * $decorative writes alt="" (screen readers skip the image) instead of the media
+     * library's alt: for an image next to text that says the same (a logo beside the
+     * brand's name, a thumbnail in a card with its title). Never add an alt attribute
+     * to the tag yourself: it would be a second one, and browsers keep the first.
+     */
+    public function attrs(string $size = 'full', ?string $sizes = null, bool $decorative = false): Markup
+    {
+        $img = \wp_get_attachment_image_src($this->wp->ID, $size);
+
+        if (!is_array($img)) {
+            return new Markup('', 'UTF-8');
+        }
+
+        [$src, $width, $height] = $img;
+
+        $attrs = ['src' => \esc_url($src)];
+
+        $srcset = \wp_get_attachment_image_srcset($this->wp->ID, $size);
+        if ($srcset) {
+            $attrs['srcset'] = \esc_attr($srcset);
+            if ($sizes === null) {
+                $default = \wp_get_attachment_image_sizes($this->wp->ID, $size);
+                $sizes = $default ? 'auto, ' . $default : null;
+            } else {
+                ImageSizes::keep($sizes); // WordPress would prefix "auto, " in block content
+            }
+            if ($sizes !== null) {
+                $attrs['sizes'] = \esc_attr($sizes);
+            }
+        }
+
+        if ($width && $height) {
+            $attrs['width'] = (int) $width;
+            $attrs['height'] = (int) $height;
+        }
+
+        $attrs['alt'] = $decorative ? '' : \esc_attr(trim(strip_tags($this->alt())));
+
+        $html = implode(' ', array_map(
+            static fn(string $key, string|int $value): string => $key . '="' . $value . '"',
+            array_keys($attrs),
+            $attrs,
+        ));
+
+        return new Markup($html, 'UTF-8');
+    }
+
+    /** The URL of this size, null when WordPress can't give one. */
+    public function src(string $size = 'full'): ?string
+    {
+        $img = \wp_get_attachment_image_src($this->wp->ID, $size);
+
+        return is_array($img) ? $img[0] : null;
+    }
+
+    /**
+     * The file on disk that src($size) serves (for PDFs, image processing): the size's own
+     * file, or the full image when WordPress didn't make that size (an image smaller than
+     * it). Null when the file isn't there (offloaded uploads, a deleted file).
+     */
+    public function path(string $size = 'full'): ?string
+    {
+        $file = \get_attached_file($this->wp->ID);
+        if (!is_string($file) || $file === '') {
+            return null;
+        }
+        $intermediate = $size !== 'full' ? \image_get_intermediate_size($this->wp->ID, $size) : false;
+        if (is_array($intermediate)) {
+            $file = dirname($file) . '/' . $intermediate['file'];
+        }
+
+        return is_file($file) ? $file : null;
+    }
+
+    /** The full image's width, null when its metadata doesn't have one. */
+    public function width(): ?int
+    {
+        $width = $this->metadata('width');
+        return is_int($width) ? $width : null;
+    }
+
+    /** The full image's height, null when its metadata doesn't have one. */
+    public function height(): ?int
+    {
+        $height = $this->metadata('height');
+        return is_int($height) ? $height : null;
+    }
+
+    /** The media library's alt text, '' when it has none. */
+    public function alt(): string
+    {
+        return (string) $this->meta('_wp_attachment_image_alt');
+    }
+
+    /** A value of the full image's attachment metadata ("width", "height"). */
+    private function metadata(string $key): mixed
+    {
+        $metadata = $this->meta('_wp_attachment_metadata');
+
+        return is_array($metadata) ? ($metadata[$key] ?? null) : null;
+    }
+}

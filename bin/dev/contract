@@ -1,0 +1,181 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * The boundary between Gaffer and a plugin, both ways, and what doesn't match.
+ *
+ *   bin/dev/contract [<plugin>]     every plugin in plugins/catalog.json when none is named
+ *
+ * Per plugin (conventions in AGENTS.md, "Plugins"): the contract number on both sides; per
+ * method of the plugin's src/Engine.php, where the plugin implements it, where Gaffer calls it
+ * and how many recorded cases cover it; the features the plugin declares, docs/contract.md
+ * documents and Gaffer checks with supports(); the hooks each side uses; whether Gaffer's copy of
+ * the fixtures is the plugin's. Exits 1 when something doesn't match.
+ */
+
+declare(strict_types=1);
+
+$root = dirname(__DIR__, 2);
+$catalog = json_decode((string) file_get_contents("{$root}/plugins/catalog.json"), true, flags: JSON_THROW_ON_ERROR);
+$only = $argv[1] ?? null;
+if ($only !== null && !isset($catalog[$only])) {
+    fwrite(STDERR, "No plugin \"{$only}\" in plugins/catalog.json\n");
+    exit(2);
+}
+
+/** @return list<array{string, int, string}> [file relative to $base, line, text] for each line matching $pattern */
+$grep = static function (string $base, array $dirs, string $pattern): array {
+    $found = [];
+    foreach ($dirs as $dir) {
+        if (!is_dir("{$base}/{$dir}")) {
+            continue;
+        }
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$base}/{$dir}", FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+            foreach (file($file->getPathname()) ?: [] as $i => $line) {
+                if (preg_match($pattern, $line) && !preg_match('#^\s*(\*|//|/\*)#', $line)) {
+                    $found[] = [substr($file->getPathname(), strlen($base) + 1), $i + 1, trim($line)];
+                }
+            }
+        }
+    }
+
+    return $found;
+};
+$where = static fn(array $hits): string => $hits === [] ? '-' : implode(', ', array_map(static fn(array $h): string => "{$h[0]}:{$h[1]}", $hits));
+
+$problems = 0;
+foreach ($catalog as $name => $plugin) {
+    if ($only !== null && $name !== $only) {
+        continue;
+    }
+    $dir = "{$root}/plugins/{$name}";
+    echo "== {$name}\n";
+    if (!is_file("{$dir}/src/Engine.php")) {
+        echo "  not cloned, or no src/Engine.php (bin/dev/plugins clone)\n\n";
+        continue;
+    }
+    $problem = static function (string $message) use (&$problems): void {
+        $problems++;
+        echo "  ! {$message}\n";
+    };
+    $engine = (string) file_get_contents("{$dir}/src/Engine.php");
+    $filter = (string) $plugin['filter'];
+    $prefix = (string) preg_replace('/engine$/', '', $filter);
+
+    // Gaffer's side: the class that asks the filter for the engine.
+    $asks = $grep($root, ['src'], "/apply_filters\\(\\s*'" . preg_quote($filter, '/') . "'/");
+    $wrapper = $asks[0][0] ?? null;
+    if ($wrapper === null) {
+        $problem("Gaffer never asks for the engine (apply_filters('{$filter}', …))");
+        echo "\n";
+        continue;
+    }
+    $wrapper_source = (string) file_get_contents("{$root}/{$wrapper}");
+    $wrapper_class = basename($wrapper, '.php');
+
+    // Contract number.
+    preg_match('/const\s+int\s+CONTRACT\s*=\s*(\d+)/', $engine, $p);
+    preg_match('/const\s+int\s+CONTRACT\s*=\s*(\d+)/', $wrapper_source, $g);
+    echo "  contract: plugin " . ($p[1] ?? '?') . ", Gaffer " . ($g[1] ?? '?') . " ({$wrapper})\n";
+    if (($p[1] ?? null) !== ($g[1] ?? null)) {
+        $problem('the contract numbers differ');
+    }
+
+    // Recorded cases per method ("define_then_status" counts for define).
+    $cases = [];
+    foreach (glob("{$dir}/tests/contract/*.json") ?: [] as $case) {
+        $call = (string) (json_decode((string) file_get_contents($case), true)['call'] ?? '');
+        $method = explode('_then_', $call)[0];
+        $cases[$method] = ($cases[$method] ?? 0) + 1;
+    }
+
+    // "endpoint" cases are HTTP requests to the plugin's endpoint, not calls to endpoint().
+    $requests = $cases['endpoint'] ?? 0;
+    unset($cases['endpoint']);
+
+    // Methods: the plugin's public ones, Gaffer's calls to them.
+    echo "  methods:\n";
+    preg_match_all('/^\s*public\s+function\s+(\w+)\s*\(/m', $engine, $m, PREG_OFFSET_CAPTURE);
+    $methods = [];
+    foreach ($m[1] as [$method, $offset]) {
+        if ($method !== '__construct') {
+            $methods[$method] = substr_count(substr($engine, 0, $offset), "\n") + 1;
+        }
+    }
+    $users = array_unique(array_column($grep($root, ['src'], '/\b' . preg_quote($wrapper_class, '/') . '\b/'), 0));
+    foreach ($methods as $method => $line) {
+        // The wrapper passes a call on to the plugin's object ($this->engine->x() or a call('x') helper).
+        $wraps = array_values(array_filter(
+            $grep($root, ['src'], "/(->engine->{$method}\\(|call\\(\\s*'{$method}')/"),
+            static fn(array $h): bool => $h[0] === $wrapper,
+        ));
+        $others = array_values(array_filter(
+            $grep($root, ['src'], '/->' . $method . '\\(/'),
+            static fn(array $h): bool => in_array($h[0], $users, true) && $h[0] !== $wrapper,
+        ));
+        echo "    {$method}()  plugin src/Engine.php:{$line}  wrapped " . $where($wraps) . "  called " . $where($others) . '  cases ' . ($cases[$method] ?? 0) . "\n";
+        if ($wraps === []) {
+            $problem("Gaffer's {$wrapper} never calls {$method}()");
+        }
+    }
+    foreach (array_diff(array_keys($cases), array_keys($methods)) as $call) {
+        $problem("recorded cases call {$call}, which isn't a public method of the plugin's engine");
+    }
+    echo "    HTTP requests to the endpoint  cases {$requests}\n";
+
+    // Features.
+    preg_match('/\$features\s*=\s*\[([^\]]*)\]/', $engine, $f);
+    preg_match_all("/'(\\w+)'/", $f[1] ?? '', $declared);
+    $declared = $declared[1];
+    $contract_doc = (string) @file_get_contents("{$dir}/docs/contract.md");
+    preg_match('/^## Features\n(.*?)(?=^## )/ms', $contract_doc, $section);
+    preg_match_all('/^- `(\w+)`/m', $section[1] ?? '', $documented);
+    $documented = $documented[1];
+    $checks = $grep($root, ['src'], "/->supports\\(\\s*'\\w+'/");
+    $checked = [];
+    foreach ($checks as $hit) {
+        preg_match_all("/->supports\\(\\s*'(\\w+)'/", $hit[2], $names);
+        foreach ($names[1] as $feature) {
+            $checked[$feature][] = $hit;
+        }
+    }
+    echo "  features:\n";
+    foreach (array_unique([...$declared, ...$documented, ...array_keys($checked)]) as $feature) {
+        echo "    {$feature}  declared " . (in_array($feature, $declared, true) ? 'yes' : 'NO') . '  documented ' . (in_array($feature, $documented, true) ? 'yes' : 'NO')
+            . '  Gaffer checks ' . $where($checked[$feature] ?? []) . "\n";
+        if (!in_array($feature, $declared, true)) {
+            $problem("Gaffer or the docs name the feature {$feature}, which the plugin doesn't declare");
+        } elseif (!in_array($feature, $documented, true)) {
+            $problem("the feature {$feature} isn't under Features in docs/contract.md");
+        }
+    }
+
+    // Hooks with the plugin's prefix.
+    echo "  hooks ({$prefix}*):\n";
+    $hook = "/(apply_filters|do_action|add_filter|add_action|has_filter|remove_filter)\\(\\s*'(" . preg_quote($prefix, '/') . "\\w*)'/";
+    foreach (['plugin' => $grep($dir, ['src', 'endpoints'], $hook), 'Gaffer' => $grep($root, ['src'], $hook)] as $side => $hits) {
+        $by = [];
+        foreach ($hits as $hit) {
+            preg_match($hook, $hit[2], $h);
+            $by["{$h[1]}('{$h[2]}')"][] = $hit;
+        }
+        foreach ($by as $call => $at) {
+            echo "    {$side}: {$call}  " . $where($at) . "\n";
+        }
+    }
+
+    // Gaffer's copy of the fixtures.
+    $copy = "{$root}/{$plugin['fixtures']}";
+    $same = @file_get_contents("{$dir}/tests/contract/MANIFEST") === @file_get_contents("{$copy}/MANIFEST");
+    echo "  fixtures: " . (array_sum($cases) + $requests) . " cases, Gaffer's copy ({$plugin['fixtures']}) " . ($same ? 'in sync' : 'OUT OF SYNC') . "\n";
+    if (!$same) {
+        $problem("copy them: cp plugins/{$name}/tests/contract/{*.json,MANIFEST} {$plugin['fixtures']}/");
+    }
+    echo "\n";
+}
+
+echo $problems === 0 ? "No mismatches.\n" : "{$problems} mismatch(es).\n";
+exit($problems === 0 ? 0 : 1);

@@ -1,0 +1,17 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    scanFiles:
+        - phpstan/gravityforms.stub
+        - phpstan/mcp-adapter.stub
+        - phpstan/acf.stub
+        - phpstan/yoast.stub
+    level: 6
+    paths:
+        - src
+        - bin
+        - tests
+    excludePaths:
+        - tests/stubs
+        - tests/bootstrap.php

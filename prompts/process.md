@@ -1,0 +1,28 @@
+A site built with Gaffer (and its plugins) sent a feedback report. The report, the session transcript (.jsonl) and the theme are at: `themes/<site>/` in this repo. Process it the way we work: Gaffer and its plugins stay lightweight and stable.
+
+1. Read AGENTS.md (Design principles, Settled decisions, Open; `docs/architecture.md` for the areas the report touches) and your memory if you have one (every note on an earlier report: the same site's first, plus the latest audit) before judging anything. `themes/` and `local/` are gitignored: the theme, its transcript and any zip may stay there; nothing from them goes into a tracked file (AGENTS.md, "No private details").
+
+2. Find the report: `gaffer-feedback.md` in the theme's root, else the transcript's last assistant message after the feedback prompt (the theme's other `.md` files are the site's own notes, not the report). Then scan the transcript for what the report leaves out: failed tool calls, retries, workarounds and greps that filter noise. Use a small script (`python3 -I`) over the JSON lines: pair each `tool_use` with its `tool_result` by id and print the errors (`is_error`) and every `gaffer`/`mcp__` call whose output has an error, warning or refusal; don't read 40 MB by hand. Note the Gaffer and plugin versions the site ran: compare them with `git log` here (and in each plugin, `git -C plugins/<name> log`), because some items may already be fixed.
+
+3. Verify every item against the current code of Gaffer and the plugins it touches (`plugins/<name>/`; grep, read, or run it against the integration site). Run `bin/dev/contract` (the plugins' boundary must have no mismatches before you change it) and `bin/dev/usage <theme copy>`: internal or missing Gaffer code the site uses is an item even when the report doesn't name it. Don't trust the report's diagnosis: it's an agent's. Classify each item:
+   - Already fixed: the site only needs to update (name the commit or changelog entry).
+   - Bug: confirmed in the code, with the file and line.
+   - General improvement: helps most sites, small, no new concepts.
+   - Docs only: a skill or guideline was wrong or missing.
+   - Decline: site-specific, hidden magic (Gaffer changing another plugin's or WordPress's behaviour, muting other code's notices), content-writing commands (settled: no content:seed), a second way to do something, or a big feature for one site.
+   - Defer: a real need, but wait for a second site (add it to Open in AGENTS.md).
+   Never re-propose what Settled or memory already declined. An Open "maybe" or deferred item that a second site now asks for is a decision for me: put it as a concrete choice with your recommendation.
+
+4. Present the triage to me briefly: what's broken, what you recommend building, what to decline or defer, with one line of reasoning each. Then wait for my answer. If you find something that endangers a live site (data loss, an undefined index, wrong SEO), say so first.
+
+5. After my go: use the ship-change skill. Fix the root cause rather than adding workarounds. Write tests for anything that doesn't need WordPress, and prove the rest on the integration site through the /tmp/gaffer-test entry (AGENTS.md). Run `composer test`, phpstan (no baseline) and `bun test`. Add a CHANGELOG entry with grep and before → after, update `docs/architecture.md`, AGENTS.md (Open with what was deferred and declined) and the skills and guidelines. Before changing or removing public API, `bin/dev/usage --member=<name>` shows which sites use it; runtime code (what sites call) stays stable, tooling may change with a changelog entry (`API.md`, Tooling). For a plugin (AGENTS.md, "Plugins"): its update must never undefine what a theme defined or change what an existing site shows. Prove that with render:snapshot/render:diff on a site with an older Gaffer, and use `docs/migration.md` and contract fixtures. If its working tree has someone else's uncommitted work, commit only your own changes (a worktree from HEAD). Commit (AGENTS.md, "Commits"), push, tag a plugin when I say so, then update the integration site and the starter (composer update, ai:update, twig:lint, doctor --wp; commit, don't push). Change the starter's own code only when I ask.
+
+6. Give me the update prompt for the site in a raw code block (no file): the versions to update to, the CHANGELOG/migration entries to read since its version, which workarounds the new features replace (by file), what's unchanged on purpose, what to check, and a short report back. Record what was built, declined and pending: Open in AGENTS.md for decisions, and a memory note if you have memory (site names only there or in `local/`). When the site's report back arrives, check it, answer briefly and append it to that note.
+
+7. Improve this workflow: if this round showed that `prompt-feedback.md` (the prompt the site gets) or this file missed something (a question the report should have answered, a step you had to work out, an earlier decision worth pointing to), edit them (`prompts/`) and add a line under "Lessons" below. Tell me what you changed.
+
+## Lessons
+
+- 2026-11-20 (guidelines tightened): `bin/dev/usage` and doctor's internal-API warning exist now; guideline additions follow AGENTS.md's "Guidelines and skills for themes" (rules in guidelines, detail in skills).
+
+- 2026-11-20 (a site's 3rd report): the report was only in the transcript's last message, so the feedback prompt now saves `gaffer-feedback.md`; the scope wasn't always "slicing", so it's generic now; the site re-asked a declined item, so the feedback prompt says not to repeat answered items.

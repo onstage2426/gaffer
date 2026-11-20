@@ -1,0 +1,82 @@
+{
+    "call": "search",
+    "args": [
+        "products",
+        {
+            "limit": 20,
+            "attributes": [
+                "id"
+            ],
+            "sort": [
+                "id:asc"
+            ],
+            "filter": {
+                "any": [
+                    {
+                        "brand": "pumpkin"
+                    },
+                    {
+                        "color": "wit",
+                        "price": {
+                            "max": 60
+                        }
+                    }
+                ]
+            }
+        }
+    ],
+    "expect": {
+        "query": "",
+        "total": 4,
+        "offset": 0,
+        "limit": 20,
+        "results": [
+            {
+                "id": 4,
+                "formatted": {
+                    "title": "Witte sluier",
+                    "snippet": "Sluier van tule, drie meter lang."
+                },
+                "labels": []
+            },
+            {
+                "id": 5,
+                "formatted": {
+                    "title": "Rode schoenen",
+                    "snippet": "Pumps met een lage hak."
+                },
+                "labels": []
+            },
+            {
+                "id": 6,
+                "formatted": {
+                    "title": "Zwarte schoenen",
+                    "snippet": "Sneakers voor de hele dag."
+                },
+                "labels": []
+            },
+            {
+                "id": 8,
+                "formatted": {
+                    "title": "Clutch",
+                    "snippet": "Kleine tas voor het feest."
+                },
+                "labels": []
+            }
+        ],
+        "facets": [],
+        "facetStats": [],
+        "labels": {
+            "brand": {
+                "pumpkin": "Pumpkin"
+            },
+            "color": {
+                "wit": "Wit"
+            }
+        },
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": []
+    }
+}

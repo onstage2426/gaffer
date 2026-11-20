@@ -1,0 +1,3 @@
+[test]
+root = "tests/js"
+preload = ["./tests/js/setup.js"]

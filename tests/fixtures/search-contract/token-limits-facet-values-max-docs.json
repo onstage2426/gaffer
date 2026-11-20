@@ -1,0 +1,41 @@
+{
+    "call": "token",
+    "args": [
+        "products",
+        {
+            "limit": 24,
+            "limits": [
+                12,
+                24,
+                48
+            ],
+            "facets": [
+                "brand"
+            ],
+            "facet_values": {
+                "brand": 400
+            },
+            "max_docs": 5000
+        }
+    ],
+    "expect": {
+        "payload": {
+            "index": "products",
+            "limit": 24,
+            "limits": [
+                12,
+                24,
+                48
+            ],
+            "facet_values": {
+                "brand": 400
+            },
+            "max_docs": 5000,
+            "facets": [
+                "brand"
+            ],
+            "site": 1,
+            "c": 1
+        }
+    }
+}

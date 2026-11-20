@@ -1,0 +1,142 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gaffer\Tests;
+
+use Gaffer\Console\Templates;
+use Gaffer\View;
+use Twig\Environment;
+use Twig\Loader\ArrayLoader;
+use Twig\TwigFilter;
+
+final class TemplatesTest extends TestCase
+{
+    /** @param array<string, string> $templates */
+    private static function env(array $templates): void
+    {
+        self::reset(View::class, 'env', null);
+        View::set_env(new Environment(new ArrayLoader($templates)));
+    }
+
+    public function test_variables_read_from_the_caller(): void
+    {
+        self::env(['t.twig' => <<<'TWIG'
+            {% set heading = title|upper %}
+            {% set compact = compact|default(false) %}{% set size = size ?? 'm' %}
+            {{ links|map(link => link.url)|join }}
+            {% for item in items %}{{ loop.index }} {{ item.name }} {{ prefix }}{% endfor %}
+            {{ heading }} {{ subtitle ?? '' }} {{ note|default('x') }}
+            {% if extra is defined %}{{ extra }}{% endif %}
+            {{ nav_primary }}
+            TWIG]);
+
+        $variables = Templates::variables(Templates::parse('t.twig'), ['nav_primary']);
+
+        self::assertSame([
+            'compact' => true,
+            'extra' => false,   // read outside the "is defined" test too
+            'items' => false,
+            'links' => false,
+            'note' => true,
+            'prefix' => false,
+            'size' => true,
+            'subtitle' => true,
+            'title' => false,
+        ], $variables);
+    }
+
+    public function test_references_and_isolation(): void
+    {
+        self::env(['t.twig' => <<<'TWIG'
+            {{ include('a.twig', { x: 1 }, with_context = false) }}
+            {{ include('b.twig') }}
+            {{ include('c/' ~ name) }}
+            {% include 'd.twig' with { y: 2 } only %}
+            {{ source('icons/e.svg') }}
+            {{ include('widgets/' ~ type ~ '-' ~ size ~ '.twig', {}, with_context = false) }}
+            TWIG]);
+
+        $refs = Templates::references(Templates::parse('t.twig'));
+
+        self::assertSame(
+            [['a.twig', 'include()', true], ['b.twig', 'include()', false], [null, 'include()', false], ['d.twig', '{% include %}', true], ['icons/e.svg', 'source()', true], [null, 'include()', true]],
+            array_map(static fn(array $r): array => [$r['template'], $r['kind'], $r['isolated']], $refs),
+        );
+        self::assertSame([1, 2, 3, 4, 5, 6], array_column($refs, 'line'));
+        // Computed names: a pattern when fixed text starts and ends it ('c/' ~ name has no fixed end).
+        self::assertSame([null, null, null, null, null, 'widgets/*-*.twig'], array_column($refs, 'pattern'));
+    }
+
+    public function test_extends_embed_import_from_and_use(): void
+    {
+        self::env([
+            'base.twig' => '{% block body %}{% endblock %}',
+            'card.twig' => '{% block body %}{% endblock %}',
+            'blocks.twig' => '{% block a %}{% endblock %}',
+            'macros.twig' => '{% macro m() %}{% endmacro %}',
+            't.twig' => <<<'TWIG'
+                {% extends 'base.twig' %}
+                {% use 'blocks.twig' %}
+                {% import 'macros.twig' as m %}
+                {% from 'forms.twig' import field %}
+                {% block body %}
+                {% embed 'card.twig' only %}{% block body %}{{ include('inner.twig', {}, with_context = false) }}{% endblock %}{% endembed %}
+                {% endblock %}
+                TWIG,
+        ]);
+
+        $refs = Templates::references(Templates::parse('t.twig'));
+        usort($refs, static fn(array $a, array $b): int => [$a['line'], $a['kind']] <=> [$b['line'], $b['kind']]);
+
+        self::assertSame([
+            ['base.twig', '{% extends %}', 1],
+            ['blocks.twig', '{% use %}', 2],
+            ['macros.twig', '{% import %}', 3],
+            ['forms.twig', '{% from %}', 4],
+            ['inner.twig', 'include()', 6],
+            ['card.twig', '{% embed %}', 6],
+        ], array_map(static fn(array $r): array => [$r['template'], $r['kind'], $r['line']], $refs));
+        self::assertTrue(array_column($refs, 'isolated', 'kind')['{% embed %}']);
+    }
+
+    public function test_getter_calls(): void
+    {
+        self::env(['t.twig' => "{{ post.title() }}\n{{ product.get_title() }}\n{{ product.get_meta('label') }} {{ post.wp.post_name }}"]);
+
+        self::assertSame([['get_title', 2], ['get_meta', 3]], Templates::method_calls(Templates::parse('t.twig'), '/^get_/'));
+    }
+
+    public function test_includes_inside_a_form(): void
+    {
+        self::env(['t.twig' => <<<'TWIG'
+            {{ include('before.twig', {}, with_context = false) }}
+            <form class="filters">
+                {% for item in items %}
+                    {{ include('card.twig', { item }, with_context = false) }}
+                {% endfor %}
+            </form>
+            {{ include('after.twig', {}, with_context = false) }}
+            TWIG]);
+
+        self::assertSame([['card.twig', 4]], array_map(
+            static fn(array $r): array => [$r['template'], $r['line']],
+            Templates::includes_in_form(Templates::parse('t.twig')),
+        ));
+    }
+
+    public function test_t_on_anything_but_a_literal(): void
+    {
+        self::env(['t.twig' => "{{ 'Lees meer'|t }} {{ '%d resultaten'|t|format(n) }}\n{{ (open ? 'Sluit' : 'Open')|t }}\n{{ label|t }} {{ ('a' ~ b)|t }}"]);
+        View::env()->addFilter(new TwigFilter('t', static fn(string $s): string => $s));
+
+        self::assertSame([2, 3, 3], Templates::non_literal_translations(Templates::parse('t.twig')));
+    }
+
+    public function test_a_template_that_does_not_compile_is_null(): void
+    {
+        self::env(['t.twig' => '{% if %}']);
+
+        self::assertNull(Templates::parse('t.twig'));
+    }
+}

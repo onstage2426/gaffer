@@ -1,0 +1,39 @@
+{
+    "call": "define_then_status",
+    "args": [
+        {
+            "shop": {
+                "type": "products",
+                "facets": [
+                    "price"
+                ],
+                "meta": {
+                    "_price": [
+                        "price",
+                        "float"
+                    ],
+                    "_stock": [
+                        "stock_quantity",
+                        "int"
+                    ]
+                }
+            }
+        }
+    ],
+    "expect": {
+        "products": {
+            "built": true,
+            "documents": 12,
+            "version": null,
+            "building": false,
+            "error": null
+        },
+        "shop": {
+            "built": false,
+            "documents": 0,
+            "version": null,
+            "building": false,
+            "error": null
+        }
+    }
+}

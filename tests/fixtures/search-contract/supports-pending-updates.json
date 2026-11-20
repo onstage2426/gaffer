@@ -1,0 +1,9 @@
+{
+    "call": "supports",
+    "args": [
+        "pending_updates"
+    ],
+    "expect": [
+        true
+    ]
+}

@@ -1,0 +1,24 @@
+{
+    "call": "problems",
+    "args": [
+        {
+            "cars": {
+                "type": "posts",
+                "taxonomies": {
+                    "category": "any"
+                },
+                "meta": {
+                    "_kind": "not"
+                }
+            }
+        }
+    ],
+    "expect_contains": [
+        "a field can't be named \"any\"",
+        "a field can't be named \"not\""
+    ],
+    "expect": [
+        "a field can't be named \"any\"",
+        "a field can't be named \"not\""
+    ]
+}

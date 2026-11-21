@@ -56,6 +56,27 @@ final class FormsCheck implements Check
             }
         }
 
+        // An action that stores or mails what visitors send, by e-mail address, without a spam
+        // check: bots fill it (a list that grows without end, mails to strangers' addresses).
+        foreach (glob(Paths::ajax() . '/*/*.php') ?: [] as $file) {
+            $action = basename(dirname($file));
+            if (basename($file, '.php') !== $action) {
+                continue;
+            }
+            $code = (string) file_get_contents($file);
+            if (preg_match('/function\s+run\s*\(([^)]*)\)/', $code, $run, PREG_OFFSET_CAPTURE) !== 1
+                || preg_match('/\b(?:string|array)\s+\$\w*e_?mail\w*\b/i', $run[1][0]) !== 1
+                || preg_match('/METHOD\s*=\s*[\'"]GET[\'"]/', $code) === 1
+                || preg_match('/extends\s+\\\\?(?:Gaffer\\\\Forms\\\\)?FormAction\b/', $code) === 1) {
+                continue;
+            }
+            $folder = implode('', array_map(static fn(string $f): string => (string) file_get_contents($f), glob(dirname($file) . '/*.php') ?: []));
+            if (!str_contains($folder, 'Spam::check(')) {
+                $report->warning('forms', 'Takes an e-mail address without a spam check', $file, substr_count($code, "\n", 0, $run[0][1]) + 1,
+                    'Bots fill such forms. Its <form> includes ' . self::PARTIAL . " with FormState::blank('{$action}'), and run() starts with `if (Forms\\Spam::check('{$action}') !== null)`: answer as if it worked, without storing or sending anything.");
+            }
+        }
+
         foreach (ThemeFiles::find(['php', 'js', 'mjs', 'ts']) as $file) {
             if (str_contains((string) file_get_contents($file), 'challenges.cloudflare.com/turnstile')) {
                 $report->error('forms', 'Loads or renders Turnstile itself', $file, null,

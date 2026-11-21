@@ -88,12 +88,23 @@ final class StabilityTest extends TestCase
         mkdir("{$this->theme}/app/Ajax/QuoteForm", 0755, true);
         file_put_contents("{$this->theme}/app/Ajax/QuoteForm/QuoteForm.php", "<?php\nclass QuoteForm {\n    public function run(string \$naam, string \$website = ''): void {}\n}");
         file_put_contents("{$this->theme}/inc/assets.php", "<?php wp_enqueue_script('t', 'https://challenges.cloudflare.com/turnstile/v0/api.js');");
+        foreach ([
+            'NotifyMe' => "public function run(\\Theme\\Product \$product, string \$email): void {}",
+            'Newsletter' => "public function run(string \$email_address): void { if (\\Gaffer\\Forms\\Spam::check('news') !== null) { return; } }",
+            'Lookup' => "public const string METHOD = 'GET';\n    public function run(string \$email): void {}",
+        ] as $name => $body) {
+            mkdir("{$this->theme}/app/Ajax/{$name}");
+            file_put_contents("{$this->theme}/app/Ajax/{$name}/{$name}.php", "<?php\nclass {$name} extends \\Gaffer\\AjaxAction\n{\n    {$body}\n}");
+        }
+        mkdir("{$this->theme}/app/Ajax/Contact");
+        file_put_contents("{$this->theme}/app/Ajax/Contact/Contact.php", "<?php\nclass Contact extends FormAction\n{\n    public function run(string \$email): void {}\n}");
 
         Gaffer::twig();
         $found = array_map(static fn(array $f): string => basename((string) $f['file']) . ':' . $f['line'] . ' ' . $f['message'], $this->findings(new FormsCheck()));
         sort($found);
 
         self::assertSame([
+            'NotifyMe.php:4 Takes an e-mail address without a spam check',
             'QuoteForm.php:3 Reads Gaffer\'s honeypot or Turnstile field itself',
             'assets.php: Loads or renders Turnstile itself',
             'contact.twig: Doesn\'t include @gaffer/forms/meta.twig: Gaffer refuses the form, or answers every submission as spam',

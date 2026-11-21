@@ -28,6 +28,13 @@ the entries since the version in your `composer.lock` after every
   $product)`): with the newest published post of the post types `config/theme.php` maps to
   that class (or a term in use). Its info line names each action and the ID it got. Nothing to
   change; an action whose type has nothing published is named as not called.
+- **`doctor` warns about an ajax action that takes an e-mail address without a spam check**
+  (a POST `run()` with a `$email` parameter, not a `FormAction`, whose folder never calls
+  `Forms\Spam::check()`): bots fill such forms, and what it stores or mails grows without end.
+  Find: `grep -rln 'email' app/Ajax`. The fix is the one for a theme's own form (2026-11-20): the
+  form includes `@gaffer/forms/meta.twig` with `FormState::blank('<name>')`, and `run()` starts
+  with `if (Spam::check('<name>') !== null)` answering as if it worked. Check: send it once with
+  the honeypot filled (`X-Gaffer-Spam: honeypot`, nothing stored) and once for real.
 
 ## 2026-11-21 (second stability audit)
 

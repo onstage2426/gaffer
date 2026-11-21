@@ -32,10 +32,24 @@ Don't change code in this session. The output is the triage below and the plugin
    site's `composer.lock` reference still download, and does each release's zip still install?
 
 3. **Map what the running code depends on**, with the exact functions, hooks, files and fields:
-   - **The boundary with Gaffer:** `bin/dev/contract gaffer-search` (it exits 1 on a mismatch), the
-     recorded fixtures in both repos, `supports()` features. Try both directions for real: the
-     plugin's `0.x` with Gaffer's previous pushed state, and Gaffer's `0.x` with the plugin's last
-     tag (the integration site with the other one deployed; `doctor --wp` and a search).
+   - **The boundary with Gaffer, all of it.** It has three halves on three clocks: the plugin
+     (its updater installs a release on its own, any day), Gaffer's PHP (`composer update`) and
+     Gaffer's JavaScript (the theme's next build). Cached pages add a fourth: HTML with tokens
+     and the build's JavaScript, kept for hours. Map each crossing:
+     - PHP ↔ PHP: `bin/dev/contract gaffer-search` (it exits 1 on a mismatch), the recorded
+       fixtures in both repos, `supports()` features, the `gaffer_search_engine` filter, the
+       closures Gaffer hands over (labels, documents, cards) and what the plugin assumes of
+       their answers;
+     - browser ↔ endpoint (`docs/contract.md`, "The browser side"): the request keys Gaffer's
+       JavaScript sends, the answer keys and error codes it reads, the attributes
+       `search.attrs()` writes. Are they recorded anywhere a test reads, or only in prose?
+     - Gaffer's PHP ↔ Gaffer's JavaScript (`initial()`'s JSON, `offset`, history attributes):
+       what a build older than the PHP does.
+
+     Try the combinations for real on the integration site, each with `doctor --wp` and a
+     search in the browser: the plugin's `0.x` with Gaffer's previous pushed state, Gaffer's
+     `0.x` with the plugin's last tag, and a theme build older than Gaffer's PHP. Say for each
+     crossing what a change on one side does to a site that hasn't updated the others.
    - **The endpoint without WordPress:** what it reads (`sites/{id}.php` and its `format`, the
      index folder, `{slug}.labels.json`, `{index}.state.json`, the symlinked `{index}.db`), the
      request keys and answer keys the browser side relies on, its error codes, what it assumes of

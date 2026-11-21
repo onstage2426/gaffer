@@ -54,12 +54,16 @@ visitor could, try updates and rollbacks on a local site, and run the browser ch
 (`bin/dev/sites check`, `bin/dev/site-checks/search-pages.mjs`).
 
 Cover at least:
+- **A plugin missing:** what every page shows while a Gaffer plugin is inactive or its folder is
+  gone mid-update (`bin/dev/render-probe.php … --without=<plugin>`: status, `DONOTCACHEPAGE`,
+  robots), and whether a page cache would keep it.
 - **Updates arriving apart:** Gaffer's PHP (`composer update`), the theme's build (Gaffer's
   JavaScript), each plugin (its updater, any day), and pages in a cache for hours. Try the
   combinations for real (an older build with newer PHP, a plugin release with the previous
   Gaffer, a cached page's token after an update).
 - **How updates reach a site:** plugin updaters (their check period, GitHub's limits for
-  unauthenticated API requests, a release that's missing an asset), `composer.lock` references
+  unauthenticated API requests, a release that's missing an asset: read the updater's fallbacks),
+  `composer.lock` references
   that must stay downloadable, the theme's package manager and lockfile on the server.
 - **What themes override:** WooCommerce template overrides (`woocommerce/` in a theme, their
   `@version` against WooCommerce's), ACF block versions, Gravity Forms markup, hooks themes
@@ -77,7 +81,8 @@ site with an archive (`local/AGENTS_LOCAL.md` says which) and read what each the
 around it:
 - the server side: what `Search::archive()` asks the engine (the token, the first page's search,
   `bounds`), what WooCommerce's own main query still does on that page, the queries and time per
-  render (`render:page` reports both), the HTML weight of the cards and `initial()`;
+  render (`php gaffer render:page <path>`, hidden from `list`, reports both; `bin/dev/render-probe.php`
+  breaks the queries down by caller), the HTML weight of the cards and `initial()`;
 - the URL: `ArchiveUrl` (canonical, `noindex`, redirects of `/page/N/` and WooCommerce's params),
   the term lock, `?view=`, `limits`, `base_params`, a filter plugin's old URLs
   (`redirect_params`); what search engines and page caches see for every filter combination;
@@ -127,3 +132,23 @@ From the narrower audits (theirs apply here too):
   undo it by ID or from a copy.
 - A fix a plugin ships to every site (a file in its folder, a header) can break a host that
   allows less than yours: weigh what the fix costs where it fails, not only where it works.
+
+From the first run (2026-11-21):
+- **Turn a plugin off for one process, not on the site:** the empty shop (HTTP 200, cacheable,
+  indexable) only showed with gaffer-search left out of `active_plugins` for one render.
+- **Read the updater's fallbacks:** a release without its asset would have installed GitHub's
+  source zip (no `vendor/`), a fatal on every request. Check what the bundled library does when
+  something is missing, and what a manual update skips (WordPress rolls back only auto-updates).
+- **"Nothing waiting" isn't "running":** every check looked at work that waits; none at a job
+  that stopped. Ask of each cron job when it last ran, and who would be told.
+- **A missing header can be the host's:** the endpoint's `ETag` vanished in WP Rocket's root
+  `.htaccess` (`Header unset ETag`); `Last-Modified` still gave 304. Fetch through Apache from
+  the container too, to tell the app from the proxy.
+- **A version that hashes more must stay equal across contexts:** `home_url()` follows the
+  request's scheme (CLI http, web https) and the theme folder differs in a staged copy; either
+  would make two contexts rebuild each other's index. Use stored values, and check every WPML
+  language and both paths (container and host).
+- **The fix's own migration entry applies to the local sites too:** the new override check
+  flagged the starter's notices, which dropped WooCommerce's `data-id`; fixing the starter-based
+  themes was part of the round.
+

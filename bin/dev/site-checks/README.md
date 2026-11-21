@@ -20,7 +20,9 @@ node bin/dev/site-checks/search.mjs $P https://shop.test /winkel/ ma          # 
 - Console noise from Turnstile's iframe (`data:,` CSP (filtered), `%c` lines, error 600010 in headless
   Chromium) is filtered or expected; headless Chromium gets no Turnstile token, so a form takes
   the spam path (`X-Gaffer-Spam: turnstile-missing`) where Turnstile is on.
-- **A form check on a site without Turnstile creates a real Gravity Forms entry** (and maybe a
+- **A form check on a site without Turnstile creates a real Gravity Forms entry** (Turnstile is
+  on only with `turnstile.site_key` in `config/turnstile.php` *and* the secret: the starter keeps
+  it off) (and maybe a
   notification mail): note the highest entry ID first and delete newer test entries by ID.
   Test submissions also land in `storage/logs/spam.log`; remove them, or `doctor --wp`'s
   "many submissions without a Turnstile answer" fires.

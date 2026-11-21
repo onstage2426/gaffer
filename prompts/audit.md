@@ -81,3 +81,17 @@ Don't change code in this session. The output is the triage below and `docs/comp
     reference unreachable. Check that each site's reference still downloads.
   - **Count who uses a pair before deferring it:** the search form's hand-written keys were
     "experimental until 1.0", but six themes already wrote them.
+- 2026-11-21 (third run, from the sites' reports):
+  - **Compare a copy's `composer.lock` with its report before using it:** all five copies were a
+    round older than the sites. Say so and ask; what a copy shows of unchanged code (ajax
+    actions, `.htaccess`) is still usable.
+  - **Ask how each site deploys, then follow the files:** two sites build in place, and Gaffer's
+    plugin emptied `public/` first, so pages in WP Rocket or Cloudflare (and any page rendered
+    during the build) lost their CSS and JavaScript. Look at what a build or update deletes, not
+    only at what it adds.
+  - **Fetch the theme over HTTP like a visitor:** one copy's `.htaccess` was empty. Measure with
+    the rule removed for a moment (a server that blocks dotfiles hides `.env` on its own, and
+    `Storage::private_dir()` rewrites a missing deny file).
+  - **Before a form check, look at `turnstile.site_key`, not only the secret:** the starter keeps
+    Turnstile off, so its submit was a real entry (deleted by ID afterwards). Note the highest
+    entry ID on every site first.

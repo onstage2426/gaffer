@@ -5,57 +5,69 @@ and what we carry or plan because of it. Kept by `prompts/audit.md` (run it now 
 1.x minor and before a major). Every entry is dated, says why, and what removing or fixing it
 takes. Fixed entries are removed here and mentioned in `CHANGELOG.md`.
 
-Last audit: 2026-11-21 (same versions as 2026-11-20; htmx `latest` is still 2.0.11 and `next`
-4.0.2, Alpine 3.17.5; WooCommerce 11.3 drops its own MCP endpoint (Gaffer uses WordPress's MCP
-Adapter) and 11.6 needs PHP 8.1: neither touches Gaffer). Before: 2026-11-20 (WordPress 7.1.5, ACF Pro 6.8.10, WooCommerce 11.2.1, Gravity Forms
-3.2.3.1, Twig 3.30, PHP 8.5.12, Alpine 3.17.4; htmx 4.0.2 on the local sites since that evening,
-2.0.11 before). At those versions Gaffer calls no deprecated WordPress, WooCommerce, ACF or
-Gravity Forms function or hook, `doctor --wp` shows no notices, and the local themes' templates
-trigger no Twig deprecation.
+Last audit: 2026-11-21, third round (WordPress 7.1.5, ACF PRO 6.8.10 with 6.8.12 out, WooCommerce
+11.2.1 with 11.3.1 out, Gravity Forms 3.2.3.1, Twig 3.30 with 4.0.0-alpha1 published, PHP 8.5.12,
+htmx `latest` 2.0.11 and `next` 4.0.2, Alpine 3.17.5). WooCommerce 11.3.1 keeps the three
+functions Gaffer's runtime calls, none deprecated. ACF 6.8.11 has two fatal regressions
+(`wp_insert_post()` with a post object, saving relational fields) fixed in 6.8.12: a site skips
+6.8.11. Gaffer calls neither (migrations write the database directly). ACF 6.8.12 turns its
+abilities on by default and stops preview scripts in blocks: Gaffer's MCP server lists only its
+own tools, and its block previews are empty. Earlier rounds: 2026-11-20 and 2026-11-21 (same
+versions; at those Gaffer called nothing deprecated and `doctor --wp` showed no notices).
 
-## Open after the 2026-11-21 round
+## Open after the third 2026-11-21 round
 
 Start the next round here; remove an item when it's done or decided.
 
-- **Rollout of 2026-11-21** (no htmx 2, no Vite dev server, `search.attrs()`, two lockfiles):
-  the four local sites are done in the same cycle; the theme copies in `themes/` get a prompt
-  each (`local/AGENTS_LOCAL.md` says which). A site with htmx below 4 must move before updating
-  (`doctor` errors).
-- **Lockfiles pinning removed commits** (2026-11-21). The repository started fresh on
-  2026-11-20, and GitHub answers 404 for the old commits, so `composer install` from a
-  `composer.lock` made before it fails (a fresh deploy, a CI build); `composer update
-  onstage2426/gaffer` fixes it. Rule: never rewrite pushed history again. Unknown for the live
-  site whose theme isn't here: ask its owner.
-- **Nothing clicks in `doctor`.** Since 2026-11-21 `doctor --wp` calls the GET actions that need
-  no argument (10 of 34 actions on the four theme copies with actions). POST actions (cart,
-  forms, offers) and GET actions with a required argument still run only in a browser
-  (`bin/dev/site-checks/`) or `ajax:call`. Candidate: a `doctor --wp` browser smoke test with
-  the existing Playwright setup (`render:screenshot`): each Gaffer form submitted with the
-  honeypot filled (expect `X-Gaffer-Spam: honeypot`, nothing written), console errors,
-  `window.htmx`. Only where Playwright is installed.
-- **Fake success hides breakage.** Spam gets a normal confirmation, so a broken widget or check
-  loses entries silently. Today only the `spam.log` heuristic (`ContractsCheck`) notices.
-  Consider counting real entries per form as well, so a form whose real entries stop while
-  spam lines continue gets flagged. (Gaffer's forms are on few sites: four of the five theme
-  copies show Gravity Forms by its own shortcode, not through Gaffer.)
-- **The probe doesn't cover uploads.** New files need a web SAPI. An HTTP probe through
-  `ajax.php` with a throwaway form template would cover `$_FILES`/`is_uploaded_file()` and
-  `gform_uploaded_files`.
-- **Deploying `public/`.** Gaffer can tell when the build is stale (`gaffer.json`). It doesn't
-  know how live sites build and deploy, nor whether a build lands before the PHP after a
-  `composer update`. Ask the site owners and write it in `local/sites.md`.
-- **doctor's HTTP requests run the site's WP-cron** (the front page and, since 2026-11-21, the
-  GET actions; after the renders). A plugin update it starts can still put a live site in
-  maintenance mode for a moment.
+- **The theme copies in `themes/` are older than the sites** (all five on 83a11ed; the sites
+  report d8dcd34). The user decided against fresh copies this round: the round-2 rollout counts as
+  done by the sites' reports, unverified. Ask for fresh copies before the next round that needs
+  their code.
+- **Lockfiles pinning removed commits** (2026-11-21). The fresh repository made old
+  `composer.lock` references unreachable; every reporting site updated past them. Unknown for the
+  live site whose theme isn't here; the stale local copy of one site still pins one. Rule: never
+  rewrite pushed history again.
+- **Nothing clicks in `doctor`.** `doctor --wp` calls the GET actions that need no argument or
+  only posts and terms (since the third 2026-11-21 round). POST actions (cart, forms, offers) and
+  GET actions with other arguments still run only in a browser (`bin/dev/site-checks/`) or
+  `ajax:call`. Candidate: a `doctor --wp` browser smoke test with the existing Playwright setup
+  (each Gaffer form with the honeypot filled, console errors, `window.htmx`), where Playwright
+  is installed.
+- **Fake success hides breakage.** Spam gets a normal confirmation; only the `spam.log`
+  heuristic notices a broken widget. Consider counting real entries per form too. Since the third
+  round `doctor` warns about an action that takes an e-mail address without `Spam::check()`.
+- **The probe doesn't cover uploads** (new files need a web SAPI): an HTTP probe through
+  `ajax.php` with a throwaway form template would cover `$_FILES` and `gform_uploaded_files`.
+- **Deploying (answered 2026-11-21).** Every site that reported builds `public/` on its server;
+  two serve the theme in place (a build is live at once), and on one the theme *is* production
+  (a `composer update` swaps `vendor/` under running requests: the site's practice, not
+  Gaffer's). Since the third round a build keeps the previous build's files, so pages in a cache
+  and a build in progress keep working. The PHP/JS rule stays (cached pages and open tabs run the
+  previous JavaScript for hours).
+- **The theme's `.htaccess` is a hand-written pair** (2026-11-21): it lets through
+  `public/assets/`, `ajax.php` and `screenshot.png`, Gaffer's paths, and keeps the rest private.
+  One copy had an empty one. Since the third round `doctor --wp` fetches `.env`, `.git/HEAD`, a
+  probe file in `storage/logs/` and the Composer files over HTTP. Gaffer could own the file
+  (write or check its rules) if a path changes; `Storage::private_dir()` already rewrites its own
+  folders' deny file.
+- **doctor's HTTP requests run the site's WP-cron** (front page, GET actions, the private-file
+  probe; after the renders). A plugin update it starts can still put a live site in maintenance
+  mode for a moment.
 - **Internal API in a site's running code** (2026-11-21, decided: accepted). One site's preview
-  checkout prepends a template folder through `View::env()->getLoader()` (internal). It is a
-  temporary migration step; `doctor` warns (`InternalApiCheck`). No public API for it unless a
-  second site needs one.
+  checkout uses `View::env()->getLoader()`; `doctor` warns. No public API unless a second site
+  needs one.
+- **Deferred (2026-11-21):** `render:screenshot` behind a password plugin (one site; its agent
+  used its own Playwright script with the plugin's cookie). Candidate: a repeatable
+  `--cookie name=value` for the render and the browser, when a second site needs it.
+- **Not Gaffer's:** two sites' `.git` directories vanished on their servers during their agents'
+  sessions. Nothing in Gaffer deletes outside the Twig cache, marked skill folders, an empty
+  `.codex/` and `public/`.
 - **Dates:**
   - remove `FormAction`'s old `form` key after 2026-12-31;
   - remove the hand-written search endpoint/token reading from `form-search.js` when
     `doctor`'s warning is gone on every site (2.x at the latest);
-  - gaffer-search's updater token expires 2026-12-06 (memory: the pre-1.0 audit).
+  - gaffer-search's updater token expires 2026-12-06; the user decided not to renew it now
+    (plugin updates stop reaching sites after that date until there is a new one).
 
 ## Kept for compatibility (2.x candidates)
 
@@ -149,6 +161,8 @@ Pairs where a site writes by hand what Gaffer reads; each breaks when either sid
 - PHP and bundled JavaScript ship together but deploy apart (`composer update` vs the next
   build): a contract between them only grows, and each half keeps working with the previous
   release's other half. `doctor` says when the build has older Gaffer JavaScript.
+- A build never removes what the previous build wrote (Gaffer's Vite plugin, since 2026-11-21):
+  a page cache or an open tab keeps the previous build's HTML for hours.
 - When Gaffer checks what a template, a build or a theme file writes, Gaffer writes it too
   (a partial, a method, the Vite plugin).
 - What a site relies on in a plugin and can't get through a public API gets a real check in

@@ -9,6 +9,13 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (gaffer-search audit)
 
+- **`doctor` warns about a search form whose component never shows its error.** A template
+  with `x-data` that prints a search object's `attrs()`, and that (with what it includes) never
+  reads `error`: when the endpoint fails, the visitor sees "nothing found" or the last results.
+  Find: `grep -rLw error $(grep -rl 'attrs()' views | xargs grep -l x-data)`. Show it, e.g.
+  `<p x-show="error" x-cloak><span x-show="error?.stale">…refresh…</span><span
+  x-show="!error?.stale">…try again later…</span></p>` (`error.stale`: the page's token no longer
+  works). Check: `php gaffer doctor` has no such warning.
 - **`doctor --wp` shows gaffer-search's daily health check** (gaffer-search 0.2.0, feature
   `health_checks`): an error when a visitor can download files from the plugin's folders (an
   index holds hidden documents too; nginx ignores the deny `.htaccess`), and a warning when

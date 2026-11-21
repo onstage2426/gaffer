@@ -83,6 +83,44 @@ final class SearchCheck implements Check
         $this->unavailable($report);
         $this->unfiltered($report);
         $this->by_hand($report, $templates);
+        $this->unshown_errors($report, $templates);
+    }
+
+    /**
+     * A search form Gaffer's JavaScript runs (a template with x-data printing a search object's
+     * attrs()) whose template, with what it includes by fixed name, never mentions `error`: when the
+     * endpoint fails (an index rebuilding, a stale page's token) the component's `error` is set
+     * and nothing shows it, so the visitor sees "nothing found" or the last results.
+     *
+     * @param array<string, string> $templates
+     */
+    private function unshown_errors(Report $report, array $templates): void
+    {
+        $code_of = static fn(string $file): string => (string) preg_replace('/\{#.*?#\}/s', '', (string) file_get_contents($file));
+        foreach ($templates as $file) {
+            $code = $code_of($file);
+            if (!str_contains($code, 'x-data') || !preg_match('/\{\{\s*[\w.]*search[\w.]*\.attrs\b|data-gaffer-search-endpoint=/i', $code, $m, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+            // The template and what it includes by fixed name (read as files: no Twig environment here).
+            $seen = [];
+            $queue = [$code];
+            while (($part = array_shift($queue)) !== null) {
+                if (preg_match('/\berror\b/', $part)) {
+                    continue 2;
+                }
+                preg_match_all('/\b(?:include|embed|extends)\b\s*\(?\s*[\'"]([^\'"]+)[\'"]/', $part, $names);
+                foreach ($names[1] as $included) {
+                    if (isset($templates[$included]) && !isset($seen[$included])) {
+                        $seen[$included] = true;
+                        $queue[] = $code_of($templates[$included]);
+                    }
+                }
+            }
+            $report->warning('search', 'A search form whose component never shows its error: a failed search looks like "nothing found"', $file, substr_count($code, "\n", 0, $m[0][1]) + 1,
+                'Show the component\'s error, e.g. <p x-show="error" x-cloak><span x-show="error?.stale">This page is out of date: <a href="">refresh it</a>.</span>'
+                . '<span x-show="!error?.stale">Products can\'t be loaded right now. Try again later.</span></p> (error.stale: the page\'s token no longer works).');
+        }
     }
 
     /**

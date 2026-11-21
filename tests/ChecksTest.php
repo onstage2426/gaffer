@@ -625,6 +625,18 @@ final class ChecksTest extends TestCase
         self::assertSame([['bar.twig', 1], ['old.twig', 2]], array_map(static fn(array $f): array => [basename((string) $f['file']), $f['line']], $found));
     }
 
+    public function test_a_search_component_that_never_shows_its_error(): void
+    {
+        @mkdir("{$this->theme}/views/parts", 0755, true);
+        file_put_contents("{$this->theme}/views/silent.twig", "<div x-data=\"archive()\">\n<form method=\"get\" {{ search.attrs() }}></form><ul></ul></div>");
+        file_put_contents("{$this->theme}/views/shown.twig", "<div x-data=\"searchbar\"><form method=\"get\" {{ search.attrs() }}></form>{% include 'parts/state.twig' %}</div>");
+        file_put_contents("{$this->theme}/views/parts/state.twig", '<p x-show="error" x-cloak>Try again later.</p>');
+        file_put_contents("{$this->theme}/views/plain.twig", '<form method="get" {{ search.attrs() }}></form>');
+        $found = array_values(array_filter($this->findings(new SearchCheck()), static fn(array $f): bool => str_contains($f['message'], 'never shows its error')));
+
+        self::assertSame([['silent.twig', 2]], array_map(static fn(array $f): array => [basename((string) $f['file']), $f['line']], $found));
+    }
+
     public function test_search_form_attributes(): void
     {
         $bar = new \Gaffer\Search\Searchbar(true, 'https://s.test/search.php?a=1&b=2', 'T"1', '/winkel/');

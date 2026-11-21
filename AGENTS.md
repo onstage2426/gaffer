@@ -171,6 +171,14 @@ Every plugin follows the same rules:
 - **Each plugin repository** keeps Gaffer's workflow: branch `0.x`, the commit style above, the
   public-knowledge rule, `API.md` + `api.txt`,
   `docs/migration.md` (sites read it after an update), CI. The user tags releases; never tag 1.0.
+- **Fails loudly, never empty:** Gaffer's side treats the plugin missing while the theme's config
+  needs it as a temporary failure (no page cache, 503 where a page is built from it), never as
+  "nothing found".
+- **Its updater installs only the release's built zip** (gaffer-search's `ReleaseAsset`): the
+  updater's fallback to GitHub's source zip has no `vendor/` and would fatal on every request.
+- **Every cron job it has reports its last run** through `status()`, and its health line in the
+  admin bar (and `php gaffer health`) goes orange when a run is days overdue; work done only on
+  `admin_init` also runs from a cron job (a site nobody logs into).
 - **A new plugin:** `prompts/plugin.md`. The catalog stays small (up to about ten): a plugin that
   isn't used by sites any more is retired, not kept.
 

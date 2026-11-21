@@ -5,7 +5,7 @@ and what we carry or plan because of it. Kept by `prompts/audit.md` (run it now 
 1.x minor and before a major). Every entry is dated, says why, and what removing or fixing it
 takes. Fixed entries are removed here and mentioned in `CHANGELOG.md`.
 
-Last audit: 2026-11-21, third round (WordPress 7.1.5, ACF PRO 6.8.10 with 6.8.12 out, WooCommerce
+Last audit: 2026-11-21, break-first audit of the whole system; before it, the third round (WordPress 7.1.5, ACF PRO 6.8.10 with 6.8.12 out, WooCommerce
 11.2.1 with 11.3.1 out, Gravity Forms 3.2.3.1, Twig 3.30 with 4.0.0-alpha1 published, PHP 8.5.12,
 htmx `latest` 2.0.11 and `next` 4.0.2, Alpine 3.17.5). WooCommerce 11.3.1 keeps the three
 functions Gaffer's runtime calls, none deprecated. ACF 6.8.11 has two fatal regressions
@@ -18,6 +18,27 @@ versions; at those Gaffer called nothing deprecated and `doctor --wp` showed no 
 ## Open after the third 2026-11-21 round
 
 Start the next round here; remove an item when it's done or decided.
+
+- **From the break-first audit (2026-11-21, `prompts/audit-break-first.md`).** Built: an inactive
+  gaffer-search keeps search pages out of caches and the archive answers 503 (before: an empty
+  shop, HTTP 200, cached and indexable); `doctor --wp` and the admin bar flag a daily check older
+  than two days (WP-cron stopped on a quiet site); `php gaffer health` for a daily crontab with
+  `MAILTO` (nobody sees the admin bar on a site nobody visits); a card index's version includes
+  the `home` option (stored cards hold absolute URLs) and `doctor` warns about cards without a
+  `rebuild` schedule; `doctor --wp` compares WooCommerce overrides' `@version` with WooCommerce's
+  templates. Open:
+  - **WooCommerce's main query still runs on archives Gaffer answers** (measured: 82 of a shop
+    page's 125 queries are WooCommerce's, its main query's rows thrown away). Candidate: skip it
+    with `posts_pre_query` and `found_posts` from the search; test on a large catalog first
+    (Yoast's pagination, WooCommerce's loop functions read `$wp_query`).
+  - **Server page links and Yoast's offset-page parity are hand-written per site** (one site:
+    its own page window, the same as the JavaScript's `getPageNumbers()`, and `%%page%%`,
+    prev/next and the page crumb for `offset` pages). A pair Gaffer could own (`Archive::pages()`)
+    when a second site with `seo.index_pages` needs it.
+  - **Every filter combination is its own uncached URL** (page caches skip query strings):
+    crawlers render each in full. Watch, no change.
+  - The theme folder's name is left out of the card version on purpose: a staged copy runs under
+    another name, and stage and live would rebuild each other's index.
 
 - **The theme copies in `themes/` are older than the sites** (all five on 83a11ed; the sites
   report d8dcd34). The user decided against fresh copies this round: the round-2 rollout counts as
@@ -138,7 +159,7 @@ Start the next round here; remove an item when it's done or decided.
   Firefox throw above about 100 calls in 30 seconds, and Chrome has proposed throwing above 200 a
   second; one call per answer stays far below. The Navigation API (in every engine since
   2026-01) doesn't replace History.
-- **gaffer-search** (2026-11-21; the plugin keeps its own `docs/compat-debt.md`). Gaffer reads
+- **gaffer-search** (2026-11-21; the plugin keeps its own `docs/compat-debt.md`). Without the plugin while `config/search.php` defines indexes, `Search` marks the request `engine_missing` (no page cache) and the archive answers 503 (break-first audit). Gaffer reads
   what the engine adds only when it's there: `search()`'s `code` (feature `search_codes`: the
   page stays out of caches, an archive answers 503) and `status()`'s `drift`/`served` (feature
   `health_checks`, shown by `doctor --wp`); with an older plugin both are absent and nothing

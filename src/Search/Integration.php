@@ -11,6 +11,8 @@ use Gaffer\Config;
  * there: the definitions for the engine, and with `archive` its redirects (/page/N/,
  * WooCommerce's own params, the theme's old ones with `urls.redirect_params`; WordPress's ?s=
  * search with `urls.redirect_search`), canonical URL and robots (ArchiveUrl, Search::seo()).
+ * Without the plugin an archive answers 503 with noindex, and every page that would show search
+ * stays out of page caches (Engine::missing()).
  *
  * @internal
  */
@@ -19,16 +21,20 @@ final class Integration
     public static function register(): void
     {
         $indexes = Indexes::all();
-        $engine = $indexes !== [] ? Engine::find() : null;
-        if ($engine === null) {
+        if ($indexes === []) {
             return;
         }
-        $engine->define(Indexes::definitions($indexes));
+        // Without the plugin (inactive, or its folder missing during an update) the archive is
+        // empty for now: it answers 503 and noindex below, as when its search couldn't run.
+        $engine = Engine::find();
+        $engine?->define(Indexes::definitions($indexes));
 
         if (Search::archive_index() === null) {
             return;
         }
-        \add_action('template_redirect', self::redirect(...), 5);
+        if ($engine !== null) {
+            \add_action('template_redirect', self::redirect(...), 5);
+        }
         \add_action('template_redirect', self::unavailable(...), 6);
         \add_filter('wpseo_canonical', static fn(mixed $canonical): mixed => Search::seo()['url'] ?? $canonical, 20);
         \add_filter('wpseo_robots_array', static function (array $robots): array {
@@ -43,7 +49,7 @@ final class Integration
 
     /**
      * An archive whose search couldn't run (the engine's `code`: the index isn't built yet, or
-     * the search failed) answers 503 with Retry-After, before the template prints anything: the
+     * the search failed; or Engine::MISSING without the plugin) answers 503 with Retry-After, before the template prints anything: the
      * empty page it shows is temporary, so search engines and caches don't keep it. Building the
      * archive here is the template's own Search::archive() (it's built once per request).
      */

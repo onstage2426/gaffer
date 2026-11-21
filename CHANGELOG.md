@@ -7,6 +7,16 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-21 (break-first audit)
+
+- **Without gaffer-search, search pages stay out of page caches and the shop answers 503.**
+  When `config/search.php` defines indexes but the plugin doesn't answer (deactivated, or its
+  folder missing during an update), every page that shows search (the searchbar, sliders, counts)
+  sets `DONOTCACHEPAGE` and no-cache headers, and an archive (the shop, a category) answers 503
+  with `Retry-After: 120` and `noindex`, as when its index isn't built. Before, WP Rocket kept an
+  empty shop (HTTP 200, indexable) for hours after the plugin was back. Nothing to change; the
+  archive's `results.code` is `engine_missing` then. Check: `php gaffer doctor --wp`.
+
 ## 2026-11-21 (admin bar)
 
 - **The admin bar's "Gaffer" menu shows each Gaffer plugin the theme uses in one line**, with

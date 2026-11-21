@@ -44,7 +44,7 @@ final class Search
      */
     public static function cards(string $index, int $limit, array $sort = [], ?Term $term = null, ?Post $except = null, array $filter = []): array
     {
-        $engine = Engine::find();
+        $engine = self::engine();
         $field = Indexes::card_field($index);
         if ($engine === null || $field === null) {
             return [];
@@ -71,7 +71,7 @@ final class Search
      */
     public static function count(string $index, ?Term $term = null, array $filter = []): ?int
     {
-        $engine = Engine::find();
+        $engine = self::engine();
         if ($engine === null) {
             return null;
         }
@@ -101,7 +101,7 @@ final class Search
         if ($fields === []) {
             throw new \InvalidArgumentException('Search::facet_counts() takes a list of fields, e.g. [\'brand\'].');
         }
-        $engine = Engine::find();
+        $engine = self::engine();
         if ($engine === null) {
             return null;
         }
@@ -137,7 +137,7 @@ final class Search
      */
     public static function counter(string $index, ?Term $term = null): Counter
     {
-        $engine = Engine::find();
+        $engine = self::engine();
         if ($engine === null) {
             return new Counter(false, '', '');
         }
@@ -164,7 +164,7 @@ final class Search
         if ($attributes === []) {
             throw new \InvalidArgumentException('Search::searchbar() needs the fields its template shows (attributes), e.g. [\'id\', \'url\', \'title\'].');
         }
-        $engine = Engine::find();
+        $engine = self::engine();
         if ($engine === null) {
             return new Searchbar(false, '', '', '');
         }
@@ -249,9 +249,12 @@ final class Search
         if ($index === null || !self::on_archive()) {
             return null;
         }
-        $engine = Engine::find();
+        $engine = self::engine();
         if ($engine === null) {
-            return Archive::unavailable();
+            // Empty for now, not for good: no canonical of its own, kept out of search engines.
+            self::$seo = ['url' => self::archive_base(), 'indexable' => false];
+
+            return Archive::unavailable(Engine::MISSING);
         }
         $config = (array) Config::get('search.archive');
         $seo = (array) ($config['seo'] ?? []);
@@ -391,6 +394,17 @@ final class Search
         self::archive();
 
         return self::$seo;
+    }
+
+    /** The engine, or null: then, with indexes defined, the page stays out of caches (Engine::missing()). */
+    private static function engine(): ?Engine
+    {
+        $engine = Engine::find();
+        if ($engine === null && Indexes::all() !== []) {
+            Engine::missing();
+        }
+
+        return $engine;
     }
 
     /**

@@ -138,6 +138,19 @@ final class Engine
         }
     }
 
+    /**
+     * @internal The plugin isn't there (inactive, or its folder missing during an update) while
+     * config/search.php defines indexes: what this request shows from search is empty for now,
+     * not for good, so the page stays out of page caches like a search that couldn't run.
+     */
+    public static function missing(): void
+    {
+        self::failed(self::MISSING);
+    }
+
+    /** The code for a request whose engine is missing (Engine::missing()), as an engine's `code`. */
+    public const string MISSING = 'engine_missing';
+
     /** @internal The engine's code for a search of this request that couldn't run, null when every one ran. */
     public static function failure(): ?string
     {

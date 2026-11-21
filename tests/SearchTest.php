@@ -244,6 +244,25 @@ final class SearchTest extends TestCase
         self::assertSame([0, 0, []], [$archive->results['offset'], $archive->results['total'], $archive->results['results']], 'the response shape, so templates read it as usual');
     }
 
+    public function test_without_the_plugin_a_page_that_shows_search_stays_out_of_caches(): void
+    {
+        self::config(['indexes' => ['products' => ['type' => 'products']]]);
+        self::assertNull(Engine::failure());
+
+        Search::searchbar('products', ['id']);
+
+        self::assertSame(Engine::MISSING, Engine::failure(), 'an empty searchbar or shop is temporary: a cache must not keep it');
+        self::assertSame(Engine::MISSING, \Gaffer\Search\Archive::unavailable(Engine::MISSING)->results['code'] ?? null, 'the archive answers 503 like a search that couldn\'t run');
+    }
+
+    public function test_without_indexes_a_missing_plugin_is_nothing(): void
+    {
+        self::config([]);
+        Search::cards('products', 4);
+
+        self::assertNull(Engine::failure());
+    }
+
     /** @param array<string, mixed> $search */
     private static function config(array $search): void
     {

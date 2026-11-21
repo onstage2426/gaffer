@@ -78,10 +78,13 @@ final readonly class Archive
         return Attributes::form($this->available, $this->endpoint, $this->token);
     }
 
-    /** @internal Without the search plugin: no cards, nothing to search. */
-    public static function unavailable(): self
+    /**
+     * @internal Without the search plugin: no cards, nothing to search. With a code (the plugin
+     * missing while the theme defines indexes) the results carry it as an engine's `code`.
+     */
+    public static function unavailable(string $code = ''): self
     {
-        return new self(false, '', '', '', 0, [], Engine::response(null), [], '', 'card');
+        return new self(false, '', '', '', 0, [], Engine::response($code !== '' ? ['code' => $code] : null), [], '', 'card');
     }
 
     /**

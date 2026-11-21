@@ -12,11 +12,11 @@ final class SearchHealthTest extends TestCase
 
     /**
      * @param array<string, mixed> $change
-     * @return array{built: bool, building: bool, error: ?string, version: ?string, pending: ?int, pending_since: ?int, drift: ?int, served: ?list<string>}
+     * @return array{built: bool, building: bool, error: ?string, version: ?string, pending: ?int, pending_since: ?int, drift: ?int, drift_checked: ?int, served: ?list<string>}
      */
     private static function ok(array $change = []): array
     {
-        return [...['built' => true, 'building' => false, 'error' => null, 'version' => 'v1', 'pending' => 0, 'pending_since' => null, 'drift' => 0, 'served' => []], ...$change];
+        return [...['built' => true, 'building' => false, 'error' => null, 'version' => 'v1', 'pending' => 0, 'pending_since' => null, 'drift' => 0, 'drift_checked' => self::NOW - 3600, 'served' => []], ...$change];
     }
 
     public function test_fine(): void
@@ -42,6 +42,8 @@ final class SearchHealthTest extends TestCase
         self::assertSame('a: waits for a rebuild (built from an older definition)', $orange(['version' => 'old']));
         self::assertSame('a: changes wait since 10 min (WP-cron?)', $orange(['pending' => 3, 'pending_since' => self::NOW - 600]));
         self::assertSame('a: 2 document(s) changed without WordPress\'s hooks', $orange(['drift' => 2]));
+        self::assertSame('a: the daily check last ran 3 days ago (WP-cron?)', $orange(['drift_checked' => self::NOW - 3 * 86400]), 'a quiet site whose cron stopped: nothing waits, but nothing runs');
+        self::assertSame('green', Health::of(['a' => self::ok(['drift_checked' => self::NOW - 86400 - 3600])], ['a' => 'v1'], self::NOW)['color'], 'a day and an hour: the job runs late on a quiet site');
         self::assertSame('green', Health::of(['a' => self::ok(['pending' => 1, 'pending_since' => self::NOW - 60])], ['a' => 'v1'], self::NOW)['color'], 'a minute: the job runs soon');
     }
 }

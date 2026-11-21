@@ -19,6 +19,7 @@ use Gaffer\Config;
 use Gaffer\Paths;
 use Gaffer\Search\Cards;
 use Gaffer\Search\Engine as SearchEngine;
+use Gaffer\Search\Health;
 use Gaffer\Search\Indexes;
 use Gaffer\View;
 use Gaffer\Types\Image;
@@ -797,6 +798,10 @@ final class WordPressCheck implements Check
         if ($state['drift_checked'] === null) {
             $report->info('search', "Index \"{$index}\": the engine's daily check of a sample against the database hasn't run yet", $file, null,
                 'It\'s a WP-cron job (gaffer_search_health_check): first an hour after the plugin set it up, then daily; wp cron event run --due-now runs it now.');
+        } elseif ($state['drift_checked'] < time() - Health::CHECK_DAYS * DAY_IN_SECONDS) {
+            $report->warning('search', "Index \"{$index}\": the engine's daily check last ran " . intdiv(time() - $state['drift_checked'], DAY_IN_SECONDS) . ' days ago', $file, null,
+                'It\'s a WP-cron job (gaffer_search_health_check), so WP-cron doesn\'t run here any more: with DISABLE_WP_CRON a system cron must run WordPress\'s due jobs (wp cron event run --due-now, or a request to wp-cron.php), and a firewall or HTTP auth can stop its loopback request. '
+                . 'Scheduled rebuilds, content updates and WordPress\'s own jobs (scheduled posts and sales) stop with it.');
         } elseif (($state['drift'] ?? 0) > 0) {
             $report->warning('search', "Index \"{$index}\": {$state['drift']} document(s) of the engine's last sample differed from the database", $file, null,
                 'Content was written without WordPress\'s hooks (direct SQL, an import that bypasses WordPress, a sync plugin): the index misses such changes until the daily sample or a rebuild finds them. '

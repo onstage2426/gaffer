@@ -9,6 +9,11 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (break-first audit)
 
+- **`doctor --wp` and the admin bar say when gaffer-search's daily check stopped running**: its
+  last run more than 2 days ago is a warning ("the engine's daily check last ran 3 days ago") and
+  an orange admin bar line. It's a WP-cron job, so WP-cron doesn't run any more (a crontab that
+  curls `wp-cron.php` and stopped, a firewall, HTTP auth); before, a quiet site with nothing
+  waiting showed nothing. Nothing to change. Check: `php gaffer doctor --wp`.
 - **Without gaffer-search, search pages stay out of page caches and the shop answers 503.**
   When `config/search.php` defines indexes but the plugin doesn't answer (deactivated, or its
   folder missing during an update), every page that shows search (the searchbar, sliders, counts)

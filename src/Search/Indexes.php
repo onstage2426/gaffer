@@ -145,6 +145,17 @@ final class Indexes
         $plain['card_variants'] = array_keys((array) ($definition['card_variants'] ?? []));
         $methods = [$definition['card_context'] ?? null, $definition['document'] ?? null, $definition['labels'] ?? null, ...array_values((array) ($definition['card_variants'] ?? []))];
 
-        return md5((string) json_encode([self::RENDERING, $plain, $cards, Cards::code_version($methods)], JSON_PARTIAL_OUTPUT_ON_ERROR));
+        return md5((string) json_encode([self::RENDERING, $plain, $cards, Cards::code_version($methods), ...($cards !== [] ? [self::card_site()] : [])], JSON_PARTIAL_OUTPUT_ON_ERROR));
+    }
+
+    /**
+     * What every stored card holds without its templates saying so: the site's address (links,
+     * images, ajax URLs), so a site moved to another domain or to https rebuilds its cards. The
+     * stored option, not home_url(): that follows the request's scheme, and a CLI request (http)
+     * would then rebuild what the web built.
+     */
+    private static function card_site(): string
+    {
+        return function_exists('get_option') ? (string) \get_option('home') : '';
     }
 }

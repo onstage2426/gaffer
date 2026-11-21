@@ -587,7 +587,7 @@ final class ChecksTest extends TestCase
         $messages = $this->messages(new SearchCheck());
         foreach (['document is not callable', 'limits must include per_page (24)', 'facet_values must map', 'seo.index_pages must be', 'seo.indexable_filters must map',
             'urls.base_params can\'t name the archive\'s own param "offset"', 'urls.redirect_params is not callable', 'bounds must be a list', 'cards maps a layout name',
-            'cards "grid" "missing.twig" is not a template', 'unknown key "index_pages"', 'unknown key "seo.canonical"'] as $expected) {
+            'cards "grid" "missing.twig" is not a template', 'unknown key "index_pages"', 'unknown key "seo.canonical"', 'stored cards without a rebuild schedule'] as $expected) {
             self::assertStringContainsString($expected, $messages);
         }
         self::assertStringNotContainsString('max_docs', $messages);

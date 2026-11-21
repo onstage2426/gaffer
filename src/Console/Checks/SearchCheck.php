@@ -54,6 +54,11 @@ final class SearchCheck implements Check
                     $report->error('search', "Index \"{$name}\": \"{$view}\" is a view in cards and a card variant: their fields would be the same (card_{$view})", $file);
                 }
             }
+            if (Indexes::templates($definition) !== [] && in_array($definition['rebuild'] ?? '', ['', null], true)) {
+                $report->warning('search', "Index \"{$name}\": stored cards without a rebuild schedule", $file, null,
+                    'A card shows more than its product (a brand\'s logo, an option, a price rule in a theme class): when that changes, nothing rebuilds the cards, and they stay as they were. '
+                    . "'rebuild' => 'daily' (or 'twicedaily') renders them again each night; the old index answers while it builds.");
+            }
             if ((isset($definition['card_variants']) || isset($definition['card_context'])) && Indexes::templates($definition) === []) {
                 $report->warning('search', "Index \"{$name}\": card_variants and card_context do nothing without cards", $file);
             }

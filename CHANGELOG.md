@@ -9,6 +9,16 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (break-first audit)
 
+- **An index with cards rebuilds once after this update, and again when the site's address
+  changes.** Stored cards hold absolute URLs (links, images, ajax actions): a site moved to its
+  real domain or to https kept serving cards with the old addresses until a rebuild. The index's
+  version now includes the `home` option, so the first request after this update schedules one
+  rebuild in the background (the old index answers meanwhile; a large catalog takes minutes).
+  Nothing to change. And `doctor` warns about an index with `cards` but no `rebuild` schedule:
+  a card shows more than its product (a brand's logo, an option, a theme class's price rule), and
+  without a schedule nothing renders it again. Find: `grep -n "'rebuild'" config/search.php`;
+  add `'rebuild' => 'daily'`. Check: `php gaffer doctor --wp` (the index "waits for a rebuild",
+  then is built and current).
 - **`php gaffer health`**: the admin bar's health lines from the command line (Gaffer's debug and
   Twig cache, each Gaffer plugin: gaffer-search's indexes, its daily check, files a visitor can
   download). Silent while everything is green; otherwise it prints each line and exits 1, so a

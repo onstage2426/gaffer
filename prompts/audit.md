@@ -4,7 +4,7 @@ Don't change code in this session. The output is the triage below and `docs/comp
 
 1. **Read first:** AGENTS.md (Design principles, Settled, Open), `API.md`, `docs/architecture.md`, `docs/compat-debt.md` (you're continuing it: start from its "Open" list and check its dates), the newest CHANGELOG entries, `local/sites.md` (if present), and your memory if you have one (the earlier audits). Don't re-propose what Settled or memory declined, nor what compat-debt already plans.
 
-   **Where the sites are:** per site on this host and in `themes/`, the Gaffer reference in `composer.lock`, the htmx version (`bun.lock`/`package-lock.json`), and `php gaffer doctor --wp` (local sites: errors and warnings only). Which CHANGELOG entries is each site behind on? Don't commit where `local/sites.md` says not to.
+   **Where the sites are:** per site on this host and in `themes/`, the Gaffer reference in `composer.lock` (and whether GitHub still serves it: `curl -so /dev/null -w '%{http_code}' https://codeload.github.com/onstage2426/gaffer/legacy.zip/<ref>`), the htmx version (`bun.lock`/`package-lock.json`; both present is a finding), and `php gaffer doctor --wp` (local sites: errors and warnings only). The copies in `themes/` have no WordPress or `vendor/`: `bin/dev/doctor-copy themes/<site> doctor` runs this clone's static doctor on them (errors from what a copy lacks, like `public/` or `views/`, are noise). New copies: add them to `local/sites.md`. Which CHANGELOG entries is each site behind on? Don't commit where `local/sites.md` says not to.
 
 2. **Map the surface a site's running code touches.** Start with `bin/dev/contract` for each plugin's boundary. For each public member in `tests/api.txt` and each convention in `API.md` (request keys, template names, derived keys, config keys, JS exports), note:
    - which sites use it (`bin/dev/usage`, `--member=` for detail);
@@ -72,4 +72,12 @@ Don't change code in this session. The output is the triage below and `docs/comp
   - **The partial was an API:** a theme's own (non-Gravity Forms) form used the partial too,
     so Gaffer needed a public check (`Spam::check()`). When Gaffer takes over one half of a
     pair, ask who else uses the other half.
-
+- 2026-11-21 (second run, five theme copies):
+  - **A copy is a new kind of site:** run static doctor on each (`bin/dev/doctor-copy`). It
+    found what no local site had: a theme without `app/Ajax/` crashed doctor, and WooCommerce's
+    account forms (`name="action"`) tripped the htmx check on the one site that copies them.
+    Doctor errors a site can't baseline are the first thing to fix.
+  - **History is part of the contract:** the fresh repository made every old `composer.lock`
+    reference unreachable. Check that each site's reference still downloads.
+  - **Count who uses a pair before deferring it:** the search form's hand-written keys were
+    "experimental until 1.0", but six themes already wrote them.

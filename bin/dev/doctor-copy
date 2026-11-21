@@ -1,0 +1,34 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Maintainer tool (not for themes): run this clone's `php gaffer` commands on a theme copy that
+ * has no vendor/ and no WordPress (themes/<site>/), e.g. static doctor for an audit.
+ *
+ *   bin/dev/doctor-copy themes/<site> doctor
+ *   bin/dev/doctor-copy themes/<site> twig:lint
+ *
+ * Commands that need WordPress (doctor --wp, renders) don't work here: the copy has no site.
+ */
+
+declare(strict_types=1);
+
+$gaffer = dirname(__DIR__, 2);
+require "{$gaffer}/vendor/autoload.php";
+$theme = realpath($argv[1] ?? '');
+if ($theme === false || !is_dir($theme)) {
+    fwrite(STDERR, "Usage: bin/dev/doctor-copy <theme dir> <command> [options]\n");
+    exit(2);
+}
+array_splice($argv, 1, 1);
+$_SERVER['argv'] = $argv;
+$_SERVER['argc'] = count($argv);
+spl_autoload_register(static function (string $class) use ($theme): void {
+    if (str_starts_with($class, 'Theme\\')) {
+        $file = "{$theme}/app/" . str_replace('\\', '/', substr($class, 6)) . '.php';
+        if (is_file($file)) {
+            require $file;
+        }
+    }
+});
+exit(Gaffer\Console\Console::boot($theme));

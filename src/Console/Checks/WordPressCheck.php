@@ -708,7 +708,7 @@ final class WordPressCheck implements Check
                 continue;
             }
             if (!$state['built']) {
-                $report->error('search', "Index \"{$name}\" isn't built", $file, null, 'wp gaffer-search rebuild, or Settings → Gaffer Search.');
+                $report->error('search', "Index \"{$name}\" isn't built", $file, null, 'It builds itself on the next request (WP-cron); wp gaffer-search rebuild builds it now.');
                 continue;
             }
             if ($state['version'] !== $definition['version']) {

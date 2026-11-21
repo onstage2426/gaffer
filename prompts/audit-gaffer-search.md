@@ -100,7 +100,8 @@ Don't change code in this session. The output is the triage below and the plugin
 
 6b. **Search like a visitor:** `bin/dev/site-checks/search.mjs` on every local site that runs it
    (searchbar, archive filters, sort, paging; no `token=` in the address bar), the browser console,
-   and a search on each language of a multisite with WPML. Change a product (price, stock, a term)
+   and a search on each language of a multisite with WPML (`bin/dev/site-checks/search-pages.mjs`:
+   each page's own token, no browser). Change a product (price, stock, a term)
    and watch it reach the index through the queue. Whatever only a browser found is a candidate
    for a check.
 
@@ -129,3 +130,17 @@ Carried over from Gaffer's own audits (`prompts/audit.md`):
 - History is part of the contract: a lockfile or an updater that points at a commit or release
   that's gone breaks the next install.
 - Before a test that writes (a submit, a product change), note what exists and undo by ID.
+
+From the first run (2026-11-21):
+- Try the update itself, not only the code: deploy the plugin's `0.x` to a site, list its cron
+  events right after the first request, then roll back to the release. A signature change that
+  rebuilt every index on every site only showed that way.
+- Read the dependency's own history first (Fuzor's `git log` past the pinned commit, its
+  CHANGELOG): the file-format promise asked for earlier had already landed there.
+- Measure a hookless write (direct SQL on a post, not on a variable product's price: WooCommerce
+  caches those itself) and see what notices it: `status`, `doctor --wp`, the daily sample.
+- Locally only one site has an archive with filters: archive checks (a 503 while the index
+  can't be read, the error state) need that site; the WPML network needs `search-pages.mjs`.
+- The fixtures are recorded from PHP arrays: an empty map is `[]` there and `{}` on the wire.
+- Tracked files and commit messages carry public knowledge only (AGENTS.md, "No private
+  details"): what's particular to a host or a site's history goes in `local/`.

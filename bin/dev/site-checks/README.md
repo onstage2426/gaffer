@@ -18,6 +18,7 @@ node bin/dev/site-checks/drawer-select.mjs $P https://shop.test               # 
 node bin/dev/site-checks/drawer-buttons.mjs $P https://shop.test              # drawer with +/− buttons and a remove button
 node bin/dev/site-checks/variation.mjs $P https://shop.test /product/<variable>/ select  # or: link
 node bin/dev/site-checks/search.mjs $P https://shop.test /winkel/ ma          # searchbar and archive through search.attrs()
+node bin/dev/site-checks/search-pages.mjs https://shop.test /winkel/ /en/shop/ /second/shop/ --q=ma  # each page's own token (site, language) searched, no browser
 ```
 
 - Console noise from Turnstile's iframe (`data:,` CSP (filtered), `%c` lines, error 600010 in headless

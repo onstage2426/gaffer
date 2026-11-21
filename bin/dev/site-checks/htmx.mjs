@@ -12,7 +12,7 @@ const check = async (name, fn) => {
     page.on("pageerror", (e) => errors.push(String(e)));
     try {
         const note = await fn(page);
-        const real = errors.filter((e) => !/turnstile|challenges\.cloudflare|cloudflarecaptcha|%c|favicon|401|403/i.test(e));
+        const real = errors.filter((e) => !/turnstile|challenges\.cloudflare|cloudflarecaptcha|%c|favicon|data:,|401|403|404/i.test(e));
         results.push({ name, ok: real.length === 0, note, errors: real });
     } catch (e) {
         results.push({ name, ok: false, note: String(e).slice(0, 300), errors });

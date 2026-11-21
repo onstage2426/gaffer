@@ -14,9 +14,10 @@ node bin/dev/site-checks/htmx.mjs $P https://shop.test /a-page-with-a-form/   # 
 node bin/dev/site-checks/drawer-select.mjs $P https://shop.test               # drawer with the quantity <select> (submit-qty)
 node bin/dev/site-checks/drawer-buttons.mjs $P https://shop.test              # drawer with +/− buttons and a remove button
 node bin/dev/site-checks/variation.mjs $P https://shop.test/product/<variable>/ select  # or: link
+node bin/dev/site-checks/search.mjs $P https://shop.test /winkel/ ma          # searchbar and archive through search.attrs()
 ```
 
-- Console noise from Turnstile's iframe (`data:,` CSP, `%c` lines, error 600010 in headless
+- Console noise from Turnstile's iframe (`data:,` CSP (filtered), `%c` lines, error 600010 in headless
   Chromium) is filtered or expected; headless Chromium gets no Turnstile token, so a form takes
   the spam path (`X-Gaffer-Spam: turnstile-missing`) where Turnstile is on.
 - **A form check on a site without Turnstile creates a real Gravity Forms entry** (and maybe a

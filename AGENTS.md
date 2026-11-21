@@ -90,6 +90,10 @@ Gaffer improves from real work on themes. The prompts in `prompts/` carry that b
 - `prompts/audit-gaffer-search.md`: the same for gaffer-search and Gaffer's side of it (the
   endpoint, tokens in cached pages, index files, Fuzor, the queue, both update directions); it
   keeps the plugin's own `docs/compat-debt.md`. Before a plugin tag, and now and then.
+- `prompts/audit-break-first.md`: the whole system at once (Gaffer, every plugin, the themes):
+  what breaks first, ranked by likelihood, blast radius and how long it would go unnoticed; how
+  archives are built with gaffer-search and where that hurts; whether CLI-only holds. Leads for it
+  are in `local/AGENTS_LOCAL.md`.
 - `prompts/plugin.md`: a new plugin for the catalog (see "Plugins"): whether it should be one,
   the proposal, then the plugin and Gaffer's side.
 

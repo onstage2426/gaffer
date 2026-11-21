@@ -24,6 +24,10 @@ the entries since the version in your `composer.lock` after every
   on Apache: an empty or missing one serves everything; nginx ignores it. Find:
   `cat .htaccess` (the starter's denies everything but `public/assets/`, `ajax.php` and
   `screenshot.png`). Check: `php gaffer doctor --wp` has no `[contracts]` error.
+- **`doctor --wp` also calls GET ajax actions that take only posts or terms** (`run(Product
+  $product)`): with the newest published post of the post types `config/theme.php` maps to
+  that class (or a term in use). Its info line names each action and the ID it got. Nothing to
+  change; an action whose type has nothing published is named as not called.
 
 ## 2026-11-21 (second stability audit)
 

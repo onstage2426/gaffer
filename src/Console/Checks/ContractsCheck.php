@@ -5,19 +5,22 @@ declare(strict_types=1);
 namespace Gaffer\Console\Checks;
 
 use Gaffer\Ajax;
+use Gaffer\Config;
 use Gaffer\Console\Report;
 use Gaffer\Forms\FormTemplates;
 use Gaffer\Forms\Spam;
 use Gaffer\Mcp\GafferCli;
 use Gaffer\Storage;
 use Gaffer\Turnstile;
+use Gaffer\Types\Post;
+use Gaffer\Types\Term;
 
 /**
  * What a site's running code relies on outside Gaffer, tried for real so that a plugin
  * update or a server change shows up here instead of as lost form entries: Gravity Forms
  * still takes Gaffer's submissions (forms:probe on a throwaway form, not on production),
- * ajax.php answers over HTTP as Gaffer's dispatcher, the GET actions that need no arguments
- * answer without a server error, the theme's private files aren't served, and Turnstile answers
+ * ajax.php answers over HTTP as Gaffer's dispatcher, the GET actions that need no arguments (or
+ * only posts and terms) answer without a server error, the theme's private files aren't served, and Turnstile answers
  * arrive. Needs WordPress.
  */
 final class ContractsCheck implements Check
@@ -113,48 +116,102 @@ final class ContractsCheck implements Check
     }
 
     /**
-     * Calls every GET action whose run() needs no argument, as a visitor without cookies would
-     * (a GET changes nothing, so this is safe on any site): a fatal after a Gaffer, plugin or
-     * WordPress update shows here instead of in a visitor's browser. Actions with required
-     * arguments or POST are left to the browser (bin/dev/site-checks) and ajax:call.
+     * Calls every GET action whose run() needs no argument, or only posts and terms (route model
+     * binding: the newest published post, or a used term, of the types mapped to that class), as
+     * a visitor without cookies would (a GET changes nothing, so this is safe on any site): a
+     * fatal after a Gaffer, plugin or WordPress update shows here instead of in a visitor's
+     * browser. Actions with other required arguments, or POST, are left to the browser
+     * (bin/dev/site-checks) and ajax:call.
      */
     private function get_actions(Report $report): void
     {
-        $called = 0;
-        foreach (self::callable_actions() as $name) {
-            $response = \wp_remote_get(Ajax::url($name), ['timeout' => 30, 'redirection' => 0, 'sslverify' => false, 'cookies' => [], 'headers' => ['HX-Request' => 'true']]);
-            $called++;
+        $called = [];
+        $skipped = [];
+        foreach (self::callable_actions() as $name => $models) {
+            $args = [];
+            foreach ($models as $parameter => $class) {
+                $id = self::example_id($class);
+                if ($id === null) {
+                    $skipped[] = $name;
+                    continue 2;
+                }
+                $args[$parameter] = $id;
+            }
+            $url = \add_query_arg($args, Ajax::url($name));
+            $response = \wp_remote_get($url, ['timeout' => 30, 'redirection' => 0, 'sslverify' => false, 'cookies' => [], 'headers' => ['HX-Request' => 'true']]);
+            $called[] = $name . ($args === [] ? '' : ' (' . http_build_query($args, '', ', ') . ')');
             $status = \is_wp_error($response) ? 0 : (int) \wp_remote_retrieve_response_code($response);
             if ($status === 0 || $status >= 500) {
-                $report->error('contracts', "The ajax action {$name} fails without arguments", \Gaffer\Paths::ajax() . "/{$name}/{$name}.php", null,
+                $report->error('contracts', "The ajax action {$name} fails" . ($args === [] ? ' without arguments' : ''), \Gaffer\Paths::ajax() . "/{$name}/{$name}.php", null,
                     ($status === 0 ? 'No answer (' . (\is_wp_error($response) ? $response->get_error_message() : '') . ')' : "HTTP {$status}")
-                    . ": a GET a visitor's browser makes. Try `php gaffer ajax:call {$name}` and read the PHP error log.");
+                    . ": a GET a visitor's browser makes ({$url}). Try `php gaffer ajax:call {$name}" . ($args === [] ? '' : ' ' . http_build_query($args, '', ' ')) . '` and read the PHP error log.');
             }
         }
-        if ($called > 0) {
-            $report->info('contracts', "Called {$called} GET ajax action" . ($called === 1 ? '' : 's') . ' without arguments over HTTP');
+        if ($called !== []) {
+            $report->info('contracts', 'Called ' . count($called) . ' GET ajax action' . (count($called) === 1 ? '' : 's') . ' over HTTP: ' . implode(', ', $called)
+                . ($skipped === [] ? '' : '; not ' . implode(', ', $skipped) . ' (no published post or term to pass)'));
         }
     }
 
     /**
-     * The GET actions whose run() has no required parameter.
+     * The GET actions whose run() needs no argument, or only posts and terms: action name =>
+     * its required parameters' classes (parameter name => Post or Term class).
      *
-     * @return list<string>
+     * @return array<string, array<string, class-string<Post>|class-string<Term>>>
      */
     public static function callable_actions(): array
     {
-        $names = [];
+        $actions = [];
         foreach (Ajax::actions() as $name) {
             $class = Ajax::action_class($name);
             if ($class === null || $class::METHOD !== 'GET' || !method_exists($class, 'run')) {
                 continue;
             }
-            if ((new \ReflectionMethod($class, 'run'))->getNumberOfRequiredParameters() === 0) {
-                $names[] = $name;
+            $models = [];
+            foreach ((new \ReflectionMethod($class, 'run'))->getParameters() as $parameter) {
+                if ($parameter->isOptional()) {
+                    continue;
+                }
+                $type = $parameter->getType();
+                $type_name = $type instanceof \ReflectionNamedType ? $type->getName() : '';
+                if (!is_a($type_name, Post::class, true) && !is_a($type_name, Term::class, true)) {
+                    continue 2;
+                }
+                $models[$parameter->getName()] = $type_name;
             }
+            $actions[$name] = $models;
         }
 
-        return $names;
+        return $actions;
+    }
+
+    /**
+     * A public example of this class for a call: the newest published post of the post types
+     * mapped to it (config theme.types), or a used term of its taxonomies (theme.terms). Post
+     * and Term themselves stand for posts and categories.
+     *
+     * @param class-string<Post>|class-string<Term> $class
+     */
+    private static function example_id(string $class): ?int
+    {
+        $post = is_a($class, Post::class, true);
+        $map = (array) (Config::get($post ? 'theme.types' : 'theme.terms') ?? []);
+        $names = array_keys(array_filter($map, static fn(mixed $mapped): bool => is_string($mapped) && is_a($mapped, $class, true)));
+        if ($class === Post::class || $class === Term::class) {
+            $names[] = $post ? 'post' : 'category';
+        }
+        if ($names === []) {
+            return null;
+        }
+        if ($post) {
+            $ids = \get_posts(['post_type' => $names, 'post_status' => 'publish', 'has_password' => false, 'numberposts' => 1, 'orderby' => 'date', 'order' => 'DESC', 'fields' => 'ids', 'suppress_filters' => false]);
+            $id = $ids[0] ?? null;
+        } else {
+            $ids = \get_terms(['taxonomy' => $names, 'hide_empty' => true, 'number' => 1, 'fields' => 'ids']);
+            $id = is_array($ids) ? ($ids[0] ?? null) : null;
+        }
+
+        return is_int($id) && $class::from($id) !== null ? $id : null;
     }
 
     /** Gravity Forms takes Gaffer's submissions as Gaffer expects (one process per case). */

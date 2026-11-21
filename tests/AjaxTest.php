@@ -33,11 +33,17 @@ final class AjaxTest extends TestCase
         self::assertNull(Ajax::action_class('Missing'));
 
         // doctor --wp calls the GET actions that need no argument
-        foreach (['Count' => "public const string METHOD = 'GET'; public function run(int \$x = 1): void {}", 'Hint' => "public const string METHOD = 'GET'; public function run(int \$id): void {}"] as $name => $body) {
+        foreach ([
+            'Count' => "public const string METHOD = 'GET'; public function run(int \$x = 1): void {}",
+            'Hint' => "public const string METHOD = 'GET'; public function run(int \$id): void {}",
+            'Sheet' => "public const string METHOD = 'GET'; public function run(\\Gaffer\\Types\\Post \$post, ?\\Gaffer\\Types\\Term \$term = null): void {}",
+            'Sized' => "public const string METHOD = 'GET'; public function run(\\Gaffer\\Types\\Post \$post, string \$size): void {}",
+        ] as $name => $body) {
             mkdir("{$theme}/app/Ajax/{$name}");
             file_put_contents("{$theme}/app/Ajax/{$name}/{$name}.php", "<?php\nnamespace Theme\\Ajax\\{$name};\nfinal class {$name} extends \\Gaffer\\AjaxAction { {$body} }\n");
         }
-        self::assertSame(['Count'], \Gaffer\Console\Checks\ContractsCheck::callable_actions()); // Ping is POST, Hint needs an id
+        // Ping is POST, Hint needs an id, Sized a string; Sheet gets a post (its term is optional)
+        self::assertSame(['Count' => [], 'Sheet' => ['post' => \Gaffer\Types\Post::class]], \Gaffer\Console\Checks\ContractsCheck::callable_actions());
         spl_autoload_unregister($autoload);
     }
 }

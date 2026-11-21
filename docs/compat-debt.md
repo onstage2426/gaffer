@@ -133,6 +133,18 @@ Start the next round here; remove an item when it's done or decided.
   (`Turnstile`, `@gaffer/forms/meta.twig`): a change is a Gaffer patch.
 - **Alpine** (2026-11-20): no v4 announced. `search.js` uses `x-data`, `x-model` and
   `$nextTick`.
+- **The History API** (2026-11-21). `form-search.js` writes the address bar with
+  `pushState`/`replaceState` after each answer (a debounced keystroke replaces). Safari and
+  Firefox throw above about 100 calls in 30 seconds, and Chrome has proposed throwing above 200 a
+  second; one call per answer stays far below. The Navigation API (in every engine since
+  2026-01) doesn't replace History.
+- **gaffer-search** (2026-11-21; the plugin keeps its own `docs/compat-debt.md`). Gaffer reads
+  what the engine adds only when it's there: `search()`'s `code` (feature `search_codes`: the
+  page stays out of caches, an archive answers 503) and `status()`'s `drift`/`served` (feature
+  `health_checks`, shown by `doctor --wp`); with an older plugin both are absent and nothing
+  changes. `doctor --wp` searches each index through the endpoint over HTTP; Gaffer's JavaScript
+  tests replay every recorded endpoint answer (`tests/js/contract.test.js`), so a change in the
+  plugin's answers fails Gaffer's CI once the fixtures are copied.
 - **Hosting** (2026-11-20). `ajax.php` is a PHP file in the theme, served directly. A host rule
   or security plugin that blocks PHP in `wp-content/themes` breaks every action and form. Settled:
   it stays; `ContractsCheck` fetches it over HTTP on every `doctor --wp`.

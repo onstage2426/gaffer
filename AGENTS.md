@@ -100,31 +100,30 @@ add a line under "Lessons" in `prompts/process.md`, and tell the user what chang
 ### Testing against real WordPress before pushing
 
 The integration site's `vendor/` has the last pushed Gaffer. To run unpushed code
-against it, use a throwaway entry file (e.g. `/tmp/gaffer-test`, run from
-`/tmp` as `php gaffer-test doctor --wp`) that loads this clone's autoloader,
-maps the theme's `Theme\` classes, and **preloads every Gaffer class** (once
-WordPress boots the theme, the theme's older installed Gaffer would otherwise
-win for any class not loaded yet):
+against it: `bin/dev/gaffer-test <site> doctor --wp` (any `php gaffer` command). It loads this
+clone's autoloader and **preloads every Gaffer class** (once WordPress boots the theme, the
+theme's older installed Gaffer would otherwise win for any class not loaded yet).
+`bin/dev/gaffer-test <site> build` builds a temporary copy of the theme with this clone's
+`resources/` (Vite plugin, JavaScript). A silent exit 255 is usually a fatal WordPress hid:
+`GAFFER_TEST_FATAL=1` prints it.
 
-```php
-#!/usr/bin/env php
-<?php
-$gaffer = '/path/to/this/clone';
-require "$gaffer/vendor/autoload.php";
-$theme = '/path/to/the/theme'; // the integration site's theme: local/AGENTS_LOCAL.md
-spl_autoload_register(function ($c) use ($theme) {
-    if (str_starts_with($c, 'Theme\\')) { $f = "$theme/app/" . str_replace('\\', '/', substr($c, 6)) . '.php'; if (is_file($f)) require $f; }
-});
-$src = "$gaffer/src";
-foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS)) as $f) {
-    $class = 'Gaffer\\' . str_replace(['/', '.php'], ['\\', ''], substr($f->getPathname(), strlen($src) + 1));
-    class_exists($class) || interface_exists($class);
-}
-exit(Gaffer\Console\Console::boot($theme));
-```
+### The local sites, all at once
 
-A silent exit 255 usually means a fatal hidden by WordPress: add a
-`register_shutdown_function` that prints `error_get_last()`.
+`local/sites.json` (gitignored) lists the local sites: theme, URL, whether we may commit there,
+a container, their browser checks. `bin/dev/sites`:
+
+- `status [--online]`: each site's Gaffer reference (and whether GitHub still serves it), htmx,
+  lockfiles, git, gaffer-search;
+- `run [--summary] -- doctor --wp`: any `php gaffer` command on every site at once;
+- `update`: the update cycle after a push (`composer update` until the lock has `origin/0.x`,
+  build with the theme's package manager, `ai:update`, `twig:lint`, commit `composer.lock`
+  where allowed); then `run --summary -- doctor --wp`;
+- `check`: the browser checks (`bin/dev/site-checks/`) with cleanup: Gravity Forms entries
+  above the highest ID before are deleted and `spam.log` is restored; no form submit where
+  Turnstile is off (`--allow-entries` to submit anyway).
+
+All take `--sites=a,b`. Splitting uncommitted work into commits (here or in a plugin):
+`bin/dev/stage-hunks <file> [1,4]` and `bin/dev/test-staged <test command>`.
 
 Run PHP on the host; the container hostnames resolve via `/etc/hosts`. The
 `phpfpm` container also works (`docker exec -i phpfpm php`). Through Apache:

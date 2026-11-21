@@ -103,8 +103,8 @@ without a code change:
   read by `FormAction`: it may change in any release, both ends together.
   Gaffer loads Turnstile's script.
 - **The build:** `vite.config.js` uses Gaffer's plugin (`resources/vite.js`,
-  `gaffer()`): it owns the settings Gaffer reads (`public/`, the manifest, the dev
-  hotfile, `public/.vite/gaffer.json`) and the `@gaffer` alias. Gaffer's PHP and the
+  `gaffer()`): it owns the settings Gaffer reads (`public/`, the manifest,
+  `public/.vite/gaffer.json`) and the `@gaffer` alias. Gaffer's PHP and the
   bundled JavaScript of one release work with the previous release's other half
   (a composer update changes the PHP at once, the JavaScript with the next build).
 - **Storage formats:** `storage/backups/migrate/*.json` (rollback reads old

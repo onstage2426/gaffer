@@ -9,6 +9,38 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (second stability audit)
 
+- **No Vite dev server any more.** `Gaffer\Vite` always serves the build in `public/` (it no
+  longer reads `public/.vite/hotfile`), Gaffer's Vite plugin no longer writes that file, and the
+  admin bar's "Vite" line is gone. A change shows after `npm run build` (or `npm run start`,
+  `vite build --watch`, which rebuilds on save). Remove the dev parts from the theme; `doctor`
+  warns while they're there. Find: `grep -n "full-reload\|server:\|devSourcemap\|loadEnv" vite.config.js`
+  and `grep -n '"dev"' package.json`.
+  ```js
+  // before
+  import { defineConfig, loadEnv } from "vite";
+  import FullReload from "vite-plugin-full-reload";
+  const reloadFiles = [/* ... */];
+  export default defineConfig(({ mode }) => {
+      const { SITE_URL } = loadEnv(mode, process.cwd(), "SITE_");
+      return {
+          plugins: [gaffer(), FullReload(reloadFiles), tailwindcss()],
+          css: { devSourcemap: true },
+          server: { host: "localhost", port: devPort, /* ... */ },
+          build: { rollupOptions: { /* ... */ } },
+      };
+  });
+  // after
+  import { defineConfig } from "vite";
+  export default defineConfig({
+      plugins: [gaffer(), tailwindcss()],
+      build: { rollupOptions: { /* ... */ } },
+  });
+  ```
+  Then, with the theme's package manager: `bun remove vite-plugin-full-reload` (or
+  `npm uninstall vite-plugin-full-reload`), delete the `"dev"` script from `package.json`,
+  and the dev server's line from `.env.example`'s comment (`SITE_URL` stays: the CLI uses it).
+  Delete a leftover `public/.vite/hotfile` (the next build does too). Check: `npm run build`,
+  `php gaffer doctor` (no `assets` warning), the site loads its CSS and JS while logged in.
 - **Gaffer's JavaScript needs htmx 4** (htmx 2 support is gone; every site with htmx had
   moved). The Turnstile renderer listens to htmx 4's events only, and `doctor` errors when the
   theme builds with htmx 2. Find: `grep '"htmx.org"' package.json`. A theme still on htmx 2

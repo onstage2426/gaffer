@@ -25,9 +25,9 @@ server runs, only administrators get its assets.
   folder, let through by the theme's `.htaccess` next to `public/assets/`.
 - `vite.config.js` uses Gaffer's plugin (`import gaffer from
   "./vendor/onstage2426/gaffer/resources/vite.js"`, `plugins: [gaffer(), ...]`):
-  it sets what Gaffer reads (`public/`, the manifest, the dev hotfile) and the
-  `@gaffer` alias for Gaffer's JavaScript; don't set those by hand. Settings per
-  machine (dev server origin) come from `.env`, never `vite.config.js`.
+  it sets what Gaffer reads (`public/`, the manifest) and the `@gaffer` alias for
+  Gaffer's JavaScript; don't set those by hand. No dev server: a change shows
+  after a build (`npm run build`, or `npm run start` to rebuild on save).
 - **`npm run build`** after changing classes in a template too (Tailwind only
   has a utility after a build) and before deploying; then clear a page cache
   (a cached page links the previous build's files), and after a `composer

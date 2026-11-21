@@ -59,9 +59,6 @@ final class WordPressCheck implements Check
      */
     public function served_assets(Report $report): void
     {
-        if (\Gaffer\Vite::is_dev_mode()) {
-            return;
-        }
         $theme = WordPress::staged_from() ?? basename(Paths::base()); // a staged copy: live's page links live's build
         $public = dirname(Paths::base()) . "/{$theme}/public";
         $response = \wp_remote_get(\home_url('/'), ['timeout' => 20, 'redirection' => 3, 'sslverify' => false, 'cookies' => []]);

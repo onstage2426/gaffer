@@ -25,10 +25,7 @@ final class ViteTest extends TestCase
             'assets/css/app.css' => ['file' => 'assets/app-C3.css', 'isEntry' => true],
         ]));
         self::reset(Vite::class, 'manifest', null);
-        self::reset(Vite::class, 'dev_mode', null);
-        self::reset(Vite::class, 'dev_server', null);
         self::reset(Vite::class, 'printed', []);
-        $GLOBALS['gaffer_test_admin'] = false;
     }
 
     public function test_built_tags(): void
@@ -47,22 +44,5 @@ final class ViteTest extends TestCase
             $html,
         );
         self::assertNull(Vite::url('assets/js/gone.js'));
-    }
-
-    public function test_dev_server_for_administrators(): void
-    {
-        file_put_contents("{$this->theme}/public/.vite/hotfile", "http://localhost:5173\n");
-        $GLOBALS['gaffer_test_admin'] = true;
-
-        ob_start();
-        Vite::tags(['assets/css/app.css', 'assets/js/app.js']);
-        $html = (string) ob_get_clean();
-
-        self::assertSame(
-            "<script type=\"module\" src=\"http://localhost:5173/@vite/client\"></script>\n"
-            . "<link rel=\"stylesheet\" href=\"http://localhost:5173/assets/css/app.css\">\n"
-            . "<script type=\"module\" src=\"http://localhost:5173/assets/js/app.js\"></script>\n",
-            $html,
-        );
     }
 }

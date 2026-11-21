@@ -9,7 +9,7 @@ use WP_Admin_Bar;
 
 /**
  * "Gaffer" in the admin bar (for administrators): a status dot, versions,
- * Twig/Vite state, and "Clear Twig cache".
+ * Twig state, and "Clear Twig cache".
  *
  * @internal
  */
@@ -101,9 +101,6 @@ final class AdminBar
             'twig' => [
                 'cache' => "Twig cache: {$cache}",
                 'debug' => 'Debug: ' . $on($twig->isDebug()) . ', strict variables: ' . $on($twig->isStrictVariables()) . ', auto-reload: ' . $on($twig->isAutoReload()),
-            ],
-            'assets' => [
-                'vite' => 'Vite: ' . (Vite::is_dev_mode() ? 'dev server' : 'built assets'),
             ],
         ];
     }

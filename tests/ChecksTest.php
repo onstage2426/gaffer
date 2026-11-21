@@ -295,7 +295,6 @@ final class ChecksTest extends TestCase
         mkdir("{$this->theme}/assets/js", 0755, true);
         file_put_contents("{$this->theme}/assets/js/app.js", '');
         self::reset(Vite::class, 'manifest', null);
-        self::reset(Vite::class, 'dev_mode', null);
         self::assertStringContainsString('No Vite build', $this->messages(new AssetsCheck()));
 
         mkdir("{$this->theme}/public/.vite", 0755, true);
@@ -315,11 +314,18 @@ final class ChecksTest extends TestCase
         $findings = $this->findings(new AssetsCheck());
         self::assertSame('The build is older than its sources', $findings[0]['message']);
         self::assertStringStartsWith('assets/js/app.js changed since.', (string) $findings[0]['hint']);
+    }
 
-        touch("{$this->theme}/public/.vite/hotfile");
-        self::reset(Vite::class, 'dev_mode', null);
-        self::assertSame('', $this->messages(new AssetsCheck())); // dev server running: not checked
-        self::reset(Vite::class, 'dev_mode', null);
+    public function test_assets_vite_dev_server_leftovers(): void
+    {
+        mkdir("{$this->theme}/assets/js", 0755, true);
+        mkdir("{$this->theme}/public/.vite", 0755, true);
+        file_put_contents("{$this->theme}/public/.vite/manifest.json", '{}');
+        file_put_contents("{$this->theme}/vite.config.js", "import FullReload from \"vite-plugin-full-reload\";\nimport gaffer from \"./vendor/onstage2426/gaffer/resources/vite.js\";\nexport default { plugins: [gaffer(), FullReload([])],\n    server: { port: 5173 } };");
+        file_put_contents("{$this->theme}/package.json", '{"scripts": {"dev": "vite serve", "build": "vite build"}}');
+        self::reset(Vite::class, 'manifest', null);
+        $warning = array_values(array_filter($this->findings(new AssetsCheck()), static fn(array $f): bool => str_contains($f['message'], 'dev server')))[0];
+        self::assertStringContainsString('remove the vite-plugin-full-reload plugin, a server: block, a "dev" script in package.json', (string) $warning['hint']);
     }
 
     public function test_assets_two_lockfiles(): void
@@ -665,7 +671,6 @@ final class ChecksTest extends TestCase
         touch("{$this->theme}/views/old.twig", time() - 90); // built since: not checked
         file_put_contents("{$this->theme}/views/new.twig", '<p class="flex md:pt-4 md:pt-16"></p>');
         self::reset(Vite::class, 'manifest', null);
-        self::reset(Vite::class, 'dev_mode', null);
         self::reset(View::class, 'env', null);
         self::reset(Gaffer::class, 'twig', false);
 

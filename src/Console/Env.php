@@ -8,7 +8,7 @@ use Gaffer\Paths;
 
 /**
  * The theme's .env (not committed): settings per checkout, like SITE_URL for
- * the CLI. The same file Vite reads for its dev server.
+ * the CLI.
  */
 final class Env
 {

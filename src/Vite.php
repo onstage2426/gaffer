@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Gaffer;
 
 /**
- * The theme's Vite assets: the build in public/ (via its manifest), or the dev
- * server's while it runs (public/.vite/hotfile), for administrators only.
+ * The theme's Vite assets: the build in public/ (via its manifest). There is no
+ * dev server mode (removed 2026-11-21): a change shows after `npm run build`.
  * Every asset is a Vite entry ("assets/js/app.js", "assets/css/app.css"). Built
  * file names carry a content hash, so URLs need no version parameter.
  */
@@ -14,10 +14,6 @@ final class Vite
 {
     /** @var array<string, array<string, mixed>>|null */
     private static ?array $manifest = null;
-
-    private static ?bool $dev_mode = null;
-
-    private static ?string $dev_server = null;
 
     /** @var array<string, true> URLs tags() already output, so a second call doesn't repeat them */
     private static array $printed = [];
@@ -28,9 +24,6 @@ final class Vite
      */
     public static function url(string $asset): ?string
     {
-        if (self::is_dev_asset()) {
-            return self::dev_server() . '/' . $asset;
-        }
         $file = self::manifest()[$asset]['file'] ?? null;
 
         return is_string($file) ? self::public_url() . '/' . $file : null;
@@ -39,18 +32,12 @@ final class Vite
     /**
      * The tags for these entries: <link rel="stylesheet"> for CSS,
      * <script type="module"> for JS (plus, in the build, the CSS it imports and a
-     * modulepreload for each chunk it imports), a font preload for woff2. With
-     * the dev server, its client script first (hot reload).
+     * modulepreload for each chunk it imports), a font preload for woff2.
      *
      * @param list<string> $assets
      */
     public static function tags(array $assets): void
     {
-        $dev = self::is_dev_asset();
-        if ($dev) {
-            self::output('script', self::dev_server() . '/@vite/client');
-        }
-
         foreach ($assets as $asset) {
             $url = self::url($asset);
             if ($url === null) {
@@ -59,7 +46,7 @@ final class Vite
 
             match (pathinfo($asset, PATHINFO_EXTENSION)) {
                 'css', 'scss', 'sass', 'less', 'pcss' => self::output('style', $url),
-                'js', 'mjs', 'ts', 'tsx', 'jsx' => $dev ? self::output('script', $url) : self::output_built_script($asset, $url),
+                'js', 'mjs', 'ts', 'tsx', 'jsx' => self::output_built_script($asset, $url),
                 'woff2' => self::output('font', $url),
                 default => throw new \InvalidArgumentException("Vite::tags(): no tag for \"{$asset}\" (a style, script or woff2 entry)."),
             };
@@ -80,17 +67,6 @@ final class Vite
         }
 
         return self::$manifest;
-    }
-
-    /** @internal For the admin bar and doctor. */
-    public static function is_dev_mode(): bool
-    {
-        return self::$dev_mode ??= is_file(self::hotfile());
-    }
-
-    private static function is_dev_asset(): bool
-    {
-        return self::is_dev_mode() && \current_user_can('manage_options');
     }
 
     /**
@@ -146,16 +122,6 @@ final class Vite
             'modulepreload' => "<link rel=\"modulepreload\" href=\"{$href}\">\n",
             'font' => "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"{$href}\" crossorigin>\n",
         };
-    }
-
-    private static function dev_server(): string
-    {
-        return self::$dev_server ??= rtrim((string) file_get_contents(self::hotfile()));
-    }
-
-    private static function hotfile(): string
-    {
-        return Paths::public() . '/.vite/hotfile';
     }
 
     private static function public_url(): string

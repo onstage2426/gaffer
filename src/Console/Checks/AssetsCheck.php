@@ -21,8 +21,8 @@ use SplFileInfo;
  * count: one a stylesheet uses comes with an edit to that stylesheet), and holding
  * every entry the theme's PHP asks Vite for. Templates changed since the build are
  * checked for classes the built CSS doesn't have (Tailwind scans templates too: a new
- * utility in a template needs a build as much as a CSS edit). Skipped while the dev
- * server runs.
+ * utility in a template needs a build as much as a CSS edit). Leftovers of Vite's dev
+ * server (gone from Gaffer on 2026-11-21) are a warning.
  */
 final class AssetsCheck implements Check
 {
@@ -36,7 +36,7 @@ final class AssetsCheck implements Check
     {
         $this->lockfiles($report);
         $sources = Paths::base('assets');
-        if (!is_dir($sources) || Vite::is_dev_mode()) {
+        if (!is_dir($sources)) {
             return;
         }
 
@@ -187,8 +187,18 @@ final class AssetsCheck implements Check
         }
         if (!str_contains($config, 'onstage2426/gaffer/resources/vite.js')) {
             $report->error('assets', 'vite.config.js doesn\'t use Gaffer\'s Vite plugin', null, null,
-                'import gaffer from "./vendor/onstage2426/gaffer/resources/vite.js"; and plugins: [gaffer(), ...]. It sets public/, the manifest, base, the @gaffer alias and the hotfile Gaffer reads.');
+                'import gaffer from "./vendor/onstage2426/gaffer/resources/vite.js"; and plugins: [gaffer(), ...]. It sets public/, the manifest, base and the @gaffer alias.');
             return;
+        }
+        $leftovers = array_filter([
+            'the vite-plugin-full-reload plugin' => str_contains($config, 'vite-plugin-full-reload'),
+            'a server: block' => (bool) preg_match('/^\s*server\s*:/m', $config),
+            'css.devSourcemap' => str_contains($config, 'devSourcemap'),
+            'a "dev" script in package.json' => (bool) preg_match('/"dev"\s*:\s*"vite(?:\s+(?:serve|dev))?(?:\s[^"]*)?"/', (string) @file_get_contents(Paths::base('package.json'))),
+        ]);
+        if ($leftovers !== []) {
+            $report->warning('assets', 'vite.config.js or package.json still has Vite dev server settings', null, null,
+                'Gaffer has no dev server mode since 2026-11-21 (a change shows after `npm run build`): remove ' . implode(', ', array_keys($leftovers)) . ' (and uninstall vite-plugin-full-reload).');
         }
         $stamp = json_decode((string) @file_get_contents(Paths::public() . '/.vite/gaffer.json'), true);
         $built = is_array($stamp) && is_string($stamp['js'] ?? null) ? $stamp['js'] : null;

@@ -202,6 +202,14 @@ final class StabilityTest extends TestCase
         ], $found);
         self::assertSame(4, HtmxCheck::major());
 
+        // a plain form htmx never sends (WooCommerce's account forms post name="action")
+        $plain = "<form method=\"post\">\n<input type=\"hidden\" name=\"action\" value=\"save_account_details\">\n</form>";
+        self::assertSame([], HtmxCheck::problems($plain));
+        self::assertCount(1, HtmxCheck::problems($plain, boosted: true));
+        self::assertCount(1, HtmxCheck::problems("<form>\n<input name=\"action\">\n<button hx-post=\"/x\">x</button>\n</form>")); // a button inside sends it
+        self::assertCount(1, HtmxCheck::problems("<input type=\"hidden\" name=\"method\">")); // a partial: may be included into an htmx form
+        self::assertSame([], HtmxCheck::problems("<form hx-post=\"/a\"></form>\n<form>\n<input name=\"action\">\n</form>"));
+
         file_put_contents("{$this->theme}/views/drawer.twig", "<form hx-post=\"/u\" hx-target=\"#d\">\n<button type=\"button\"\n  hx-post=\"/r\" hx-target=\"#d\">x</button>\n<button hx-post=\"/r\">y</button>");
         self::assertTrue(HtmxCheck::sets_itself("{$this->theme}/views/drawer.twig", 'hx-target needs :inherited suffix (descendant on line 2 has hx-post)'));
         self::assertFalse(HtmxCheck::sets_itself("{$this->theme}/views/drawer.twig", 'hx-target needs :inherited suffix (descendant on line 4 has hx-post)'));

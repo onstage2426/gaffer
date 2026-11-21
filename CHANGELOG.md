@@ -11,6 +11,10 @@ the entries since the version in your `composer.lock` after every
 
 - **`doctor` no longer stops on a theme without `app/Ajax/`** (it failed in the forms check since
   2026-11-20). Nothing to change.
+- **`doctor`'s htmx check no longer flags `name="action"` (or `method`, `form`, …) in a plain
+  form** that htmx never sends, like WooCommerce's account forms copied to `views/`. It still
+  does inside a form with an `hx-` attribute (on the form or an element in it), in a partial
+  without its own `<form>`, and anywhere when the theme uses `hx-boost`. Nothing to change.
 
 ## 2026-11-20 (a theme's own forms)
 

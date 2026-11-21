@@ -38,10 +38,14 @@ final class HtmxCheck implements Check
         if (self::major() !== 4) {
             return;
         }
-        $files = [...array_values(Templates::all()), ...ThemeFiles::find(['php', 'js', 'mjs', 'ts'])];
-        foreach (array_unique($files) as $file) {
+        $files = array_unique([...array_values(Templates::all()), ...ThemeFiles::find(['php', 'js', 'mjs', 'ts'])]);
+        $boosted = false;
+        foreach ($files as $file) {
+            $boosted = $boosted || str_contains((string) file_get_contents($file), 'hx-boost');
+        }
+        foreach ($files as $file) {
             $code = (string) file_get_contents($file);
-            foreach (self::problems($code) as [$offset, $message, $hint]) {
+            foreach (self::problems($code, $boosted) as [$offset, $message, $hint]) {
                 $report->error('htmx', $message, $file, substr_count($code, "\n", 0, $offset) + 1, $hint);
             }
         }
@@ -67,9 +71,10 @@ final class HtmxCheck implements Check
     /**
      * htmx 2 names in a template or script: [offset, message, hint].
      *
+     * @param bool $boosted the theme uses hx-boost somewhere (then htmx may send any form)
      * @return list<array{int, string, string}>
      */
-    public static function problems(string $code): array
+    public static function problems(string $code, bool $boosted = false): array
     {
         $problems = [];
         $hx_on = [];
@@ -84,6 +89,9 @@ final class HtmxCheck implements Check
         // and htmx 4 reads elt.form, form.enctype, form.elements, form.noValidate
         if (preg_match_all('/<(?:input|select|textarea|button)\b[^>]*\bname=["\'](form|enctype|elements|novalidate|action|method|submit|reportValidity)["\']/i', $code, $m, PREG_OFFSET_CAPTURE)) {
             foreach ($m[1] as [$name, $offset]) {
+                if (!$boosted && !self::in_htmx_form($code, $offset)) {
+                    continue; // a plain form (WooCommerce's account forms send name="action"): htmx never reads it
+                }
                 $problems[] = [$offset, "An input named \"{$name}\" hides the <form>'s own {$name} property", 'htmx 4 reads the form through those properties and fails (FormData of an input): rename the input.'];
             }
         }
@@ -108,6 +116,23 @@ final class HtmxCheck implements Check
         usort($problems, static fn(array $a, array $b): int => $a[0] <=> $b[0]);
 
         return $problems;
+    }
+
+    /**
+     * Whether the input at $offset may be in a form htmx sends: inside a <form> in this file that
+     * has an hx- attribute on itself or an element in it, or outside any <form> here (a partial,
+     * which may be included into one).
+     */
+    private static function in_htmx_form(string $code, int $offset): bool
+    {
+        $before = substr($code, 0, $offset);
+        $open = preg_match_all('/<form\b/i', $before, $m, PREG_OFFSET_CAPTURE) ? end($m[0])[1] : null;
+        if ($open === null || preg_match('/<\/form\s*>/i', substr($before, $open))) {
+            return true;
+        }
+        $close = preg_match('/<\/form\s*>/i', $code, $c, PREG_OFFSET_CAPTURE, $offset) ? $c[0][1] : strlen($code);
+
+        return str_contains(substr($code, $open, $close - $open), 'hx-');
     }
 
     /**

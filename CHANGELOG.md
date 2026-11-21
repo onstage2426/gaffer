@@ -9,6 +9,13 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (gaffer-search audit)
 
+- **`doctor --wp` searches each index through the endpoint over HTTP, like a visitor's
+  browser.** It catches what the command line can't see: a web server that refuses PHP in
+  `wp-content/plugins`, an endpoint that doesn't find its config, an index the web server
+  doesn't find where WordPress built it, a web PHP whose SQLite is too old, and a second
+  `Cache-Control` header from a server rule. A failed search is an error with the likely cause.
+  Nothing to change. Check: `php gaffer doctor --wp` says "searched through the endpoint over
+  HTTP" per index.
 - **A search that couldn't run keeps its page out of caches.** With gaffer-search 0.2.0
   (feature `search_codes`), a search on an index that isn't built yet (a first build, a rotated
   search secret, a deleted file) or that failed comes back with the engine's `code`. Gaffer then

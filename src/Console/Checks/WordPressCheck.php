@@ -721,6 +721,7 @@ final class WordPressCheck implements Check
                 }
             }
             $this->search_pending($report, $state, $name, $file);
+            $this->search_http($report, $engine, $name, $file);
             $this->search_card($report, $engine, $name);
             $this->search_labels($report, $engine, $name);
         }
@@ -770,6 +771,48 @@ final class WordPressCheck implements Check
             "{$state['pending']} change(s), the oldest from " . intdiv(time() - $since, 60) . ' minutes ago: WP-cron doesn\'t run here (HTTP auth or a firewall refuses its loopback request, '
             . 'or DISABLE_WP_CRON without a system cron), so search shows stale results. wp gaffer-search update applies them now; '
             . 'a system cron runs it every minute (gaffer-search docs/hosting.md).');
+    }
+
+    /**
+     * One search of the index through the endpoint over HTTP, as the browser does it: what the
+     * CLI can't see (PHP refused in the plugins folder, the endpoint not finding its config, a web
+     * PHP with another SQLite than the CLI's, two Cache-Control headers).
+     */
+    private function search_http(Report $report, SearchEngine $engine, string $index, string $file): void
+    {
+        $endpoint = $engine->endpoint();
+        if ($endpoint === '') {
+            return;
+        }
+        $url = \add_query_arg(['token' => rawurlencode($engine->token($index, ['limit' => 1, 'attributes' => ['id']])), 'q' => ''], $endpoint);
+        $response = \wp_remote_get($url, ['timeout' => 15, 'redirection' => 0, 'sslverify' => false, 'cookies' => []]);
+        if (\is_wp_error($response)) {
+            $report->warning('search', "Index \"{$index}\": the endpoint wasn't reached over HTTP ({$response->get_error_message()})", $file, null,
+                'So doctor can\'t tell whether the browser\'s searches work: open the site in a browser and search.');
+            return;
+        }
+        $status = (int) \wp_remote_retrieve_response_code($response);
+        $body = json_decode(\wp_remote_retrieve_body($response), true);
+        $body = is_array($body) ? $body : [];
+        if ($status !== 200 || !is_array($body['results'] ?? null)) {
+            $code = is_string($body['code'] ?? null) ? $body['code'] : null;
+            $hint = match ($code) {
+                'config_missing' => 'The endpoint doesn\'t find the config WordPress wrote (another layout: GAFFER_SEARCH_CONFIG_DIR, gaffer-search docs/hosting.md).',
+                'invalid_token', 'index_unknown' => 'The endpoint reads an older config than WordPress wrote (OPcache with validate_timestamps=0 keeps it: reload PHP-FPM), or another server\'s.',
+                'index_not_built' => 'The web server finds no index file where WordPress built it: the CLI and the web server see other paths (GAFFER_SEARCH_INDEX_DIR the same for both).',
+                'search_failed' => 'The web server\'s PHP fails the search: its error log says why (an SQLite older than 3.46 there, while the CLI\'s is newer).',
+                null => $status === 403 || $status === 404 ? 'The web server refuses PHP in wp-content/plugins (a security rule or plugin): allow endpoints/search.php.' : 'Not the endpoint\'s answer: something in front of it (a firewall, a maintenance page) answers.',
+                default => 'gaffer-search docs/contract.md, "The browser side", lists the codes.',
+            };
+            $report->error('search', "Index \"{$index}\": the browser's search fails over HTTP (HTTP {$status}" . ($code !== null ? ", {$code}" : '') . ')', $file, null, $hint);
+            return;
+        }
+        $cache = \wp_remote_retrieve_header($response, 'cache-control');
+        if (is_array($cache) || str_contains($cache, ',') && substr_count(strtolower($cache), 'max-age') > 1) {
+            $report->warning('search', "Index \"{$index}\": the endpoint's answers carry two Cache-Control policies", $file, null,
+                'A server rule (Header set, ExpiresByType, a caching plugin\'s rules for PHP) adds its own: exclude endpoints/search.php from it (gaffer-search docs/hosting.md, "Caching").');
+        }
+        $report->info('search', "Index \"{$index}\": searched through the endpoint over HTTP like a visitor (HTTP 200)", $file);
     }
 
     /**

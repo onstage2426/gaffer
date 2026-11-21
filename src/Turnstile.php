@@ -68,15 +68,6 @@ final class Turnstile
         });
     }
 
-    #[\Deprecated(message: 'use Forms\Spam::check(), which reads the token @gaffer/forms/meta.twig sends', since: '0.x 2026-11-20')]
-    /**
-     * Whether Cloudflare accepts this token.
-     */
-    public static function verify(string $token): bool
-    {
-        return self::check($token);
-    }
-
     /**
      * Cloudflare's answer for a token; true when Cloudflare can't be reached.
      *

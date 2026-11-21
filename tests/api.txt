@@ -74,7 +74,6 @@ final class Gaffer\Storage
   static private_dir(string $relative): string
 final class Gaffer\Turnstile
   static enabled(): bool
-  static verify(string $token): bool #[Deprecated]
 class Gaffer\Types\Attachment extends Gaffer\Types\Post
   final mime(): string
   final url(): ?string

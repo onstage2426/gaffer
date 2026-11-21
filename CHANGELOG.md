@@ -9,6 +9,9 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (second stability audit)
 
+- **`Turnstile::verify()` is removed** (deprecated on 2026-11-20; no theme called it any more).
+  A theme's own form calls `Forms\Spam::check('form')` instead (see "a theme's own forms" below).
+  Find: `grep -rn "Turnstile::verify" app inc`.
 - **`doctor` no longer stops on a theme without `app/Ajax/`** (it failed in the forms check since
   2026-11-20). Nothing to change.
 - **`doctor`'s htmx check no longer flags `name="action"` (or `method`, `form`, …) in a plain

@@ -87,6 +87,9 @@ Gaffer improves from real work on themes. The prompts in `prompts/` carry that b
   platform deprecations, hand-written pairs Gaffer could own); it keeps `docs/compat-debt.md`
   (what we carry for compatibility, platform deadlines, 2.x candidates). Run it now and then,
   before a 1.x minor and before a major.
+- `prompts/audit-gaffer-search.md`: the same for gaffer-search and Gaffer's side of it (the
+  endpoint, tokens in cached pages, index files, Fuzor, the queue, both update directions); it
+  keeps the plugin's own `docs/compat-debt.md`. Before a plugin tag, and now and then.
 - `prompts/plugin.md`: a new plugin for the catalog (see "Plugins"): whether it should be one,
   the proposal, then the plugin and Gaffer's side.
 

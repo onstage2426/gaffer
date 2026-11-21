@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Maintainer tool: run a test command on exactly what's staged (the rest stashed and restored),
+# so each commit of split-up work passes on its own. Works in any repository (cwd).
+#   bin/dev/test-staged vendor/bin/phpunit
+#   bin/dev/test-staged composer check
+set -euo pipefail
+[ $# -gt 0 ] || { echo "Usage: bin/dev/test-staged <test command…>" >&2; exit 2; }
+if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+    exec "$@"   # nothing unstaged: the tree is what's staged
+fi
+git stash push -q --keep-index --include-untracked -m test-staged
+trap 'git stash pop -q' EXIT
+"$@"

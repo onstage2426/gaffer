@@ -1,0 +1,53 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Maintainer tool: stage chosen hunks of one file, to split uncommitted work (someone else's, or
+ * several changes in one file) into one change per commit. Works in any repository (cwd).
+ *
+ *   bin/dev/stage-hunks <file>            lists the file's hunks, numbered
+ *   bin/dev/stage-hunks <file> 1,4,5      stages those
+ *
+ * Then `bin/dev/test-staged <test command>` runs the tests on exactly what's staged.
+ */
+
+declare(strict_types=1);
+
+$file = $argv[1] ?? '';
+if ($file === '') {
+    fwrite(STDERR, "Usage: bin/dev/stage-hunks <file> [<hunk numbers, e.g. 1,4,5>]\n");
+    exit(2);
+}
+$diff = (string) shell_exec('git diff -- ' . escapeshellarg($file));
+$head = '';
+$hunks = [];
+foreach (preg_split('/(?<=\n)/', $diff) ?: [] as $line) {
+    if (str_starts_with($line, '@@')) {
+        $hunks[] = $line;
+    } elseif ($hunks === []) {
+        $head .= $line;
+    } else {
+        $hunks[count($hunks) - 1] .= $line;
+    }
+}
+if ($hunks === []) {
+    fwrite(STDERR, "No unstaged changes in {$file}.\n");
+    exit(1);
+}
+if (!isset($argv[2])) {
+    foreach ($hunks as $i => $hunk) {
+        $lines = explode("\n", $hunk);
+        $changed = array_filter($lines, static fn(string $l): bool => ($l[0] ?? '') === '+' || ($l[0] ?? '') === '-');
+        echo sprintf("%2d  %s  (+%d -%d)\n", $i + 1, trim($lines[0]), count(array_filter($changed, static fn(string $l): bool => $l[0] === '+')), count(array_filter($changed, static fn(string $l): bool => $l[0] === '-')));
+        foreach (array_slice(array_values($changed), 0, 3) as $l) {
+            echo '      ' . substr($l, 0, 110) . "\n";
+        }
+    }
+    exit(0);
+}
+$keep = array_map('intval', explode(',', $argv[2]));
+$patch = $head . implode('', array_filter($hunks, static fn(int $i): bool => in_array($i + 1, $keep, true), ARRAY_FILTER_USE_KEY));
+$process = proc_open(['git', 'apply', '--cached', '--recount', '-'], [0 => ['pipe', 'r'], 1 => STDOUT, 2 => STDERR], $pipes);
+fwrite($pipes[0], $patch);
+fclose($pipes[0]);
+exit(proc_close($process));

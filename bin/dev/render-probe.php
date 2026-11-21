@@ -20,6 +20,9 @@
 
 declare(strict_types=1);
 
+/** @var list<string> $argv */
+$argv = $_SERVER['argv'] ?? [];
+
 $args = array_values(array_filter(array_slice($argv, 1), static fn(string $a): bool => !str_starts_with($a, '--')));
 $opts = [];
 foreach (array_slice($argv, 1) as $a) {

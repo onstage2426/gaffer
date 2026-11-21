@@ -15,6 +15,7 @@ shows every command, `php gaffer <command> --help` its options.
 | `render:screenshot`, `render:compare`, `render:styles` | The page in a headless browser (the `gaffer-browser` skill). |
 | `render:snapshot`, `render:diff` | Rendered pages before and after a change (the `gaffer-migrate` skill). |
 | `migrate:*` | Change stored content: rename, remove, set, rollback (the `gaffer-migrate` skill). |
+| `health` | The admin bar's health lines (Gaffer, each plugin): silent when all are green, else the lines and exit 1. On a live site, daily from the server's crontab with `MAILTO`. |
 | `ai:update` | Regenerate these guidelines and skills (gitignored; `composer update` runs it). |
 
 Exit codes: 0 fine, 1 errors (or refused, or different), 2 misuse or

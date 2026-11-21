@@ -9,6 +9,12 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (break-first audit)
 
+- **`php gaffer health`**: the admin bar's health lines from the command line (Gaffer's debug and
+  Twig cache, each Gaffer plugin: gaffer-search's indexes, its daily check, files a visitor can
+  download). Silent while everything is green; otherwise it prints each line and exits 1, so a
+  daily crontab line with `MAILTO` tells someone on a site nobody looks at every day:
+  `MAILTO=you@example.com` and `0 7 * * * cd /path/to/theme && php gaffer health`. Nothing to
+  change; worth adding on a live site (debug on is orange, so a development site always prints).
 - **`doctor --wp` and the admin bar say when gaffer-search's daily check stopped running**: its
   last run more than 2 days ago is a warning ("the engine's daily check last ran 3 days ago") and
   an orange admin bar line. It's a WP-cron job, so WP-cron doesn't run any more (a crontab that

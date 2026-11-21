@@ -13,6 +13,7 @@ use Gaffer\Console\Commands\ConfigShow;
 use Gaffer\Console\Commands\Doctor;
 use Gaffer\Console\Commands\FormsProbe;
 use Gaffer\Console\Commands\FormsShow;
+use Gaffer\Console\Commands\Health;
 use Gaffer\Console\Commands\Init;
 use Gaffer\Console\Commands\MigrateAdoptFields;
 use Gaffer\Console\Commands\MigrateBackups;
@@ -65,6 +66,7 @@ final class Console
             new Doctor(),
             new FormsShow(),
             new FormsProbe(),
+            new Health(),
             new Init(),
             new MigrateAdoptFields(),
             new MigrateBackups(),

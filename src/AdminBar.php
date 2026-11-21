@@ -85,7 +85,7 @@ final class AdminBar
 
         $twig = View::env();
         $environment = \wp_get_environment_type();
-        $own = self::status($environment, $twig->isDebug(), TwigCache::enabled());
+        $own = self::own();
         $plugins = self::plugin_states();
         $status = self::worst([$own, ...array_map(
             static fn(string $name, array $state): array => ['color' => $state['color'], 'reason' => "{$name}: {$state['reason']}"],
@@ -170,6 +170,32 @@ final class AdminBar
             /** @var array<string, array{color: 'red'|'orange'|'green', reason: string}> $cached */
             return $cached;
         }
+        $states = self::fresh_plugin_states();
+        \set_transient(self::PLUGINS_CACHE, $states, MINUTE_IN_SECONDS);
+
+        return $states;
+    }
+
+    /**
+     * Every line the menu shows, read now (`php gaffer health`): "gaffer" (debug, the Twig cache)
+     * and each Gaffer plugin the theme uses.
+     *
+     * @return array<string, array{color: 'red'|'orange'|'green', reason: string}>
+     */
+    public static function states(): array
+    {
+        return ['gaffer' => self::own(), ...self::fresh_plugin_states()];
+    }
+
+    /** @return array{color: 'red'|'orange'|'green', reason: string} */
+    private static function own(): array
+    {
+        return self::status(\wp_get_environment_type(), View::env()->isDebug(), TwigCache::enabled());
+    }
+
+    /** @return array<string, array{color: 'red'|'orange'|'green', reason: string}> */
+    private static function fresh_plugin_states(): array
+    {
         $states = [];
         foreach (self::plugins() as $name => $summary) {
             try {
@@ -181,7 +207,6 @@ final class AdminBar
                 $states[$name] = $state;
             }
         }
-        \set_transient(self::PLUGINS_CACHE, $states, MINUTE_IN_SECONDS);
 
         return $states;
     }

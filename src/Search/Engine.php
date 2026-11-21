@@ -167,7 +167,7 @@ final class Engine
     private function check_filter(array $request): void
     {
         if (is_array($request['filter'] ?? null) && ArchiveUrl::uses_groups($request['filter']) && !$this->supports('filter_groups')) {
-            throw new \LogicException('This filter uses any, all or not, which needs gaffer-search 0.3.0 or later: update the plugin.');
+            throw new \LogicException('This filter uses any, all or not, which this gaffer-search doesn\'t support (feature filter_groups): update the plugin.');
         }
     }
 

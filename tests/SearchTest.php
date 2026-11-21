@@ -197,7 +197,7 @@ final class SearchTest extends TestCase
             Search::count('products', filter: $filter);
             self::fail('an older engine would drop the group and find more');
         } catch (\LogicException $e) {
-            self::assertStringContainsString('gaffer-search 0.3.0', $e->getMessage());
+            self::assertStringContainsString('feature filter_groups', $e->getMessage());
         }
         self::assertCount(0, $engine->calls);
 

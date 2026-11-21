@@ -682,13 +682,13 @@ final class WordPressCheck implements Check
         $this->search_taxonomies($report, $file);
         if ((array) Config::get('search.archive.bounds') !== [] && !$engine->supports('facet_stats')) {
             $report->info('search', 'archive.bounds counts every value of its fields on each archive page', $file, null,
-                'gaffer-search 0.2.0 (feature facet_stats) asks for only their ranges: a whole shop\'s price bounds in about 3 ms instead of 25.');
+                'An update of gaffer-search (feature facet_stats) asks for only their ranges: a whole shop\'s price bounds in about 3 ms instead of 25.');
         }
 
         $status = $engine->status();
         if (!$engine->supports('pending_updates')) {
             $report->info('search', 'gaffer-search doesn\'t report content changes its indexes haven\'t taken in', $file, null,
-                'gaffer-search 0.4.0 (feature pending_updates) does: doctor then warns when WP-cron doesn\'t apply them (a password-protected site).');
+                'An update of gaffer-search (feature pending_updates) does: doctor then warns when WP-cron doesn\'t apply them (a password-protected site).');
         }
         foreach ($definitions as $name => $definition) {
             $state = $status[$name] ?? null;

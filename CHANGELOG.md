@@ -9,6 +9,10 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (break-first audit)
 
+- **Debug on a local or development site is green** in the admin bar and `php gaffer health`
+  ("OK (debug on, development)"; it was orange, so `health` printed and exited 1 on every dev
+  site). Debug in production or staging stays red; `WP_ENVIRONMENT_TYPE` unset is production.
+  Nothing to change.
 - **`doctor --wp` compares the theme's WooCommerce overrides with WooCommerce's templates**: one
   warning lists the overrides without `@version`, and one per override whose WooCommerce template
   has a newer `@version` than it says (WooCommerce changed the markup, hooks or data it passes; a

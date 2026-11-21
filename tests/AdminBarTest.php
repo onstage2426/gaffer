@@ -14,8 +14,8 @@ final class AdminBarTest extends TestCase
     {
         yield 'debug in production' => ['production', true, true, 'red'];
         yield 'debug in staging' => ['staging', true, false, 'red'];
-        yield 'debug locally' => ['local', true, false, 'orange'];
-        yield 'debug in development' => ['development', true, true, 'orange'];
+        yield 'debug locally' => ['local', true, false, 'green'];
+        yield 'debug in development' => ['development', true, true, 'green'];
         yield 'cache off in production' => ['production', false, false, 'orange'];
         yield 'production, cached' => ['production', false, true, 'green'];
         yield 'cache off locally' => ['local', false, false, 'green'];

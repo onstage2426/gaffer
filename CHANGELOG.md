@@ -7,6 +7,17 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-21 (third stability audit)
+
+- **A build keeps the previous build's files.** Gaffer's Vite plugin no longer empties
+  `public/` first: after a build it deletes only what neither this build nor the previous one
+  wrote (`public/.vite/gaffer.json` now lists the build's files). A page a cache (WP Rocket,
+  Cloudflare) or an open tab has from before the build keeps its CSS and JavaScript, and while
+  the build runs the old manifest and its files stay in place (before, a page rendered then had
+  no CSS or JavaScript). Nothing to change; the first build after this update deletes nothing,
+  the second removes what older builds left. Check: `npm run build` twice, the site looks
+  right, and `public/assets/` holds at most two builds' files.
+
 ## 2026-11-21 (second stability audit)
 
 - **`search.attrs()`** (`Searchbar` and `Archive`): the search form's endpoint and token as

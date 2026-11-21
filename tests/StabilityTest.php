@@ -174,6 +174,27 @@ final class StabilityTest extends TestCase
         self::assertSame(AssetsCheck::gaffer_js_hash(dirname(__DIR__) . '/resources/js'), trim((string) shell_exec(escapeshellarg($node) . ' -e ' . escapeshellarg($script))));
     }
 
+    public function test_the_vite_plugin_keeps_what_either_build_wrote(): void
+    {
+        $node = trim((string) shell_exec('command -v node'));
+        if ($node === '') {
+            self::markTestSkipped('No node');
+        }
+        $out = "{$this->theme}/public";
+        foreach (['assets/old-1.js', 'assets/new-2.js', 'assets/gone-0.js', 'fonts/gone.woff2', '.vite/manifest.json'] as $file) {
+            @mkdir(dirname("{$out}/{$file}"), 0755, true);
+            file_put_contents("{$out}/{$file}", 'x');
+        }
+        $script = 'import(' . json_encode(dirname(__DIR__) . '/resources/vite.js') . ').then((m) => m.prune(' . json_encode($out) . ', new Set(["assets/old-1.js", "assets/new-2.js"])))';
+        shell_exec(escapeshellarg($node) . ' -e ' . escapeshellarg($script));
+
+        self::assertFileExists("{$out}/assets/old-1.js");
+        self::assertFileExists("{$out}/assets/new-2.js");
+        self::assertFileExists("{$out}/.vite/manifest.json");
+        self::assertFileDoesNotExist("{$out}/assets/gone-0.js");
+        self::assertDirectoryDoesNotExist("{$out}/fonts");
+    }
+
     public function test_twigs_own_deprecations_are_warnings(): void
     {
         file_put_contents("{$this->theme}/views/old.twig", "{{ 'a'|spaceless }}");

@@ -10,7 +10,12 @@
  *   no publicDir copy;
  * - the alias "@gaffer" for Gaffer's JavaScript (resources/js): import "@gaffer/forms.js";
  * - public/.vite/gaffer.json: a hash of the Gaffer JavaScript this build bundled, so `doctor`
- *   tells when a composer update brought JavaScript the build doesn't have yet.
+ *   tells when a composer update brought JavaScript the build doesn't have yet, and the files
+ *   this build wrote;
+ * - a build that keeps the previous build's files: public/ isn't emptied first, and afterwards
+ *   only what neither this build nor the previous one wrote is deleted. A page a cache (WP
+ *   Rocket, Cloudflare) or an open tab still has from before the build keeps its CSS and
+ *   JavaScript, and while the build runs, the old manifest and its files stay in place.
  */
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -46,9 +51,68 @@ export function gafferJsHash(dir = JS) {
     return hash.digest("hex");
 }
 
+/**
+ * Every file under dir (relative paths), without .vite/.
+ *
+ * @param {string} dir
+ * @returns {string[]}
+ */
+function filesIn(dir) {
+    const files = [];
+    const walk = (sub) => {
+        for (const entry of fs.readdirSync(path.join(dir, sub), { withFileTypes: true })) {
+            const rel = sub === "" ? entry.name : `${sub}/${entry.name}`;
+            if (rel === ".vite") continue;
+            entry.isDirectory() ? walk(rel) : files.push(rel);
+        }
+    };
+    if (fs.existsSync(dir)) walk("");
+
+    return files;
+}
+
+/**
+ * The files the previous build wrote (gaffer.json's "files"); before there was such a list,
+ * everything in outDir, so the first build deletes nothing.
+ *
+ * @param {string} outDir
+ * @returns {string[]}
+ */
+function previousFiles(outDir) {
+    try {
+        const stamp = JSON.parse(fs.readFileSync(path.join(outDir, ".vite", "gaffer.json"), "utf8"));
+        if (Array.isArray(stamp.files)) return stamp.files;
+    } catch {}
+
+    return filesIn(outDir);
+}
+
+/**
+ * Deletes the files in outDir that neither build wrote, then the directories left empty.
+ *
+ * @param {string} outDir
+ * @param {Set<string>} keep
+ */
+export function prune(outDir, keep) {
+    for (const rel of filesIn(outDir)) {
+        if (!keep.has(rel)) fs.rmSync(path.join(outDir, rel), { force: true });
+    }
+    const removeEmpty = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (!entry.isDirectory() || entry.name === ".vite") continue;
+            const sub = path.join(dir, entry.name);
+            removeEmpty(sub);
+            if (fs.readdirSync(sub).length === 0) fs.rmdirSync(sub);
+        }
+    };
+    if (fs.existsSync(outDir)) removeEmpty(outDir);
+}
+
 /** @returns {import("vite").Plugin} */
 export default function gaffer() {
     let outDir = "public";
+    /** @type {string[]} */
+    let previous = [];
 
     return {
         name: "gaffer",
@@ -57,15 +121,21 @@ export default function gaffer() {
                 base: "./",
                 publicDir: false,
                 resolve: { alias: { "@gaffer": JS } },
-                build: { outDir: "public", emptyOutDir: true, manifest: true },
+                build: { outDir: "public", emptyOutDir: false, manifest: true },
             };
         },
         configResolved(config) {
             outDir = path.resolve(config.root, config.build.outDir);
         },
-        writeBundle() {
+        buildStart() {
+            previous = previousFiles(outDir);
+        },
+        writeBundle(options, bundle) {
+            const files = Object.keys(bundle).filter((file) => !file.startsWith(".vite/")).sort();
+            prune(outDir, new Set([...files, ...previous]));
             fs.mkdirSync(path.join(outDir, ".vite"), { recursive: true });
-            fs.writeFileSync(path.join(outDir, ".vite", "gaffer.json"), JSON.stringify({ js: gafferJsHash() }) + "\n");
+            fs.writeFileSync(path.join(outDir, ".vite", "gaffer.json"), JSON.stringify({ js: gafferJsHash(), files }) + "\n");
+            previous = files;
         },
     };
 }

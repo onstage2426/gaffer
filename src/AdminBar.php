@@ -9,13 +9,49 @@ use WP_Admin_Bar;
 
 /**
  * "Gaffer" in the admin bar (for administrators): a status dot, versions,
- * Twig state, and "Clear Twig cache".
+ * Twig state, "Clear Twig cache", and one line per Gaffer plugin the theme uses (its own dot;
+ * the main dot shows the worst of all).
  *
  * @internal
  */
 final class AdminBar
 {
     private const string CLEAR_ACTION = 'gaffer_twig_clear';
+
+    /** The plugins' lines, cached per site for a minute: building them reads every index's state. */
+    private const string PLUGINS_CACHE = 'gaffer_admin_bar_plugins';
+
+    /**
+     * Each Gaffer plugin's line: name => a summary callable (null: the theme doesn't use it).
+     * A plugin adds one entry.
+     *
+     * @return array<string, \Closure(): (array{color: 'red'|'orange'|'green', reason: string}|null)>
+     */
+    private static function plugins(): array
+    {
+        return [
+            'gaffer-search' => \Gaffer\Search\Health::summary(...),
+        ];
+    }
+
+    /**
+     * The worst of these states (red over orange over green), with its reason.
+     *
+     * @param list<array{color: 'red'|'orange'|'green', reason: string}> $states
+     * @return array{color: 'red'|'orange'|'green', reason: string}
+     */
+    public static function worst(array $states): array
+    {
+        $rank = ['green' => 0, 'orange' => 1, 'red' => 2];
+        $worst = ['color' => 'green', 'reason' => 'OK'];
+        foreach ($states as $state) {
+            if ($rank[$state['color']] > $rank[$worst['color']]) {
+                $worst = $state;
+            }
+        }
+
+        return $worst;
+    }
 
     public static function register(): void
     {
@@ -49,7 +85,13 @@ final class AdminBar
 
         $twig = View::env();
         $environment = \wp_get_environment_type();
-        $status = self::status($environment, $twig->isDebug(), TwigCache::enabled());
+        $own = self::status($environment, $twig->isDebug(), TwigCache::enabled());
+        $plugins = self::plugin_states();
+        $status = self::worst([$own, ...array_map(
+            static fn(string $name, array $state): array => ['color' => $state['color'], 'reason' => "{$name}: {$state['reason']}"],
+            array_keys($plugins),
+            $plugins,
+        )]);
 
         $bar->add_node([
             'id' => 'gaffer',
@@ -57,10 +99,21 @@ final class AdminBar
             'meta' => ['title' => $status['reason']],
         ]);
 
-        foreach (self::sections($twig, $environment, $status['reason']) as $section => $lines) {
+        foreach (self::sections($twig, $environment, $own['reason']) as $section => $lines) {
             $bar->add_group(['parent' => 'gaffer', 'id' => "gaffer-{$section}"]);
             foreach ($lines as $id => $text) {
                 $bar->add_node(['parent' => "gaffer-{$section}", 'id' => "gaffer-{$id}", 'title' => \esc_html($text)]);
+            }
+        }
+
+        if ($plugins !== []) {
+            $bar->add_group(['parent' => 'gaffer', 'id' => 'gaffer-plugins']);
+            foreach ($plugins as $name => $state) {
+                $bar->add_node([
+                    'parent' => 'gaffer-plugins',
+                    'id' => "gaffer-plugin-{$name}",
+                    'title' => '<span class="gaffer-dot gaffer-dot--' . $state['color'] . '"></span>' . \esc_html("{$name}: {$state['reason']}"),
+                ]);
             }
         }
 
@@ -103,6 +156,34 @@ final class AdminBar
                 'debug' => 'Debug: ' . $on($twig->isDebug()) . ', strict variables: ' . $on($twig->isStrictVariables()) . ', auto-reload: ' . $on($twig->isAutoReload()),
             ],
         ];
+    }
+
+    /**
+     * The lines of the plugins the theme uses, from the cache when it's under a minute old.
+     *
+     * @return array<string, array{color: 'red'|'orange'|'green', reason: string}>
+     */
+    private static function plugin_states(): array
+    {
+        $cached = \get_transient(self::PLUGINS_CACHE);
+        if (is_array($cached)) {
+            /** @var array<string, array{color: 'red'|'orange'|'green', reason: string}> $cached */
+            return $cached;
+        }
+        $states = [];
+        foreach (self::plugins() as $name => $summary) {
+            try {
+                $state = $summary();
+            } catch (\Throwable $e) {
+                $state = ['color' => 'red', 'reason' => 'its status failed: ' . $e->getMessage()];
+            }
+            if ($state !== null) {
+                $states[$name] = $state;
+            }
+        }
+        \set_transient(self::PLUGINS_CACHE, $states, MINUTE_IN_SECONDS);
+
+        return $states;
     }
 
     private static function clear(): void

@@ -7,6 +7,15 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-21 (admin bar)
+
+- **The admin bar's "Gaffer" menu shows each Gaffer plugin the theme uses in one line**, with
+  its own dot: for gaffer-search "1 index built and current", or the first thing wrong (an index
+  not built or its last build failed: red; building, changes waiting over 5 minutes, documents
+  changed without WordPress's hooks: orange). The main dot shows the worst of Gaffer and its
+  plugins. Administrators only, cached for a minute per site. Nothing to change; `doctor --wp`
+  still says everything.
+
 ## 2026-11-21 (gaffer-search audit)
 
 - **`doctor` warns about a search form whose component never shows its error.** A template

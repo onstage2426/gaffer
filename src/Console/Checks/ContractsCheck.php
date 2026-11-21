@@ -17,8 +17,8 @@ use Gaffer\Turnstile;
  * update or a server change shows up here instead of as lost form entries: Gravity Forms
  * still takes Gaffer's submissions (forms:probe on a throwaway form, not on production),
  * ajax.php answers over HTTP as Gaffer's dispatcher, the GET actions that need no arguments
- * answer without a server error, and Turnstile answers arrive.
- * Needs WordPress.
+ * answer without a server error, the theme's private files aren't served, and Turnstile answers
+ * arrive. Needs WordPress.
  */
 final class ContractsCheck implements Check
 {
@@ -31,6 +31,7 @@ final class ContractsCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
+        $this->private_files($report);
         if ($this->ajax($report)) {
             $this->get_actions($report);
         }
@@ -39,6 +40,51 @@ final class ContractsCheck implements Check
         }
         $this->gravity_forms($report);
         $this->turnstile($report);
+    }
+
+    /**
+     * Theme files a visitor must not get, fetched over HTTP like a visitor: the theme's
+     * .htaccess (or the server's own rule) is what keeps them private, and a missing or emptied
+     * one, or a server that doesn't read .htaccess (nginx), serves them as they are. A file
+     * counts as served when the answer is its content (a "not found" page answered with 200
+     * isn't). Secrets and visitors' files are errors; files that only reveal versions warnings.
+     */
+    private function private_files(Report $report): void
+    {
+        $theme = \get_template_directory();
+        $files = ['.env' => true, '.git/HEAD' => true, 'composer.json' => false, 'composer.lock' => false, 'vendor/composer/installed.json' => false];
+        // A file in a private storage folder (visitors' uploads, logs), without a leading dot: many
+        // servers deny dotfiles on their own, which would hide a folder that's open otherwise.
+        $probe = Storage::private_dir('logs') . '/doctor-probe.txt';
+        if (str_starts_with($probe, $theme . '/') && file_put_contents($probe, 'gaffer doctor ' . \wp_generate_password(20, false)) !== false) {
+            $files[substr($probe, strlen($theme) + 1)] = true;
+        }
+        $served = ['error' => [], 'warning' => []];
+        foreach ($files as $relative => $secret) {
+            $file = "{$theme}/{$relative}";
+            if (!is_file($file) || filesize($file) > 5_000_000) {
+                continue;
+            }
+            $response = \wp_remote_get(\get_template_directory_uri() . '/' . $relative, ['timeout' => 20, 'redirection' => 0, 'sslverify' => false, 'cookies' => []]);
+            if (\is_wp_error($response)) {
+                $report->info('contracts', 'The theme\'s private files weren\'t fetched over HTTP (' . $response->get_error_message() . '), so they weren\'t checked');
+                $served = ['error' => [], 'warning' => []];
+                break;
+            }
+            if ((int) \wp_remote_retrieve_response_code($response) === 200 && \wp_remote_retrieve_body($response) === file_get_contents($file)) {
+                $served[$secret ? 'error' : 'warning'][] = $file === $probe ? 'files in ' . dirname(dirname($relative)) . '/ (logs, visitors\' uploads)' : $relative;
+            }
+        }
+        if (is_file($probe)) {
+            unlink($probe);
+        }
+        $hint = 'Anyone can download them. On Apache the theme\'s .htaccess denies everything but public/, ajax.php and screenshot.png (the starter has one); other servers (nginx) need the same rule in their own configuration.';
+        if ($served['error'] !== []) {
+            $report->error('contracts', 'The web server serves private theme files: ' . implode(', ', $served['error']), null, null, $hint);
+        }
+        if ($served['warning'] !== []) {
+            $report->warning('contracts', 'The web server serves theme files that show its versions: ' . implode(', ', $served['warning']), null, null, $hint);
+        }
     }
 
     /**

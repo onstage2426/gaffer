@@ -17,6 +17,13 @@ the entries since the version in your `composer.lock` after every
   no CSS or JavaScript). Nothing to change; the first build after this update deletes nothing,
   the second removes what older builds left. Check: `npm run build` twice, the site looks
   right, and `public/assets/` holds at most two builds' files.
+- **`doctor --wp` checks that the web server keeps the theme's private files private**: it
+  fetches `.env`, `.git/HEAD`, a probe file in `storage/logs/` (written and deleted again) and
+  the Composer files like a visitor. One served is an error (secrets, visitors' uploads, logs) or
+  a warning (Composer's files show versions). The theme's `.htaccess` is what keeps them private
+  on Apache: an empty or missing one serves everything; nginx ignores it. Find:
+  `cat .htaccess` (the starter's denies everything but `public/assets/`, `ajax.php` and
+  `screenshot.png`). Check: `php gaffer doctor --wp` has no `[contracts]` error.
 
 ## 2026-11-21 (second stability audit)
 

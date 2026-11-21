@@ -51,6 +51,8 @@ await check("per-page select swaps the archive", async (page) => {
 });
 
 await check("a Gaffer form posts and is replaced by its answer", async (page) => {
+    // bin/dev/sites check sets it where Turnstile is off: a submit would be a real entry (and mail).
+    if (process.env.GAFFER_CHECK_NO_SUBMIT) return "not submitted: Turnstile is off here (a real entry, maybe a mail)";
     await page.goto(base + formPage, { waitUntil: "load" }).then(() => page.waitForTimeout(1200));
     const form = page.locator("div[id^='form-'] form").first();
     if ((await form.count()) === 0) return "no Gaffer form on " + formPage;
@@ -67,6 +69,7 @@ await check("a Gaffer form posts and is replaced by its answer", async (page) =>
 
 await check("an ajax error doesn't wipe the target (HX-Reswap: none)", async (page) => {
     await page.goto(base + formPage, { waitUntil: "load" }).then(() => page.waitForTimeout(1200));
+    if ((await page.locator("div[id^='form-'] form").count()) === 0) return "no Gaffer form on " + formPage;
     const before = await page.locator("div[id^='form-']").first().innerHTML();
     await page.evaluate(() => {
         const f = document.querySelector("div[id^='form-'] form");

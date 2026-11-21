@@ -1,0 +1,234 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Maintainer tool (not for themes): the local sites in local/sites.json, all at once.
+ *
+ *   bin/dev/sites status [--online]          Gaffer reference (and whether GitHub still serves
+ *                                            it, --online), htmx, lockfiles, git, gaffer-search
+ *   bin/dev/sites run [--summary] -- <args>  `php gaffer <args>` on every site at once (in its
+ *                                            container where it has one); --summary: only
+ *                                            errors, warnings and the last line
+ *   bin/dev/sites update [--no-commit]       composer update onstage2426/gaffer until the lock has
+ *                                            this clone's origin/0.x, build with the theme's
+ *                                            package manager, ai:update, twig:lint; commits
+ *                                            composer.lock where "commit" is true
+ *   bin/dev/sites check [--allow-entries] [<script> <args>…]
+ *                                            browser checks (site-checks/), each site's "checks"
+ *                                            or the one given, then cleans up what they wrote:
+ *                                            Gravity Forms entries above the highest ID before,
+ *                                            and the new spam.log lines. On a site with Turnstile
+ *                                            off, htmx.mjs doesn't submit its form unless
+ *                                            --allow-entries (a real entry, deleted afterwards,
+ *                                            and maybe a mail, which can't be taken back)
+ *
+ * Every command takes --sites=a,b. Run `doctor --wp` after an update: `run --summary -- doctor --wp`.
+ */
+
+declare(strict_types=1);
+
+use GafferDev\LocalSites;
+
+require __DIR__ . '/lib/LocalSites.php';
+
+$gaffer = dirname(__DIR__, 2);
+$args = array_slice($argv, 1);
+$command = $args[0] ?? 'help';
+$rest = array_slice($args, 1);
+$flag = static fn(string $name): bool => in_array($name, $rest, true);
+
+/** @param array<string, mixed> $site */
+function gaffer_reference(array $site): ?string
+{
+    $lock = json_decode((string) @file_get_contents($site['theme'] . '/composer.lock'), true);
+    foreach ([...(array) ($lock['packages'] ?? []), ...(array) ($lock['packages-dev'] ?? [])] as $package) {
+        if (is_array($package) && ($package['name'] ?? null) === 'onstage2426/gaffer') {
+            return (string) ($package['source']['reference'] ?? $package['dist']['reference'] ?? '');
+        }
+    }
+    return null;
+}
+
+/** @param array<string, mixed> $site */
+function htmx_version(array $site): string
+{
+    $theme = $site['theme'];
+    if (is_file("{$theme}/bun.lock") && preg_match('/"htmx\.org@([^"]+)"/', (string) file_get_contents("{$theme}/bun.lock"), $m)) {
+        return $m[1];
+    }
+    $lock = json_decode((string) @file_get_contents("{$theme}/package-lock.json"), true);
+    return (string) ($lock['packages']['node_modules/htmx.org']['version'] ?? '-');
+}
+
+/** @param array<string, mixed> $site */
+function package_manager(array $site): string
+{
+    return is_file($site['theme'] . '/bun.lock') ? 'bun' : 'npm';
+}
+
+switch ($command) {
+    case 'status':
+        $head = trim(LocalSites::capture(['git', 'rev-parse', 'origin/0.x'], $gaffer)[1]);
+        printf("%-18s %-9s %-8s %-28s %-24s %s\n", 'site', 'gaffer', 'htmx', 'lockfiles', 'git', 'gaffer-search');
+        foreach (LocalSites::selected($rest) as $name => $site) {
+            $theme = $site['theme'];
+            $ref = gaffer_reference($site);
+            $refText = $ref === null ? '-' : substr($ref, 0, 7) . ($ref === $head ? '' : '*');
+            if ($ref !== null && $flag('--online')) {
+                $code = trim(LocalSites::capture(['curl', '-so', '/dev/null', '-w', '%{http_code}', "https://codeload.github.com/onstage2426/gaffer/legacy.zip/{$ref}"], $theme)[1]);
+                $refText .= $code === '200' ? '' : " ({$code}!)";
+            }
+            $locks = implode(' ', array_filter(['bun.lock', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'], static fn(string $f): bool => is_file("{$theme}/{$f}")));
+            [$isGit, $branch] = LocalSites::capture(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], $theme);
+            $git = $isGit === 0 ? trim($branch) . ', ' . count(array_filter(explode("\n", LocalSites::capture(['git', 'status', '--porcelain'], $theme)[1]))) . ' changed' : 'no git';
+            $plugin = LocalSites::root($site) . '/wp-content/plugins/gaffer-search/gaffer-search.php';
+            $search = is_file($plugin) && preg_match('/^\s*\*\s*Version:\s*(\S+)/m', (string) file_get_contents($plugin), $m) ? $m[1] : '-';
+            printf("%-18s %-9s %-8s %-28s %-24s %s\n", $name, $refText, htmx_version($site), $locks . (str_contains($locks, ' ') ? ' (two!)' : ''), $git, $search);
+        }
+        echo "\n* not this clone's origin/0.x (" . substr($head, 0, 7) . ")\n";
+        exit(0);
+
+    case 'run':
+        $at = array_search('--', $rest, true);
+        $gafferArgs = $at === false ? [] : array_values(array_slice($rest, $at + 1));
+        if ($gafferArgs === []) {
+            fwrite(STDERR, "Usage: bin/dev/sites run [--sites=a,b] [--summary] -- <php gaffer arguments>\n");
+            exit(2);
+        }
+        $commands = [];
+        foreach (LocalSites::selected($rest) as $name => $site) {
+            $commands[$name] = [LocalSites::gaffer($site, $gafferArgs), $site['theme']];
+        }
+        $worst = 0;
+        foreach (LocalSites::parallel($commands) as $name => [$code, $output]) {
+            echo "== {$name} (exit {$code})\n";
+            if ($flag('--summary')) {
+                $lines = array_values(array_filter(explode("\n", $output), static fn(string $l): bool => trim($l) !== ''));
+                $kept = array_filter($lines, static fn(string $l): bool => (bool) preg_match('/^(error|warning)\b/i', $l));
+                $output = implode("\n", [...$kept, end($lines) ?: '']) . "\n";
+            }
+            echo $output;
+            $worst = max($worst, $code);
+        }
+        exit($worst);
+
+    case 'update':
+        LocalSites::capture(['git', 'fetch', '-q', 'origin', '0.x'], $gaffer);
+        $head = trim(LocalSites::capture(['git', 'rev-parse', 'origin/0.x'], $gaffer)[1]);
+        $short = substr($head, 0, 7);
+        $failed = false;
+        foreach (LocalSites::selected($rest) as $name => $site) {
+            $theme = $site['theme'];
+            echo "== {$name}\n";
+            // GitHub can serve the previous commit for a moment after a push: try again.
+            for ($try = 1; $try <= 6 && gaffer_reference($site) !== $head; $try++) {
+                if ($try > 1) {
+                    sleep(10);
+                }
+                LocalSites::run(['composer', 'update', '-q', 'onstage2426/gaffer'], $theme);
+            }
+            if (gaffer_reference($site) !== $head) {
+                echo "composer.lock doesn't have {$short} yet: run update again\n";
+                $failed = true;
+                continue;
+            }
+            $pm = package_manager($site);
+            $steps = [
+                "{$pm} run build" => [[$pm, 'run', 'build'], $theme],
+                'ai:update' => [LocalSites::gaffer($site, ['ai:update']), $theme],
+                'twig:lint' => [LocalSites::gaffer($site, ['twig:lint']), $theme],
+            ];
+            foreach ($steps as $label => [$argv, $cwd]) {
+                [$code, $output] = LocalSites::capture($argv, $cwd);
+                $lines = array_values(array_filter(explode("\n", trim($output))));
+                echo $label . ': ' . ($code === 0 ? 'ok' : "FAILED (exit {$code})") . ($label === 'twig:lint' ? ' - ' . end($lines) : '') . "\n";
+                if ($code !== 0) {
+                    echo $output;
+                    $failed = true;
+                    continue 2;
+                }
+            }
+            if (($site['commit'] ?? false) === true && !$flag('--no-commit')) {
+                [$dirty] = LocalSites::capture(['git', 'diff', '--quiet', '--', 'composer.lock'], $theme);
+                if ($dirty === 1) {
+                    LocalSites::capture(['git', 'commit', '-q', '-m', "Update Gaffer to {$short}", '--', 'composer.lock'], $theme);
+                    echo 'committed: ' . trim(LocalSites::capture(['git', 'log', '--oneline', '-1'], $theme)[1]) . "\n";
+                }
+            }
+        }
+        echo "\nNext: bin/dev/sites run --summary -- doctor --wp\n";
+        exit($failed ? 1 : 0);
+
+    case 'check':
+        $config = LocalSites::config();
+        $playwright = $config['playwright'];
+        $here = __DIR__ . '/site-checks';
+        $given = array_values(array_filter($rest, static fn(string $a): bool => !str_starts_with($a, '--')));
+        // Before and after a site's checks: the highest Gravity Forms entry ID, spam.log's path
+        // and length, and whether Turnstile is on; after, the entries above the ID go.
+        $state = <<<'PHP'
+            $out = ['max' => 0, 'deleted' => [], 'log' => null, 'turnstile' => class_exists('Gaffer\Turnstile') && Gaffer\Turnstile::enabled()];
+            if (class_exists('GFAPI') && class_exists('GFFormsModel')) {
+                global $wpdb;
+                $table = GFFormsModel::get_entry_table_name();
+                $out['max'] = (int) $wpdb->get_var("SELECT MAX(id) FROM {$table}");
+                $above = getenv('GAFFER_DEV_DELETE_ABOVE');
+                if (is_string($above) && ctype_digit($above)) {
+                    foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM {$table} WHERE id > %d", $above)) as $id) {
+                        if (GFAPI::delete_entry((int) $id) === true) { $out['deleted'][] = (int) $id; }
+                    }
+                }
+            }
+            if (class_exists('Gaffer\Storage')) { $out['log'] = Gaffer\Storage::private_dir('logs') . '/spam.log'; }
+            echo json_encode($out);
+            PHP;
+        $wp = static function (array $site, ?int $deleteAbove = null) use ($state): ?array {
+            $env = $deleteAbove !== null ? ['GAFFER_DEV_DELETE_ABOVE=' . $deleteAbove] : [];
+            [$code, $output] = LocalSites::capture(['env', ...$env, 'wp', '--path=' . LocalSites::root($site), ...(array) ($site['wp'] ?? []), 'eval', $state], LocalSites::root($site));
+            $json = preg_match('/\{.*\}\s*$/s', $output, $m) ? json_decode($m[0], true) : null;
+            if ($code !== 0 || !is_array($json)) {
+                echo "WP-CLI failed: " . trim(substr($output, -400)) . "\n";
+                return null;
+            }
+            return $json;
+        };
+        $lines = static fn(?string $file): int => $file !== null && is_file($file) ? count(file($file) ?: []) : 0;
+        $worst = 0;
+        foreach (LocalSites::selected($rest) as $name => $site) {
+            echo "== {$name}\n";
+            $before = $wp($site);
+            if ($before === null) {
+                $worst = 1;
+                continue;
+            }
+            $logLines = $lines($before['log']);
+            $checks = $given !== [] ? [$given] : (array) ($site['checks'] ?? []);
+            foreach ($checks as $check) {
+                [$script, $scriptArgs] = [(string) $check[0], array_map('strval', array_slice($check, 1))];
+                // htmx.mjs submits a form: without Turnstile that's a real entry (and maybe a mail).
+                $noSubmit = $script === 'htmx.mjs' && !$before['turnstile'] && !$flag('--allow-entries');
+                echo "-- {$script} " . implode(' ', $scriptArgs) . ($noSubmit ? ' (no form submit: Turnstile is off; --allow-entries submits, and the entry is deleted afterwards)' : '') . "\n";
+                $code = LocalSites::run(['env', ...($noSubmit ? ['GAFFER_CHECK_NO_SUBMIT=1'] : []), 'timeout', '300', 'node', "{$here}/{$script}", $playwright, (string) $site['url'], ...$scriptArgs], dirname(__DIR__, 2));
+                $worst = max($worst, $code);
+            }
+            // Clean up: entries above the old highest ID, and spam.log back to its old length.
+            $after = $wp($site, (int) $before['max']);
+            if ($after !== null && $after['deleted'] !== []) {
+                echo 'deleted test entries: ' . implode(', ', $after['deleted']) . "\n";
+            }
+            $log = $before['log'];
+            if ($log !== null && $lines($log) > $logLines) {
+                $kept = array_slice(file($log) ?: [], 0, $logLines);
+                file_put_contents($log, implode('', $kept));
+                echo 'removed the checks\' spam.log lines' . "\n";
+            }
+        }
+        exit($worst);
+
+    default:
+        // The docblock above is the help.
+        $source = (string) file_get_contents(__FILE__);
+        preg_match('#/\*\*(.*?)\*/#s', $source, $m);
+        echo preg_replace('/^\s*\* ?/m', '', trim($m[1] ?? '')) . "\n";
+        exit($command === 'help' ? 0 : 2);
+}

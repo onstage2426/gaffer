@@ -5,6 +5,9 @@ Browser checks of a site's htmx/Alpine interactions through the real web server:
 missed on 2026-11-20: an `<input name="form">` that shadowed `HTMLFormElement.form` and stopped
 every Gaffer form under htmx 4.
 
+**Usually through `bin/dev/sites check`**: every local site's checks (`local/sites.json`),
+with the cleanup below done for you. By hand:
+
 Playwright comes from a theme that has it (the starter has it): the first argument is
 that theme's directory, only used to resolve `playwright`.
 
@@ -13,7 +16,7 @@ P=/path/to/a/theme   # with playwright installed; the sites on this host: local/
 node bin/dev/site-checks/htmx.mjs $P https://shop.test /a-page-with-a-form/   # shop add-to-cart, archive, a Gaffer form, an error answer
 node bin/dev/site-checks/drawer-select.mjs $P https://shop.test               # drawer with the quantity <select> (submit-qty)
 node bin/dev/site-checks/drawer-buttons.mjs $P https://shop.test              # drawer with +/− buttons and a remove button
-node bin/dev/site-checks/variation.mjs $P https://shop.test/product/<variable>/ select  # or: link
+node bin/dev/site-checks/variation.mjs $P https://shop.test /product/<variable>/ select  # or: link
 node bin/dev/site-checks/search.mjs $P https://shop.test /winkel/ ma          # searchbar and archive through search.attrs()
 ```
 

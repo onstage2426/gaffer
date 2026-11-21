@@ -1,6 +1,7 @@
 // Maintainer tool: see README.md in this folder.
 import { createRequire } from "node:module";
-const [theme, url, mode] = process.argv.slice(2);
+const [theme, base, path, mode] = process.argv.slice(2);
+const url = base + path;
 const { chromium } = createRequire(theme + "/package.json")("playwright");
 const browser = await chromium.launch();
 const page = await browser.newPage({ ignoreHTTPSErrors: true });

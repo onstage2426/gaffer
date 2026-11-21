@@ -31,6 +31,13 @@ final class AjaxTest extends TestCase
         self::assertTrue(trait_exists('Theme\\Ajax\\Ping\\Pong', false));
         self::assertNull(Ajax::action_class('Broken'));
         self::assertNull(Ajax::action_class('Missing'));
+
+        // doctor --wp calls the GET actions that need no argument
+        foreach (['Count' => "public const string METHOD = 'GET'; public function run(int \$x = 1): void {}", 'Hint' => "public const string METHOD = 'GET'; public function run(int \$id): void {}"] as $name => $body) {
+            mkdir("{$theme}/app/Ajax/{$name}");
+            file_put_contents("{$theme}/app/Ajax/{$name}/{$name}.php", "<?php\nnamespace Theme\\Ajax\\{$name};\nfinal class {$name} extends \\Gaffer\\AjaxAction { {$body} }\n");
+        }
+        self::assertSame(['Count'], \Gaffer\Console\Checks\ContractsCheck::callable_actions()); // Ping is POST, Hint needs an id
         spl_autoload_unregister($autoload);
     }
 }

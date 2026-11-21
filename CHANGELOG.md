@@ -67,6 +67,9 @@ the entries since the version in your `composer.lock` after every
   `package-lock.json`): a build with the other one installs other versions (a stale `bun.lock`
   still had htmx 2). Keep the one the theme builds with and delete the other, e.g.
   `rm bun.lock && npm install`, or `rm package-lock.json && bun install`.
+- **`doctor --wp` calls every GET ajax action that needs no argument** over HTTP, like a
+  visitor without cookies, and errors on a server error (a fatal after an update). Nothing to
+  change; an action that fails there fails for visitors too.
 - **`doctor` no longer stops on a theme without `app/Ajax/`** (it failed in the forms check since
   2026-11-20). Nothing to change.
 - **`doctor`'s htmx check no longer flags `name="action"` (or `method`, `form`, …) in a plain

@@ -16,7 +16,8 @@ use Gaffer\Turnstile;
  * What a site's running code relies on outside Gaffer, tried for real so that a plugin
  * update or a server change shows up here instead of as lost form entries: Gravity Forms
  * still takes Gaffer's submissions (forms:probe on a throwaway form, not on production),
- * ajax.php answers over HTTP as Gaffer's dispatcher, and Turnstile answers arrive.
+ * ajax.php answers over HTTP as Gaffer's dispatcher, the GET actions that need no arguments
+ * answer without a server error, and Turnstile answers arrive.
  * Needs WordPress.
  */
 final class ContractsCheck implements Check
@@ -30,7 +31,9 @@ final class ContractsCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
-        $this->ajax($report);
+        if ($this->ajax($report)) {
+            $this->get_actions($report);
+        }
         if (FormTemplates::all() === [] || !class_exists('GFAPI')) {
             return; // WordPressCheck::forms reports forms without Gravity Forms
         }
@@ -42,22 +45,70 @@ final class ContractsCheck implements Check
      * ajax.php?action= (no action) is Gaffer's 400: anything else means the web server, a
      * security plugin or a host rule answers instead, and every ajax action and form fails.
      */
-    private function ajax(Report $report): void
+    private function ajax(Report $report): bool
     {
         if (!is_file(\get_template_directory() . '/ajax.php')) {
-            return;
+            return false;
         }
         $url = Ajax::url('');
         $response = \wp_remote_get($url, ['timeout' => 20, 'redirection' => 0, 'sslverify' => false, 'cookies' => []]);
         if (\is_wp_error($response)) {
             $report->info('contracts', 'ajax.php wasn\'t fetched over HTTP (' . $response->get_error_message() . '), so it wasn\'t checked');
-            return;
+            return false;
         }
         $status = (int) \wp_remote_retrieve_response_code($response);
         if ($status !== 400) {
             $report->error('contracts', 'ajax.php doesn\'t answer as Gaffer\'s dispatcher: ajax actions and forms fail', null, null,
                 "{$url} answered HTTP {$status}, expected Gaffer's 400. A host rule or security plugin that blocks PHP files in wp-content/themes, a redirect, or a missing ajax.php.");
+            return false;
         }
+
+        return true;
+    }
+
+    /**
+     * Calls every GET action whose run() needs no argument, as a visitor without cookies would
+     * (a GET changes nothing, so this is safe on any site): a fatal after a Gaffer, plugin or
+     * WordPress update shows here instead of in a visitor's browser. Actions with required
+     * arguments or POST are left to the browser (bin/dev/site-checks) and ajax:call.
+     */
+    private function get_actions(Report $report): void
+    {
+        $called = 0;
+        foreach (self::callable_actions() as $name) {
+            $response = \wp_remote_get(Ajax::url($name), ['timeout' => 30, 'redirection' => 0, 'sslverify' => false, 'cookies' => [], 'headers' => ['HX-Request' => 'true']]);
+            $called++;
+            $status = \is_wp_error($response) ? 0 : (int) \wp_remote_retrieve_response_code($response);
+            if ($status === 0 || $status >= 500) {
+                $report->error('contracts', "The ajax action {$name} fails without arguments", \Gaffer\Paths::ajax() . "/{$name}/{$name}.php", null,
+                    ($status === 0 ? 'No answer (' . (\is_wp_error($response) ? $response->get_error_message() : '') . ')' : "HTTP {$status}")
+                    . ": a GET a visitor's browser makes. Try `php gaffer ajax:call {$name}` and read the PHP error log.");
+            }
+        }
+        if ($called > 0) {
+            $report->info('contracts', "Called {$called} GET ajax action" . ($called === 1 ? '' : 's') . ' without arguments over HTTP');
+        }
+    }
+
+    /**
+     * The GET actions whose run() has no required parameter.
+     *
+     * @return list<string>
+     */
+    public static function callable_actions(): array
+    {
+        $names = [];
+        foreach (Ajax::actions() as $name) {
+            $class = Ajax::action_class($name);
+            if ($class === null || $class::METHOD !== 'GET' || !method_exists($class, 'run')) {
+                continue;
+            }
+            if ((new \ReflectionMethod($class, 'run'))->getNumberOfRequiredParameters() === 0) {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
     }
 
     /** Gravity Forms takes Gaffer's submissions as Gaffer expects (one process per case). */

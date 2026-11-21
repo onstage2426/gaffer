@@ -26,3 +26,8 @@ A site built with Gaffer (and its plugins) sent a feedback report. The report, t
 - 2026-11-20 (guidelines tightened): `bin/dev/usage` and doctor's internal-API warning exist now; guideline additions follow AGENTS.md's "Guidelines and skills for themes" (rules in guidelines, detail in skills).
 
 - 2026-11-20 (a site's 3rd report): the report was only in the transcript's last message, so the feedback prompt now saves `gaffer-feedback.md`; the scope wasn't always "slicing", so it's generic now; the site re-asked a declined item, so the feedback prompt says not to repeat answered items.
+- 2026-11-21 (update round after the break-first audit): a template change handed to a site broke
+  another caller there (Prime Lease's `DriveStart` renders the notices template too; its agent
+  caught it). Before handing a site a change to a template's variables, grep that theme's copy
+  for every `View::render`/`include` of it and name them in the prompt.
+

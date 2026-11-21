@@ -9,7 +9,8 @@
   `View::render()`, keep what WooCommerce passes in. Variants of one page are a
   `match` in that template. Each carries the `@version` of WooCommerce's template it mirrors
   (`doctor --wp` says when WooCommerce's is newer). A thin `single-product.php` prints no Product
-  structured data unless the theme does. Without `sidebar.php`, remove
+  structured data unless the theme does, and shows a password-protected product unless it checks
+  `post_password_required()` (WooCommerce's template shows `get_the_password_form()`). Without `sidebar.php`, remove
   `woocommerce_get_sidebar` from `woocommerce_sidebar` (`doctor --wp` warns).
 - Map `product` to a theme type for product logic; keep `WC_Product` behind
   its methods.

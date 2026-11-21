@@ -614,6 +614,23 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString('search.available', $this->messages(new SearchCheck()));
     }
 
+    public function test_search_forms_written_by_hand(): void
+    {
+        @mkdir("{$this->theme}/views", 0755, true);
+        file_put_contents("{$this->theme}/views/old.twig", "<form method=\"get\"\n    data-gaffer-search-endpoint=\"{{ search.endpoint }}\">\n<input type=\"hidden\" name=\"token\" value=\"{{ search.token }}\"></form>");
+        file_put_contents("{$this->theme}/views/new.twig", '<form method="get" action="" {{ search.attrs() }}><input name="q"></form>');
+        $found = array_values(array_filter($this->findings(new SearchCheck()), static fn(array $f): bool => str_contains($f['message'], 'by hand')));
+
+        self::assertSame([['old.twig', 2]], array_map(static fn(array $f): array => [basename((string) $f['file']), $f['line']], $found));
+    }
+
+    public function test_search_form_attributes(): void
+    {
+        $bar = new \Gaffer\Search\Searchbar(true, 'https://s.test/search.php?a=1&b=2', 'T"1', '/winkel/');
+        self::assertSame('data-gaffer-search-endpoint="https://s.test/search.php?a=1&amp;b=2" data-gaffer-search-token="T&quot;1"', (string) $bar->attrs());
+        self::assertSame('', (string) \Gaffer\Search\Archive::unavailable()->attrs());
+    }
+
     public function test_card_templates_of_the_search_config_are_used(): void
     {
         mkdir("{$this->theme}/views/product", 0755, true);

@@ -32,6 +32,16 @@ describe("search(form), under createAlpineSearch()", () => {
         expect(calls).toEqual(["https://shop.test/search.php?token=T&q=jurk"]);
     });
 
+    test("{{ search.attrs() }}: the endpoint and token from the form's attributes, the token kept out of the address bar", async () => {
+        const calls = mockFetch();
+        document.body.innerHTML = `<form method="get" action="/winkel/" data-gaffer-search-endpoint="https://shop.test/search.php" data-gaffer-search-token="T2" data-gaffer-search-history="push">
+            <input name="q" value="jurk"></form>`;
+
+        await search(document.querySelector("form"));
+        expect(calls).toEqual(["https://shop.test/search.php?token=T2&q=jurk"]);
+        expect(location.search).toBe("?q=jurk");
+    });
+
     test("refuses a POST form", () => {
         document.body.innerHTML = '<form method="post"></form>';
         expect(() => search(document.querySelector("form"))).toThrow(/method="get"/);

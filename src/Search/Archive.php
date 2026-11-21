@@ -67,6 +67,17 @@ final readonly class Archive
         return $this->view_param !== '' ? $url . (str_contains($url, '?') ? '&' : '?') . 'view=' . rawurlencode($this->view_param) : $url;
     }
 
+    /**
+     * The attributes for the search <form> that tell Gaffer's search JavaScript where and with
+     * what to search (today data-gaffer-search-endpoint and data-gaffer-search-token):
+     * `<form method="get" action="…" {{ search.attrs() }}>`. Gaffer writes and reads them, so they
+     * may change in any release. Empty without the plugin.
+     */
+    public function attrs(): Markup
+    {
+        return Attributes::form($this->available, $this->endpoint, $this->token);
+    }
+
     /** @internal Without the search plugin: no cards, nothing to search. */
     public static function unavailable(): self
     {

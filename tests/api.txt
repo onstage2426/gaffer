@@ -51,6 +51,7 @@ final class Gaffer\Search\Archive
   readonly string $view
   readonly array $views
   readonly array $bounds
+  attrs(): Twig\Markup
   initial(): Twig\Markup
   page_url(int $page): string
 final class Gaffer\Search\Counter
@@ -70,6 +71,7 @@ final class Gaffer\Search\Searchbar
   readonly string $endpoint
   readonly string $token
   readonly string $results_url
+  attrs(): Twig\Markup
 final class Gaffer\Storage
   static private_dir(string $relative): string
 final class Gaffer\Turnstile

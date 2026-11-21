@@ -153,8 +153,7 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
 ```twig
 <script type="application/json" id="archive-results">{{ search.initial() }}</script>
 <div x-data="archive({ cardField: '{{ search.card_field }}' })">
-    <form id="archive-form" method="get" action="" data-gaffer-search-endpoint="{{ search.endpoint }}" data-gaffer-search-history="push" @submit.prevent="run()" @change="run()">
-        <input type="hidden" name="token" value="{{ search.token }}">
+    <form id="archive-form" method="get" action="" {{ search.attrs() }} data-gaffer-search-history="push" @submit.prevent="run()" @change="run()">
         <input type="hidden" name="offset" :value="offset" value="{{ search.results.offset }}" data-gaffer-search-default="0">
         {% set sort_labels = { '': 'Populair'|t, 'price:asc': 'Prijs oplopend'|t, 'price:desc': 'Prijs aflopend'|t } %}
         {% for sort in search.sorts %}
@@ -167,7 +166,8 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
 ```
 
 - The form's `action=""` is the page itself, so it works without JavaScript;
-  the browser searches `data-gaffer-search-endpoint`. Base params (`?show=all`)
+  `{{ search.attrs() }}` tells Gaffer's JavaScript where and with what to search
+  (also on a searchbar's form): Gaffer's, never written by hand (`doctor` warns). Base params (`?show=all`)
   need a hidden input to survive a submit without JavaScript.
 - **Page links:** `search.page_url(2)` is page 2 of this search (filters,
   sort, page size, base params and the layout kept): real `<a href>`s, which

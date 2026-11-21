@@ -9,6 +9,20 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (second stability audit)
 
+- **`search.attrs()`** (`Searchbar` and `Archive`): the search form's endpoint and token as
+  attributes Gaffer writes and its search JavaScript reads, so both can change together. The
+  hand-written `data-gaffer-search-endpoint` and hidden `token` input keep working; `doctor`
+  warns where a template still writes them. Find: `grep -rn "data-gaffer-search-endpoint\|name=\"token\"" views`.
+  ```twig
+  {# before #}
+  <form method="get" action="" data-gaffer-search-endpoint="{{ search.endpoint }}" data-gaffer-search-history="push">
+      <input type="hidden" name="token" value="{{ search.token }}">
+  {# after #}
+  <form method="get" action="" {{ search.attrs() }} data-gaffer-search-history="push">
+  ```
+  Build (`npm run build`) in the same change: the new attributes need this release's JavaScript.
+  Check: the searchbar finds something, the archive filters and pages, and the address bar has
+  no `token=`.
 - **No Vite dev server any more.** `Gaffer\Vite` always serves the build in `public/` (it no
   longer reads `public/.vite/hotfile`), Gaffer's Vite plugin no longer writes that file, and the
   admin bar's "Vite" line is gone. A change shows after `npm run build` (or `npm run start`,

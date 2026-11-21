@@ -27,6 +27,9 @@ function resolveForm(formOrSelector) {
 
 function formToParams(form) {
     const params = new URLSearchParams();
+    // {{ search.attrs() }} puts the token on the form; older templates send a hidden `token` input
+    const token = form.dataset.gafferSearchToken;
+    if (token && !form.elements.namedItem("token")) params.append("token", token);
     for (const [name, value] of new FormData(form)) {
         // A <select>/checkbox sitting on its own empty default contributes an
         // empty string to FormData regardless — skip it so a page with

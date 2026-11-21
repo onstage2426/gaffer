@@ -8,8 +8,8 @@
  *
  * search/range-slider.css has starting styles for createDualRangeSlider().
  *
- * The endpoint and token come from the server (Search::archive(), Search::searchbar(), Search::counter()) as the
- * form's action and its hidden `token` input.
+ * The endpoint and token come from the server (Search::archive(), Search::searchbar(), Search::counter()): on a
+ * search form as `{{ search.attrs() }}` (older templates: data-gaffer-search-endpoint and a hidden `token` input).
  */
 
 export { archive } from "./search/archive.js";

@@ -12,7 +12,9 @@ the entries since the version in your `composer.lock` after every
 - **`search.attrs()`** (`Searchbar` and `Archive`): the search form's endpoint and token as
   attributes Gaffer writes and its search JavaScript reads, so both can change together. The
   hand-written `data-gaffer-search-endpoint` and hidden `token` input keep working; `doctor`
-  warns where a template still writes them. Find: `grep -rn "data-gaffer-search-endpoint\|name=\"token\"" views`.
+  warns where a template still writes them. Find: `grep -rn "data-gaffer-search-endpoint\|name=\"token\"\|\.endpoint }}" views`.
+  A searchbar whose `action` was the endpoint gets `action="{{ search.results_url }}"` (a submit
+  without JavaScript then opens the archive's results, not the endpoint's JSON).
   ```twig
   {# before #}
   <form method="get" action="" data-gaffer-search-endpoint="{{ search.endpoint }}" data-gaffer-search-history="push">

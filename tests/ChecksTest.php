@@ -618,10 +618,11 @@ final class ChecksTest extends TestCase
     {
         @mkdir("{$this->theme}/views", 0755, true);
         file_put_contents("{$this->theme}/views/old.twig", "<form method=\"get\"\n    data-gaffer-search-endpoint=\"{{ search.endpoint }}\">\n<input type=\"hidden\" name=\"token\" value=\"{{ search.token }}\"></form>");
-        file_put_contents("{$this->theme}/views/new.twig", '<form method="get" action="" {{ search.attrs() }}><input name="q"></form>');
+        file_put_contents("{$this->theme}/views/new.twig", '<form method="get" action="{{ search.results_url }}" {{ search.attrs() }}><input name="q"></form>');
+        file_put_contents("{$this->theme}/views/bar.twig", '<form method="get" action="{{ search.endpoint }}"><input name="q"></form>');
         $found = array_values(array_filter($this->findings(new SearchCheck()), static fn(array $f): bool => str_contains($f['message'], 'by hand')));
 
-        self::assertSame([['old.twig', 2]], array_map(static fn(array $f): array => [basename((string) $f['file']), $f['line']], $found));
+        self::assertSame([['bar.twig', 1], ['old.twig', 2]], array_map(static fn(array $f): array => [basename((string) $f['file']), $f['line']], $found));
     }
 
     public function test_search_form_attributes(): void

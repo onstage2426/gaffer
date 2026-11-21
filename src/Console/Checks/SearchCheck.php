@@ -95,9 +95,9 @@ final class SearchCheck implements Check
     {
         foreach ($templates as $file) {
             $code = (string) file_get_contents($file);
-            if (preg_match('/data-gaffer-search-endpoint=|<input\b[^>]*\bname=["\']token["\'][^>]*\.token\b/', $code, $m, PREG_OFFSET_CAPTURE)) {
+            if (preg_match('/data-gaffer-search-endpoint=|\baction=["\']\{\{\s*[\w.]+\.endpoint\s*\}\}|<input\b[^>]*\bname=["\']token["\'][^>]*\.token\b/', $code, $m, PREG_OFFSET_CAPTURE)) {
                 $report->warning('search', 'Writes the search form\'s endpoint or token by hand', $file, substr_count($code, "\n", 0, $m[0][1]) + 1,
-                    'Gaffer writes them: <form method="get" action="…" {{ search.attrs() }}> (Searchbar and Archive), then drop data-gaffer-search-endpoint and the hidden token input. Rebuild (npm run build) with it.');
+                    'Gaffer writes them: <form method="get" action="…" {{ search.attrs() }}> (Searchbar and Archive), then drop data-gaffer-search-endpoint and the hidden token input; a searchbar\'s action is search.results_url (the archive, for a submit without JavaScript). Rebuild (npm run build) with it.');
             }
         }
     }

@@ -38,8 +38,7 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
    form wasn't found, or Gravity Forms refused it), `message` (with `sent`:
    the confirmation, HTML, `|raw`; with `failed`: the reason as plain text,
    null when there is none: `{{ form.message ?: 'Er is iets misgegaan.'|t }}`). Checkboxes
-   send `fields[x][]`. The examples are htmx 4 (`hx-disable`); a theme still on htmx 2
-   (`package.json`) writes `hx-disabled-elt` instead. The form name, the honeypot and the Turnstile widget
+   send `fields[x][]`. Gaffer's JavaScript needs htmx 4. The form name, the honeypot and the Turnstile widget
    are Gaffer's: always `@gaffer/forms/meta.twig` inside the `<form>`, never
    written by hand (Gaffer checks them and may change them in an update;
    `doctor` errors on a form without it, and on `name="website"`,

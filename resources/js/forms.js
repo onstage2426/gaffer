@@ -17,8 +17,8 @@
  *
  * Photos are shrunk as soon as they're chosen (the input's change event). While that runs the
  * form has aria-busy="true", and a submit waits for it: the submit event is held before htmx
- * sees it and sent again (requestSubmit) once the files are shrunk. That works the same with
- * htmx 2 and htmx 4 (htmx 4 reads the form's files before any event that could wait).
+ * sees it and sent again (requestSubmit) once the files are shrunk (htmx 4 reads the form's
+ * files before any event that could wait).
  */
 
 const QUALITY = 0.85;

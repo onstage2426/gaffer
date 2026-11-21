@@ -190,7 +190,7 @@ final class StabilityTest extends TestCase
     {
         file_put_contents("{$this->theme}/views/cart.twig", "<form hx-post=\"/x\" hx-disabled-elt=\"find button\"\n    hx-on::after-request=\"done()\" hx-on::before:request=\"ok()\">\n<input type=\"hidden\" name=\"form\" value=\"x\">");
         file_put_contents("{$this->theme}/package.json", '{"devDependencies": {"htmx.org": "^2.0.11"}}');
-        self::assertSame([], $this->findings(new HtmxCheck())); // htmx 2: its names are right
+        self::assertSame(["The theme builds with htmx 2: Gaffer's JavaScript (forms, Turnstile, error answers) needs htmx 4"], array_column($this->findings(new HtmxCheck()), 'message'));
 
         file_put_contents("{$this->theme}/package.json", '{"devDependencies": {"htmx.org": "^4.0.2"}}');
         Gaffer::twig();

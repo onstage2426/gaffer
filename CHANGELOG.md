@@ -9,6 +9,11 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (second stability audit)
 
+- **Gaffer's JavaScript needs htmx 4** (htmx 2 support is gone; every site with htmx had
+  moved). The Turnstile renderer listens to htmx 4's events only, and `doctor` errors when the
+  theme builds with htmx 2. Find: `grep '"htmx.org"' package.json`. A theme still on htmx 2
+  follows "Moving a theme to htmx 4" (2026-11-20) before this update. Check: each form once
+  in a browser (the Turnstile widget renders again after an error answer).
 - **`Turnstile::verify()` is removed** (deprecated on 2026-11-20; no theme called it any more).
   A theme's own form calls `Forms\Spam::check('form')` instead (see "a theme's own forms" below).
   Find: `grep -rn "Turnstile::verify" app inc`.

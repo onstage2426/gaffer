@@ -20,13 +20,13 @@ final class Turnstile
     /**
      * Renders every widget not rendered yet: on load (the ?onload= callback) and after each
      * htmx swap (a form re-rendered with errors brings a new widget: a token works once).
-     * Event names of htmx 2 and 4.
+     * htmx 4's event names.
      */
     private const string RENDER = <<<'JS'
         (() => {
             const render = () => window.turnstile && document.querySelectorAll(".cf-turnstile:empty").forEach((el) => window.turnstile.render(el));
             window.gafferTurnstile = render;
-            for (const name of ["htmx:load", "htmx:afterSettle", "htmx:after:process", "htmx:after:swap", "htmx:after:settle"]) {
+            for (const name of ["htmx:after:process", "htmx:after:swap", "htmx:after:settle"]) {
                 document.addEventListener(name, render);
             }
         })();

@@ -154,9 +154,8 @@ final class Ajax
     }
 
     /**
-     * Ends the request with an error status and no body. `HX-Reswap: none`: htmx 2 doesn't
-     * swap error responses, htmx 4 does by default, and an empty body would wipe the target
-     * (a form). htmx fires its error event either way.
+     * Ends the request with an error status and no body. `HX-Reswap: none`: htmx 4 swaps
+     * error responses by default, and an empty body would wipe the target (a form). htmx fires its error event either way.
      *
      * @internal
      */

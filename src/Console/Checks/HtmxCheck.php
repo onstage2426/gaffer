@@ -10,7 +10,8 @@ use Gaffer\Console\ThemeFiles;
 use Gaffer\Paths;
 
 /**
- * A theme on htmx 4 (node_modules/htmx.org, else package.json) uses no htmx 2 names: renamed and
+ * A theme with htmx (node_modules/htmx.org, else package.json) is on htmx 4, Gaffer's JavaScript
+ * needs it (htmx 2 support went on 2026-11-21). On htmx 4 it uses no htmx 2 names: renamed and
  * removed attributes, the old event names (in hx-on, hx-trigger and JavaScript), and attributes
  * a parent passes on without `:inherited`. htmx ignores what it doesn't know, so each of these
  * fails silently in the browser. Inheritance comes from htmx's own upgrade checker
@@ -35,7 +36,13 @@ final class HtmxCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
-        if (self::major() !== 4) {
+        $major = self::major();
+        if ($major !== null && $major < 4) {
+            $report->error('htmx', "The theme builds with htmx {$major}: Gaffer's JavaScript (forms, Turnstile, error answers) needs htmx 4", null, null,
+                'Move to htmx 4: vendor/onstage2426/gaffer/CHANGELOG.md, "Moving a theme to htmx 4" (2026-11-20). Then php gaffer doctor shows the htmx 2 names left.');
+            return;
+        }
+        if ($major !== 4) {
             return;
         }
         $files = array_unique([...array_values(Templates::all()), ...ThemeFiles::find(['php', 'js', 'mjs', 'ts'])]);

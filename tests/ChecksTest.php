@@ -415,6 +415,22 @@ final class ChecksTest extends TestCase
         );
     }
 
+    public function test_woocommerce_overrides_say_the_version_they_mirror(): void
+    {
+        $core = ['notices/notice.php' => '10.4.0', 'single-product.php' => '1.6.4', 'archive-product.php' => '8.6.0', 'myaccount/form-login.php' => '9.9.0'];
+        $theme = ['notices/notice.php' => '8.6.0', 'single-product.php' => '1.6.4', 'myaccount/form-login.php' => '10.0.0'];
+
+        self::assertSame(
+            ['unversioned' => ['archive-product.php'], 'outdated' => [['file' => 'notices/notice.php', 'theme' => '8.6.0', 'core' => '10.4.0']]],
+            WordPressCheck::template_versions(
+                ['single-product.php', 'notices/notice.php', 'archive-product.php', 'myaccount/form-login.php', 'taxonomy-product_cat.php'],
+                static fn(string $file): ?string => $core[$file] ?? null,
+                static fn(string $file): ?string => $theme[$file] ?? null,
+            ),
+            'a template WooCommerce has no version for (the taxonomy loader\'s) is no warning',
+        );
+    }
+
     public function test_stale_mentions_in_guidelines(): void
     {
         mkdir("{$this->theme}/views/components", 0755, true);

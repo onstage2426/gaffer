@@ -547,7 +547,8 @@ final class WordPressCheck implements Check
     /**
      * Every file in woocommerce/ overrides a template WooCommerce has (else
      * WooCommerce never loads it by itself, and a renamed or removed template
-     * silently stops being overridden), and no custom woocommerce.php router.
+     * silently stops being overridden), says the @version it mirrors and isn't behind it, and no
+     * custom woocommerce.php router.
      */
     private function woocommerce_templates(Report $report): void
     {
@@ -565,10 +566,61 @@ final class WordPressCheck implements Check
                 'Use the name of the WooCommerce template it should replace, or render the view from that template.');
         }
 
+        // Each override says which WooCommerce template it mirrors (@version, as WooCommerce's own
+        // status page reads it): a newer one is a change to carry over (markup, hooks, data).
+        ['unversioned' => $unversioned, 'outdated' => $outdated] = self::template_versions($files, static fn(string $relative): ?string => self::template_version($core . $relative),
+            static fn(string $relative): ?string => self::template_version("{$dir}/{$relative}"));
+        foreach ($outdated as ['file' => $relative, 'theme' => $theme, 'core' => $version]) {
+            $report->warning('wp', "woocommerce/{$relative} mirrors WooCommerce's template {$theme}; WooCommerce has {$version} now", "{$dir}/{$relative}", null,
+                "Compare with WooCommerce's templates/{$relative} (its changes to markup, hooks and the data it passes), carry over what the theme needs, then set @version {$version}.");
+        }
+        if ($unversioned !== []) {
+            $report->warning('wp', count($unversioned) . ' WooCommerce override(s) without @version: ' . implode(', ', array_map(static fn(string $f): string => "woocommerce/{$f}", $unversioned)), $dir, null,
+                'Without it nothing says when WooCommerce changes the template underneath (its status page lists them as outdated anyway). Compare each with WooCommerce\'s templates/<same path> and add its " * @version x.y.z" line to the file\'s docblock.');
+        }
+
         if (is_file(Paths::base('woocommerce.php'))) {
             $report->warning('wp', 'woocommerce.php replaces WooCommerce\'s own template choice for every shop page', Paths::base('woocommerce.php'), null,
                 'Delete it and use WooCommerce\'s hierarchy: single-product.php, archive-product.php, taxonomy-product_cat.php in woocommerce/.');
         }
+    }
+
+    /**
+     * The overrides whose WooCommerce template has a newer @version than they say, and those that
+     * say none (only where WooCommerce's template has one).
+     *
+     * @param list<string> $files paths relative to woocommerce/
+     * @param Closure(string): ?string $core WooCommerce's template's @version at that path
+     * @param Closure(string): ?string $theme the override's @version
+     * @return array{unversioned: list<string>, outdated: list<array{file: string, theme: string, core: string}>}
+     */
+    public static function template_versions(array $files, Closure $core, Closure $theme): array
+    {
+        $unversioned = [];
+        $outdated = [];
+        foreach ($files as $file) {
+            $current = $core($file);
+            if ($current === null) {
+                continue;
+            }
+            $own = $theme($file);
+            if ($own === null) {
+                $unversioned[] = $file;
+            } elseif (version_compare($own, $current, '<')) {
+                $outdated[] = ['file' => $file, 'theme' => $own, 'core' => $current];
+            }
+        }
+        sort($unversioned);
+
+        return ['unversioned' => $unversioned, 'outdated' => $outdated];
+    }
+
+    /** A template file's @version (the first in its first 8 KB, as WooCommerce reads it), null without one. */
+    private static function template_version(string $path): ?string
+    {
+        $head = is_file($path) ? (string) file_get_contents($path, false, null, 0, 8192) : '';
+
+        return preg_match('/@version\s+([0-9][0-9.]*)/', $head, $m) === 1 ? rtrim($m[1], '.') : null;
     }
 
     /**

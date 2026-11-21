@@ -9,6 +9,22 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (break-first audit)
 
+- **`doctor --wp` compares the theme's WooCommerce overrides with WooCommerce's templates**: one
+  warning lists the overrides without `@version`, and one per override whose WooCommerce template
+  has a newer `@version` than it says (WooCommerce changed the markup, hooks or data it passes; a
+  dropped `$notice['data']` loses the attributes its checkout script reads). Find:
+  `grep -rL '@version' woocommerce/`. Compare each with
+  `wp-content/plugins/woocommerce/templates/<same path>`, carry over what the theme needs, and add
+  WooCommerce's version to the override's docblock:
+  ```php
+  <?php
+  /**
+   * WooCommerce's notices/notice.php, rendered by components/notices.twig.
+   *
+   * @version 10.4.0
+   */
+  ```
+  Check: `php gaffer doctor --wp` has no such warning.
 - **An index with cards rebuilds once after this update, and again when the site's address
   changes.** Stored cards hold absolute URLs (links, images, ajax actions): a site moved to its
   real domain or to https kept serving cards with the old addresses until a rebuild. The index's

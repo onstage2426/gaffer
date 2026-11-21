@@ -7,7 +7,8 @@
   template they replace, picked by WooCommerce's own hierarchy (no
   `woocommerce.php` router, no invented names). Each stays thin: gather data,
   `View::render()`, keep what WooCommerce passes in. Variants of one page are a
-  `match` in that template. A thin `single-product.php` prints no Product
+  `match` in that template. Each carries the `@version` of WooCommerce's template it mirrors
+  (`doctor --wp` says when WooCommerce's is newer). A thin `single-product.php` prints no Product
   structured data unless the theme does. Without `sidebar.php`, remove
   `woocommerce_get_sidebar` from `woocommerce_sidebar` (`doctor --wp` warns).
 - Map `product` to a theme type for product logic; keep `WC_Product` behind

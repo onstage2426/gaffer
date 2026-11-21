@@ -690,6 +690,10 @@ final class WordPressCheck implements Check
             $report->info('search', 'gaffer-search doesn\'t report content changes its indexes haven\'t taken in', $file, null,
                 'An update of gaffer-search (feature pending_updates) does: doctor then warns when WP-cron doesn\'t apply them (a password-protected site).');
         }
+        if (!$engine->supports('health_checks')) {
+            $report->info('search', 'gaffer-search doesn\'t check its indexes against the database or its folders over HTTP', $file, null,
+                'gaffer-search 0.2.0 (feature health_checks) does, daily: doctor then shows content written without WordPress\'s hooks and index files a visitor can download.');
+        }
         foreach ($definitions as $name => $definition) {
             $state = $status[$name] ?? null;
             if ($state === null) {
@@ -721,6 +725,7 @@ final class WordPressCheck implements Check
                 }
             }
             $this->search_pending($report, $state, $name, $file);
+            $this->search_health($report, $engine, $state, $name, $file);
             $this->search_http($report, $engine, $name, $file);
             $this->search_card($report, $engine, $name);
             $this->search_labels($report, $engine, $name);
@@ -771,6 +776,32 @@ final class WordPressCheck implements Check
             "{$state['pending']} change(s), the oldest from " . intdiv(time() - $since, 60) . ' minutes ago: WP-cron doesn\'t run here (HTTP auth or a firewall refuses its loopback request, '
             . 'or DISABLE_WP_CRON without a system cron), so search shows stale results. wp gaffer-search update applies them now; '
             . 'a system cron runs it every minute (gaffer-search docs/hosting.md).');
+    }
+
+    /**
+     * The engine's daily health check (feature health_checks): documents its sample found
+     * different from the database (content written without WordPress's hooks; the engine put them
+     * in the update log), and its folders a visitor could fetch files from.
+     *
+     * @param array{drift: ?int, drift_checked: ?int, served: ?list<string>} $state
+     */
+    private function search_health(Report $report, SearchEngine $engine, array $state, string $index, string $file): void
+    {
+        if (!$engine->supports('health_checks')) {
+            return;
+        }
+        if ($state['served'] !== null && $state['served'] !== []) {
+            $report->error('search', 'A visitor can download gaffer-search\'s files from ' . implode(', ', $state['served']) . ' (an index holds hidden documents too)', $file, null,
+                'The web server ignores the deny .htaccess there (nginx does): block the folders in its config (gaffer-search docs/hosting.md, "Endpoint URLs and config").');
+        }
+        if ($state['drift_checked'] === null) {
+            $report->info('search', "Index \"{$index}\": the engine's daily check of a sample against the database hasn't run yet", $file, null,
+                'It\'s a WP-cron job (gaffer_search_health_check): first an hour after the plugin set it up, then daily; wp cron event run --due-now runs it now.');
+        } elseif (($state['drift'] ?? 0) > 0) {
+            $report->warning('search', "Index \"{$index}\": {$state['drift']} document(s) of the engine's last sample differed from the database", $file, null,
+                'Content was written without WordPress\'s hooks (direct SQL, an import that bypasses WordPress, a sync plugin): the index misses such changes until the daily sample or a rebuild finds them. '
+                . 'Those were updated; wp gaffer-search verify compares every document. Find what writes that way, or give the index a rebuild schedule.');
+        }
     }
 
     /**

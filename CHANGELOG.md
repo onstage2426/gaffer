@@ -9,6 +9,13 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (gaffer-search audit)
 
+- **`doctor --wp` shows gaffer-search's daily health check** (gaffer-search 0.2.0, feature
+  `health_checks`): an error when a visitor can download files from the plugin's folders (an
+  index holds hidden documents too; nginx ignores the deny `.htaccess`), and a warning when
+  documents of the daily sample differed from the database (content written without WordPress's
+  hooks: direct SQL, an import past WordPress, a sync plugin; the engine updated them). Nothing
+  to change. Check: `php gaffer doctor --wp`; on a site with `DISABLE_WP_CRON`, the system cron
+  must run WordPress's due jobs too (`wp cron event run --due-now`) or the check never runs.
 - **`doctor --wp` searches each index through the endpoint over HTTP, like a visitor's
   browser.** It catches what the command line can't see: a web server that refuses PHP in
   `wp-content/plugins`, an endpoint that doesn't find its config, an index the web server

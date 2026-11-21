@@ -188,12 +188,14 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
   Gaffer's contract): say so in the archive (`{% if not search.available %}`
   "products can't be shown right now"; `doctor` warns when no template reads
   it) and leave the searchbar out (`Search::searchbar()` has `available` too).
+  While an index can't be searched (not built yet, a failed search), Gaffer keeps the page
+  out of page caches and an archive answers 503 with `noindex` by itself: nothing to write.
 - Sliders: `Search::cards('products', 10, ['total_sales:desc'], $category, except: $post)`;
   `filter: ['on_sale' => 'yes']` for an "on sale" tab (the Filter shape: a value,
   a list (any of), `['not' => …]`, `['min' => …, 'max' => …]`, `['all' => [...]]`
   (every one of: tagged both)). Conditions of a filter all hold; for anything else, the
-  groups `any`, `all` and `not` hold filters of the same shape (gaffer-search 0.3.0;
-  older plugins throw a `LogicException`, never widen):
+  groups `any`, `all` and `not` hold filters of the same shape (feature `filter_groups`;
+  a plugin without it throws a `LogicException`, never widens):
   ```php
   filter: [
       'stock_status' => 'instock',
@@ -266,7 +268,9 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
   `hit.formatted.*` is HTML (`x-html`); names in `hit.labels`.
 - Show "refresh the page" when the error is `stale` (`error.stale`: the page's
   token no longer works), "try again later" otherwise (a count: no number, see
-  above). Don't list error codes: new ones may come, `stale` covers them.
+  above). Don't list error codes: new ones may come, `stale` covers them. Every
+  search component shows its `error` somewhere (`doctor` warns when a search form's template
+  never reads it: a failed search would look like "nothing found").
 
 ## JavaScript
 
@@ -349,7 +353,9 @@ Not supported, and what to do instead:
 ## Checking
 
 - `php gaffer doctor --wp`: the plugin (also in the renders it starts), the
-  definitions, every index built and current, one card rendered with
+  definitions, every index built and current, one search per index through the endpoint over
+  HTTP (like the browser), the plugin's daily health check (documents changed without
+  WordPress's hooks, plugin folders a visitor can download from), one card rendered with
   strict variables.
 - `gaffer-search` (MCP): search an index (query, filter, facets) and see its
   status: for synonyms, facets, "why isn't X found".

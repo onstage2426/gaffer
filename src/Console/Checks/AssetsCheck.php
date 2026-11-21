@@ -34,6 +34,7 @@ final class AssetsCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
+        $this->lockfiles($report);
         $sources = Paths::base('assets');
         if (!is_dir($sources) || Vite::is_dev_mode()) {
             return;
@@ -155,6 +156,19 @@ final class AssetsCheck implements Check
         }
 
         return $newest;
+    }
+
+    /**
+     * One package manager's lockfile: with two, a build with the other one installs other
+     * versions (a stale bun.lock kept htmx 2 next to a package-lock.json with htmx 4).
+     */
+    private function lockfiles(Report $report): void
+    {
+        $locks = array_values(array_filter(['bun.lock', 'bun.lockb', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'], static fn(string $name): bool => is_file(Paths::base($name))));
+        if (count($locks) > 1) {
+            $report->warning('assets', 'Two package managers\' lockfiles: ' . implode(', ', $locks), null, null,
+                'A build with the other one installs other versions. Keep the one the theme builds with (bun.lock: bun install; package-lock.json: npm install) and delete the rest.');
+        }
     }
 
     /**

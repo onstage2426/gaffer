@@ -322,6 +322,14 @@ final class ChecksTest extends TestCase
         self::reset(Vite::class, 'dev_mode', null);
     }
 
+    public function test_assets_two_lockfiles(): void
+    {
+        file_put_contents("{$this->theme}/bun.lock", '{}');
+        self::assertSame('', $this->messages(new AssetsCheck()));
+        file_put_contents("{$this->theme}/package-lock.json", '{}');
+        self::assertSame(['Two package managers\' lockfiles: bun.lock, package-lock.json'], array_column($this->findings(new AssetsCheck()), 'message'));
+    }
+
     public function test_camel_case_methods_in_app(): void
     {
         $code = <<<'PHP'

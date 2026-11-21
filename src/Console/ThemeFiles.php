@@ -22,11 +22,14 @@ final class ThemeFiles
     /**
      * @param list<string> $extensions e.g. ['php', 'twig']
      * @param ?string $dir a directory to search instead of the theme root (SKIP still means the theme root's)
-     * @return list<string> absolute paths, sorted
+     * @return list<string> absolute paths, sorted; none when $dir doesn't exist (a theme without app/Ajax/)
      */
     public static function find(array $extensions, ?string $dir = null): array
     {
         $root = $dir ?? Paths::base();
+        if (!is_dir($root)) {
+            return [];
+        }
         $theme = rtrim(Paths::base(), '/');
         $skip = array_map(static fn(string $name): string => "{$theme}/{$name}", self::SKIP);
         $iterator = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(

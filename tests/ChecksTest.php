@@ -781,6 +781,7 @@ final class ChecksTest extends TestCase
 
         self::assertSame(["{$this->theme}/app/Storage/a.php", "{$this->theme}/views/public/a.php"], ThemeFiles::find(['php']));
         self::assertSame(["{$this->theme}/views/public/a.php"], ThemeFiles::find(['php'], "{$this->theme}/views"));
+        self::assertSame([], ThemeFiles::find(['php'], "{$this->theme}/app/Ajax")); // a theme without ajax actions
     }
 
     public function test_texturize_findings_are_warnings_and_skipped_when_the_theme_turns_it_off(): void

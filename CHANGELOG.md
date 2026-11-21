@@ -7,6 +7,11 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-21 (second stability audit)
+
+- **`doctor` no longer stops on a theme without `app/Ajax/`** (it failed in the forms check since
+  2026-11-20). Nothing to change.
+
 ## 2026-11-20 (a theme's own forms)
 
 From a site's update: a theme's own form action (not Gravity Forms) had no public way to run

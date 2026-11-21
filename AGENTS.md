@@ -165,7 +165,7 @@ Every plugin follows the same rules:
   and `doctor` checks (warnings only, so a plugin release can't make `doctor` fail; a real check
   in `ContractsCheck` for what isn't public).
 - **Each plugin repository** keeps Gaffer's workflow: branch `0.x`, the commit style above, the
-  public-knowledge rule (they're private for now, not for good), `API.md` + `api.txt`,
+  public-knowledge rule, `API.md` + `api.txt`,
   `docs/migration.md` (sites read it after an update), CI. The user tags releases; never tag 1.0.
 - **A new plugin:** `prompts/plugin.md`. The catalog stays small (up to about ten): a plugin that
   isn't used by sites any more is retired, not kept.

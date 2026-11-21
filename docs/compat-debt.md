@@ -65,9 +65,7 @@ Start the next round here; remove an item when it's done or decided.
 - **Dates:**
   - remove `FormAction`'s old `form` key after 2026-12-31;
   - remove the hand-written search endpoint/token reading from `form-search.js` when
-    `doctor`'s warning is gone on every site (2.x at the latest);
-  - gaffer-search's updater token expires 2026-12-06; the user decided not to renew it now
-    (plugin updates stop reaching sites after that date until there is a new one).
+    `doctor`'s warning is gone on every site (2.x at the latest).
 
 ## Kept for compatibility (2.x candidates)
 

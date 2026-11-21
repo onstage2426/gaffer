@@ -29,6 +29,7 @@ final class Integration
             return;
         }
         \add_action('template_redirect', self::redirect(...), 5);
+        \add_action('template_redirect', self::unavailable(...), 6);
         \add_filter('wpseo_canonical', static fn(mixed $canonical): mixed => Search::seo()['url'] ?? $canonical, 20);
         \add_filter('wpseo_robots_array', static function (array $robots): array {
             $seo = Search::seo();
@@ -38,6 +39,26 @@ final class Integration
             return $robots;
         });
         \add_filter('wp_robots', static fn(array $robots): array => (Search::seo()['indexable'] ?? true) ? $robots : [...$robots, 'noindex' => true, 'follow' => true]);
+    }
+
+    /**
+     * An archive whose search couldn't run (the engine's `code`: the index isn't built yet, or
+     * the search failed) answers 503 with Retry-After, before the template prints anything: the
+     * empty page it shows is temporary, so search engines and caches don't keep it. Building the
+     * archive here is the template's own Search::archive() (it's built once per request).
+     */
+    private static function unavailable(): void
+    {
+        if (!Search::on_archive() || \is_admin()) {
+            return;
+        }
+        $archive = Search::archive();
+        if ($archive !== null && is_string($archive->results['code'] ?? null)) {
+            \status_header(503);
+            if (!headers_sent()) {
+                header('Retry-After: 120');
+            }
+        }
     }
 
     private static function redirect(): void

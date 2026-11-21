@@ -41,6 +41,7 @@ final class Engine
     {
         self::$found = $engine;
         self::$looked = $engine !== null;
+        self::$failed = null;
     }
 
     public function supports(string $feature): bool
@@ -95,7 +96,7 @@ final class Engine
 
     /**
      * @param array<string, mixed> $request
-     * @return array{query: string, total: int, offset: int, limit: int, results: list<array<string, mixed>>, facets: array<string, mixed>, facetStats: array<string, mixed>, labels: array<string, mixed>, warnings: list<string>}
+     * @return array{query: string, total: int, offset: int, limit: int, results: list<array<string, mixed>>, facets: array<string, mixed>, facetStats: array<string, mixed>, labels: array<string, mixed>, warnings: list<string>, code?: string}
      */
     public function search(string $index, array $request): array
     {
@@ -104,8 +105,37 @@ final class Engine
         foreach ($response['warnings'] as $warning) {
             self::$warnings["{$index}: {$warning}"] = true;
         }
+        if (is_string($response['code'] ?? null)) {
+            self::failed($response['code']);
+        }
 
         return $response;
+    }
+
+    /** @var ?string the engine's code for the first search of this request that couldn't run */
+    private static ?string $failed = null;
+
+    /**
+     * A search that couldn't run (feature search_codes: the index isn't built, or the search
+     * failed) gave an empty answer that isn't "nothing found": the page showing it stays out of
+     * page caches (`DONOTCACHEPAGE`, no-cache headers while they can still be sent), so a cache
+     * doesn't keep an empty shop or slider after the index is back.
+     */
+    private static function failed(string $code): void
+    {
+        self::$failed ??= $code;
+        if (!defined('DONOTCACHEPAGE')) {
+            define('DONOTCACHEPAGE', true);
+        }
+        if (function_exists('nocache_headers') && !headers_sent()) {
+            \nocache_headers();
+        }
+    }
+
+    /** @internal The engine's code for a search of this request that couldn't run, null when every one ran. */
+    public static function failure(): ?string
+    {
+        return self::$failed;
     }
 
     /**
@@ -149,9 +179,10 @@ final class Engine
     }
 
     /**
-     * A SearchResponse with the keys Gaffer reads, whatever came back.
+     * A SearchResponse with the keys Gaffer reads, whatever came back; `code` only when the
+     * search couldn't run (feature search_codes).
      *
-     * @return array{query: string, total: int, offset: int, limit: int, results: list<array<string, mixed>>, facets: array<string, mixed>, facetStats: array<string, mixed>, labels: array<string, mixed>, warnings: list<string>}
+     * @return array{query: string, total: int, offset: int, limit: int, results: list<array<string, mixed>>, facets: array<string, mixed>, facetStats: array<string, mixed>, labels: array<string, mixed>, warnings: list<string>, code?: string}
      */
     public static function response(mixed $response): array
     {
@@ -161,6 +192,11 @@ final class Engine
             if (is_array($hit)) {
                 $results[] = $hit;
             }
+        }
+
+        // code (feature search_codes): why an empty answer is empty; only as the engine's string.
+        if (!is_string($response['code'] ?? null)) {
+            unset($response['code']);
         }
 
         return [

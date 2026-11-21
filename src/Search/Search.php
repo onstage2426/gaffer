@@ -306,7 +306,8 @@ final class Search
         }
         self::$seo = [
             'url' => ArchiveUrl::url($base, array_diff_key($own, ['limit' => true])),
-            'indexable' => $view === ($views[0] ?? '') && ArchiveUrl::indexable(
+            // An archive whose search couldn't run (the index isn't built) is empty for now, not for good.
+            'indexable' => !is_string($results['code'] ?? null) && $view === ($views[0] ?? '') && ArchiveUrl::indexable(
                 $own,
                 is_string($term_field) ? [$term_field] : [],
                 ($seo['index_pages'] ?? false) === true ? $per_page : 0,

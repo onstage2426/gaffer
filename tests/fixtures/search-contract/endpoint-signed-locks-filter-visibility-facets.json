@@ -1,0 +1,108 @@
+{
+    "call": "endpoint",
+    "signed": {
+        "index": "products",
+        "limit": 24,
+        "default_sort": [
+            "total_sales:desc"
+        ],
+        "facets": [
+            "brand"
+        ],
+        "attributes": [
+            "id",
+            "title"
+        ],
+        "filter": {
+            "brand": "stella",
+            "visibility": {
+                "not": [
+                    "exclude-from-catalog"
+                ]
+            }
+        },
+        "site": 1,
+        "c": 1
+    },
+    "query": {
+        "sort": [
+            "id:asc"
+        ]
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 5,
+            "offset": 0,
+            "limit": 24,
+            "results": [
+                {
+                    "id": 1,
+                    "title": "Rode jurk",
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 2,
+                    "title": "Blauwe jurk",
+                    "formatted": {
+                        "title": "Blauwe jurk",
+                        "snippet": "Een korte blauwe jurk."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 8,
+                    "title": "Clutch",
+                    "formatted": {
+                        "title": "Clutch",
+                        "snippet": "Kleine tas voor het feest."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 10,
+                    "title": "Gouden jurk",
+                    "formatted": {
+                        "title": "Gouden jurk",
+                        "snippet": "Een glanzende gouden jurk."
+                    },
+                    "labels": []
+                },
+                {
+                    "id": 11,
+                    "title": "Geheime jurk",
+                    "formatted": {
+                        "title": "Geheime jurk",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": {
+                "brand": {
+                    "stella": 5,
+                    "rosa-clara": 4,
+                    "pumpkin": 2
+                }
+            },
+            "facetStats": [],
+            "labels": {
+                "brand": {
+                    "stella": "Stella",
+                    "rosa-clara": "Rosa Clará",
+                    "pumpkin": "Pumpkin"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

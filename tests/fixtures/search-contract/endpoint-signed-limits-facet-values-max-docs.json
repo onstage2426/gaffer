@@ -1,0 +1,374 @@
+{
+    "call": "endpoint",
+    "signed": {
+        "index": "products",
+        "limit": 24,
+        "limits": [
+            12,
+            24,
+            48
+        ],
+        "facet_values": {
+            "brand": 400
+        },
+        "max_docs": 5000,
+        "facets": [
+            "brand"
+        ],
+        "site": 1,
+        "c": 1
+    },
+    "query": {
+        "limit": "12",
+        "sort": [
+            "id:asc"
+        ]
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 12,
+            "offset": 0,
+            "limit": 12,
+            "results": [
+                {
+                    "id": 1,
+                    "title": "Rode jurk",
+                    "title_sort": "rode jurk",
+                    "price": 129.95,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "rood",
+                    "url": "https://example.test/product/1/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Rood"
+                    }
+                },
+                {
+                    "id": 2,
+                    "title": "Blauwe jurk",
+                    "title_sort": "blauwe jurk",
+                    "price": 89.5,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "blauw",
+                    "url": "https://example.test/product/2/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Blauwe jurk",
+                        "snippet": "Een korte blauwe jurk."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Blauw"
+                    }
+                },
+                {
+                    "id": 3,
+                    "title": "Jurk <b>deluxe</b> & co",
+                    "title_sort": "jurk <b>deluxe</b> & co",
+                    "price": 249,
+                    "brand": "rosa-clara",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "wit",
+                    "url": "https://example.test/product/3/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Jurk &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                        "snippet": "Feestelijke jurk met kant."
+                    },
+                    "labels": {
+                        "brand": "Rosa Clará",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Wit"
+                    }
+                },
+                {
+                    "id": 4,
+                    "title": "Witte sluier",
+                    "title_sort": "witte sluier",
+                    "price": 59,
+                    "brand": "rosa-clara",
+                    "category": [
+                        "accessoires"
+                    ],
+                    "color": "wit",
+                    "url": "https://example.test/product/4/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Witte sluier",
+                        "snippet": "Sluier van tule, drie meter lang."
+                    },
+                    "labels": {
+                        "brand": "Rosa Clará",
+                        "category": [
+                            "Accessoires"
+                        ],
+                        "color": "Wit"
+                    }
+                },
+                {
+                    "id": 5,
+                    "title": "Rode schoenen",
+                    "title_sort": "rode schoenen",
+                    "price": 79,
+                    "brand": "pumpkin",
+                    "category": [
+                        "schoenen"
+                    ],
+                    "color": "rood",
+                    "url": "https://example.test/product/5/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Rode schoenen",
+                        "snippet": "Pumps met een lage hak."
+                    },
+                    "labels": {
+                        "brand": "Pumpkin",
+                        "category": [
+                            "Schoenen"
+                        ],
+                        "color": "Rood"
+                    }
+                },
+                {
+                    "id": 6,
+                    "title": "Zwarte schoenen",
+                    "title_sort": "zwarte schoenen",
+                    "price": 99,
+                    "brand": "pumpkin",
+                    "category": [
+                        "schoenen"
+                    ],
+                    "color": "zwart",
+                    "url": "https://example.test/product/6/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Zwarte schoenen",
+                        "snippet": "Sneakers voor de hele dag."
+                    },
+                    "labels": {
+                        "brand": "Pumpkin",
+                        "category": [
+                            "Schoenen"
+                        ],
+                        "color": "Zwart"
+                    }
+                },
+                {
+                    "id": 7,
+                    "title": "Tiara",
+                    "title_sort": "tiara",
+                    "price": 39.95,
+                    "brand": "rosa-clara",
+                    "category": [
+                        "accessoires"
+                    ],
+                    "color": "zilver",
+                    "url": "https://example.test/product/7/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Tiara",
+                        "snippet": "Tiara met kristallen."
+                    },
+                    "labels": {
+                        "brand": "Rosa Clará",
+                        "category": [
+                            "Accessoires"
+                        ],
+                        "color": "Zilver"
+                    }
+                },
+                {
+                    "id": 8,
+                    "title": "Clutch",
+                    "title_sort": "clutch",
+                    "price": 45,
+                    "brand": "stella",
+                    "category": [
+                        "accessoires"
+                    ],
+                    "color": "wit",
+                    "url": "https://example.test/product/8/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Clutch",
+                        "snippet": "Kleine tas voor het feest."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Accessoires"
+                        ],
+                        "color": "Wit"
+                    }
+                },
+                {
+                    "id": 9,
+                    "title": "Bolero",
+                    "title_sort": "bolero",
+                    "price": 69,
+                    "brand": "rosa-clara",
+                    "category": [
+                        "kleding"
+                    ],
+                    "color": "wit",
+                    "url": "https://example.test/product/9/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Bolero",
+                        "snippet": "Kanten bolero voor koude dagen."
+                    },
+                    "labels": {
+                        "brand": "Rosa Clará",
+                        "category": [
+                            "Kleding"
+                        ],
+                        "color": "Wit"
+                    }
+                },
+                {
+                    "id": 10,
+                    "title": "Gouden jurk",
+                    "title_sort": "gouden jurk",
+                    "price": 199,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "goud",
+                    "url": "https://example.test/product/10/",
+                    "visibility": [
+                        "outofstock"
+                    ],
+                    "stock_status": "outofstock",
+                    "formatted": {
+                        "title": "Gouden jurk",
+                        "snippet": "Een glanzende gouden jurk."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Goud"
+                    }
+                },
+                {
+                    "id": 11,
+                    "title": "Geheime jurk",
+                    "title_sort": "geheime jurk",
+                    "price": 150,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "rood",
+                    "url": "https://example.test/product/11/",
+                    "visibility": [
+                        "exclude-from-search"
+                    ],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Geheime jurk",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Rood"
+                    }
+                },
+                {
+                    "id": 12,
+                    "title": "Verborgen tiara",
+                    "title_sort": "verborgen tiara",
+                    "price": 35,
+                    "brand": "rosa-clara",
+                    "category": [
+                        "accessoires"
+                    ],
+                    "color": "zilver",
+                    "url": "https://example.test/product/12/",
+                    "visibility": [
+                        "exclude-from-catalog"
+                    ],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Verborgen tiara",
+                        "snippet": "Niet in de catalogus."
+                    },
+                    "labels": {
+                        "brand": "Rosa Clará",
+                        "category": [
+                            "Accessoires"
+                        ],
+                        "color": "Zilver"
+                    }
+                }
+            ],
+            "facets": {
+                "brand": {
+                    "rosa-clara": 5,
+                    "stella": 5,
+                    "pumpkin": 2
+                }
+            },
+            "facetStats": [],
+            "labels": {
+                "brand": {
+                    "rosa-clara": "Rosa Clará",
+                    "stella": "Stella",
+                    "pumpkin": "Pumpkin"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

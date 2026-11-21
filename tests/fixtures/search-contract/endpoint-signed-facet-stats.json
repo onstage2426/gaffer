@@ -1,0 +1,52 @@
+{
+    "call": "endpoint",
+    "signed": {
+        "index": "products",
+        "limit": 1,
+        "facet_stats": [
+            "price"
+        ],
+        "attributes": [
+            "id"
+        ],
+        "site": 1,
+        "c": 1
+    },
+    "query": {
+        "sort": [
+            "id:asc"
+        ]
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 12,
+            "offset": 0,
+            "limit": 1,
+            "results": [
+                {
+                    "id": 1,
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": []
+                }
+            ],
+            "facets": [],
+            "facetStats": {
+                "price": {
+                    "min": 35,
+                    "max": 249
+                }
+            },
+            "labels": [],
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

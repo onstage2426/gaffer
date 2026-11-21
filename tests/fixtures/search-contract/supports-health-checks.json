@@ -1,0 +1,9 @@
+{
+    "call": "supports",
+    "args": [
+        "health_checks"
+    ],
+    "expect": [
+        true
+    ]
+}

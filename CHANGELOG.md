@@ -7,6 +7,17 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-21 (gaffer-search audit)
+
+- **A search that couldn't run keeps its page out of caches.** With gaffer-search 0.2.0
+  (feature `search_codes`), a search on an index that isn't built yet (a first build, a rotated
+  search secret, a deleted file) or that failed comes back with the engine's `code`. Gaffer then
+  sets `DONOTCACHEPAGE` and no-cache headers for the page, and an archive (the shop, a category)
+  answers 503 with `Retry-After: 120` and `noindex`: before, a page cache kept the empty shop
+  (HTTP 200) for hours after the index was back. Nothing to change; with an older plugin
+  nothing changes. Check: `php gaffer doctor --wp` (an index that isn't built is an error there
+  anyway).
+
 ## 2026-11-21 (third stability audit)
 
 - **A build keeps the previous build's files.** Gaffer's Vite plugin no longer empties

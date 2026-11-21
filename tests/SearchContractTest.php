@@ -102,6 +102,45 @@ final class SearchContractTest extends TestCase
         self::assertArrayNotHasKey('visibility', $engine->requests[2][1], 'posts have no catalog visibility');
     }
 
+    /**
+     * The recorded answer for an index that isn't built (feature search_codes): Gaffer reads its
+     * code, and the page stays out of page caches.
+     */
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    public function test_a_search_that_could_not_run_keeps_the_page_out_of_caches(): void
+    {
+        $case = (array) json_decode((string) file_get_contents(self::DIR . '/search-index-not-built-code.json'), true);
+        $engine = new Engine(new class ((array) $case['expect']) {
+            /** @param array<string, mixed> $answer */
+            public function __construct(private readonly array $answer) {}
+
+            /**
+             * @param array<string, mixed> $request
+             * @return array<string, mixed>
+             */
+            public function search(string $index, array $request): array
+            {
+                return $this->answer;
+            }
+        });
+        Engine::reset($engine);
+
+        self::assertNull(Engine::failure());
+        $read = $engine->search('products', ['query' => 'jurk']);
+
+        self::assertSame('index_not_built', $read['code'] ?? null);
+        self::assertSame([], $read['results']);
+        self::assertSame('index_not_built', Engine::failure());
+        self::assertTrue(defined('DONOTCACHEPAGE') && constant('DONOTCACHEPAGE') === true);
+    }
+
+    public function test_an_answer_that_searched_has_no_code(): void
+    {
+        self::assertArrayNotHasKey('code', Engine::response(['total' => 0, 'results' => []]));
+        self::assertArrayNotHasKey('code', Engine::response(['total' => 0, 'results' => [], 'code' => 7]), 'only the engine\'s string');
+        self::assertNull(Engine::failure());
+    }
+
     public function test_bounds_ask_for_only_the_ranges_when_the_engine_can(): void
     {
         $request = ['visibility' => 'catalog', 'limit' => 24, 'attributes' => ['id', 'card'], 'facets' => ['brand']];

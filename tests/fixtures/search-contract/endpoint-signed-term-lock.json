@@ -1,0 +1,178 @@
+{
+    "call": "endpoint",
+    "signed": {
+        "index": "products",
+        "filter": {
+            "category": "jurken"
+        },
+        "site": 1,
+        "c": 1
+    },
+    "query": {
+        "sort": [
+            "id:asc"
+        ]
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "",
+            "total": 5,
+            "offset": 0,
+            "limit": 10,
+            "results": [
+                {
+                    "id": 1,
+                    "title": "Rode jurk",
+                    "title_sort": "rode jurk",
+                    "price": 129.95,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "rood",
+                    "url": "https://example.test/product/1/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Rode jurk",
+                        "snippet": "Een lange rode jurk van zijde."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Rood"
+                    }
+                },
+                {
+                    "id": 2,
+                    "title": "Blauwe jurk",
+                    "title_sort": "blauwe jurk",
+                    "price": 89.5,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "blauw",
+                    "url": "https://example.test/product/2/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Blauwe jurk",
+                        "snippet": "Een korte blauwe jurk."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Blauw"
+                    }
+                },
+                {
+                    "id": 3,
+                    "title": "Jurk <b>deluxe</b> & co",
+                    "title_sort": "jurk <b>deluxe</b> & co",
+                    "price": 249,
+                    "brand": "rosa-clara",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "wit",
+                    "url": "https://example.test/product/3/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Jurk &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                        "snippet": "Feestelijke jurk met kant."
+                    },
+                    "labels": {
+                        "brand": "Rosa Clará",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Wit"
+                    }
+                },
+                {
+                    "id": 10,
+                    "title": "Gouden jurk",
+                    "title_sort": "gouden jurk",
+                    "price": 199,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "goud",
+                    "url": "https://example.test/product/10/",
+                    "visibility": [
+                        "outofstock"
+                    ],
+                    "stock_status": "outofstock",
+                    "formatted": {
+                        "title": "Gouden jurk",
+                        "snippet": "Een glanzende gouden jurk."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Goud"
+                    }
+                },
+                {
+                    "id": 11,
+                    "title": "Geheime jurk",
+                    "title_sort": "geheime jurk",
+                    "price": 150,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "rood",
+                    "url": "https://example.test/product/11/",
+                    "visibility": [
+                        "exclude-from-search"
+                    ],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Geheime jurk",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Rood"
+                    }
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": {
+                "category": {
+                    "jurken": "Jurken"
+                }
+            },
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

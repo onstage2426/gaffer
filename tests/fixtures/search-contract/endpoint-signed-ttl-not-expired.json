@@ -1,0 +1,174 @@
+{
+    "call": "endpoint",
+    "signed": {
+        "index": "products",
+        "limit": 8,
+        "expires": 4102444800,
+        "site": 1,
+        "c": 1
+    },
+    "query": {
+        "q": "jurk",
+        "sort": [
+            "id:asc"
+        ]
+    },
+    "expect": {
+        "status": 200,
+        "body": {
+            "query": "jurk",
+            "total": 5,
+            "offset": 0,
+            "limit": 8,
+            "results": [
+                {
+                    "id": 1,
+                    "title": "Rode jurk",
+                    "title_sort": "rode jurk",
+                    "price": 129.95,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "rood",
+                    "url": "https://example.test/product/1/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Rode <mark>jurk</mark>",
+                        "snippet": "Een lange rode <mark>jurk</mark> van zijde."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Rood"
+                    }
+                },
+                {
+                    "id": 2,
+                    "title": "Blauwe jurk",
+                    "title_sort": "blauwe jurk",
+                    "price": 89.5,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "blauw",
+                    "url": "https://example.test/product/2/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Blauwe <mark>jurk</mark>",
+                        "snippet": "Een korte blauwe <mark>jurk</mark>."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Blauw"
+                    }
+                },
+                {
+                    "id": 3,
+                    "title": "Jurk <b>deluxe</b> & co",
+                    "title_sort": "jurk <b>deluxe</b> & co",
+                    "price": 249,
+                    "brand": "rosa-clara",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "wit",
+                    "url": "https://example.test/product/3/",
+                    "visibility": [],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "<mark>Jurk</mark> &lt;b&gt;deluxe&lt;/b&gt; &amp; co",
+                        "snippet": "Feestelijke <mark>jurk</mark> met kant."
+                    },
+                    "labels": {
+                        "brand": "Rosa Clará",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Wit"
+                    }
+                },
+                {
+                    "id": 10,
+                    "title": "Gouden jurk",
+                    "title_sort": "gouden jurk",
+                    "price": 199,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "goud",
+                    "url": "https://example.test/product/10/",
+                    "visibility": [
+                        "outofstock"
+                    ],
+                    "stock_status": "outofstock",
+                    "formatted": {
+                        "title": "Gouden <mark>jurk</mark>",
+                        "snippet": "Een glanzende gouden <mark>jurk</mark>."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Goud"
+                    }
+                },
+                {
+                    "id": 11,
+                    "title": "Geheime jurk",
+                    "title_sort": "geheime jurk",
+                    "price": 150,
+                    "brand": "stella",
+                    "category": [
+                        "kleding",
+                        "jurken"
+                    ],
+                    "color": "rood",
+                    "url": "https://example.test/product/11/",
+                    "visibility": [
+                        "exclude-from-search"
+                    ],
+                    "stock_status": "instock",
+                    "formatted": {
+                        "title": "Geheime <mark>jurk</mark>",
+                        "snippet": "Alleen in de winkel."
+                    },
+                    "labels": {
+                        "brand": "Stella",
+                        "category": [
+                            "Kleding",
+                            "Jurken"
+                        ],
+                        "color": "Rood"
+                    }
+                }
+            ],
+            "facets": [],
+            "facetStats": [],
+            "labels": [],
+            "exhaustive": true,
+            "approximateFacets": [],
+            "truncatedFacets": [],
+            "warnings": [],
+            "time": "*"
+        }
+    }
+}

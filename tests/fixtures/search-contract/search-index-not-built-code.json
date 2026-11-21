@@ -1,0 +1,25 @@
+{
+    "call": "search",
+    "args": [
+        "unbuilt",
+        {
+            "query": "jurk",
+            "limit": 5
+        }
+    ],
+    "expect": {
+        "query": "jurk",
+        "total": 0,
+        "offset": 0,
+        "limit": 5,
+        "results": [],
+        "facets": [],
+        "facetStats": [],
+        "labels": [],
+        "exhaustive": true,
+        "approximateFacets": [],
+        "truncatedFacets": [],
+        "warnings": [],
+        "code": "index_not_built"
+    }
+}

@@ -1,6 +1,6 @@
 ---
 name: ship-change
-description: Ship a Gaffer change end to end - implement, test, migration book entry, commit, then (after the user pushes) update and verify the integration site and the starter (paths in local/AGENTS_LOCAL.md). Use for any change to Gaffer's src/ or config stubs.
+description: Ship a Gaffer change end to end - implement, test, migration book entry, commit, then (after the user pushes) update and verify the local sites (bin/dev/sites, local/sites.json). Use for any change to Gaffer's src/ or config stubs.
 ---
 
 # Ship a Gaffer change
@@ -34,12 +34,15 @@ description: Ship a Gaffer change end to end - implement, test, migration book e
    If the change breaks them, say that they're broken between their `composer update`
    and your follow-up.
 
-6. **After the user pushes:** in the integration site (then the same in the
-   starter), `composer update onstage2426/gaffer`, apply the
-   migration entry, then:
-   - `php gaffer twig:lint`
-   - `php gaffer doctor --wp`
+6. **After the user pushes:** `bin/dev/sites update` (every local site in `local/sites.json`:
+   `composer update` until the lock has the pushed commit, build, `ai:update`, `twig:lint`,
+   commit `composer.lock` where allowed), apply the migration entry where it asks for a change,
+   then:
+   - `bin/dev/sites run --summary -- doctor --wp`
+   - `bin/dev/sites check` when the change touches what a browser does (forms, ajax, JS)
    - anything specific to the change through Apache (ajax, pages, admin bar)
    - update the theme's `AGENTS_DEV.md` where the change is documented
-   - commit (the integration site on its own branch), leaving its local `config/theme.php`
-     debug setting uncommitted.
+   - commit what the migration changed (the integration site on its own branch), leaving its
+     local `config/theme.php` debug setting uncommitted.
+
+   Before pushing, `bin/dev/gaffer-test <site> doctor --wp` runs the unpushed code on a site.

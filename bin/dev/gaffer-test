@@ -1,0 +1,96 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Maintainer tool (not for themes): this clone's unpushed Gaffer against a real site.
+ *
+ *   bin/dev/gaffer-test <site|theme dir> <php gaffer arguments…>   e.g. doctor --wp
+ *   bin/dev/gaffer-test <site|theme dir> build
+ *
+ * The first form runs `php gaffer` on the host with this clone's code. It preloads every Gaffer
+ * class: once WordPress boots the theme, the theme's own (older) vendor/ Gaffer would otherwise
+ * win for any class not loaded yet. A site that runs PHP in a container only (local/sites.json
+ * "container") can't load this clone: push first, or test on another site.
+ *
+ * `build` copies the theme to a temporary folder (without node_modules/ and vendor/, linked
+ * back), points its vendor/onstage2426/gaffer at this clone and builds with the theme's package
+ * manager: unpushed resources/vite.js and resources/js in a real build, without touching the
+ * site. It prints the folder; delete it when done.
+ *
+ * A silent exit 255 is usually a fatal WordPress hid: GAFFER_TEST_FATAL=1 prints error_get_last().
+ */
+
+declare(strict_types=1);
+
+use GafferDev\LocalSites;
+
+$gaffer = dirname(__DIR__, 2);
+require __DIR__ . '/lib/LocalSites.php';
+
+// A render's child process runs this script again with only its own arguments: the site comes
+// from the environment its parent set.
+$inherited = getenv('GAFFER_TEST_SITE');
+$target = is_string($inherited) && $inherited !== '' ? $inherited : ($argv[1] ?? '');
+$rest = is_string($inherited) && $inherited !== '' ? array_slice($argv, 1) : array_slice($argv, 2);
+if ($target === '' || $rest === []) {
+    fwrite(STDERR, "Usage: bin/dev/gaffer-test <site|theme dir> <php gaffer arguments…> | build\n");
+    exit(2);
+}
+$site = is_dir($target) ? ['theme' => (string) realpath($target)] : (LocalSites::config()['sites'][$target] ?? null);
+if ($site === null) {
+    fwrite(STDERR, "No site \"{$target}\" in local/sites.json, and not a directory.\n");
+    exit(2);
+}
+$theme = (string) $site['theme'];
+
+if ($rest === ['build']) {
+    $copy = sys_get_temp_dir() . '/gaffer-test-build-' . basename(LocalSites::root($site)) . '-' . getmypid();
+    mkdir($copy);
+    LocalSites::run(['sh', '-c', 'tar --exclude=./node_modules --exclude=./vendor --exclude=./.git -cf - . | tar -xf - -C "$1"', 'sh', $copy], $theme);
+    LocalSites::run(['cp', '-a', "{$theme}/vendor", "{$copy}/vendor"], $theme);
+    LocalSites::run(['rm', '-rf', "{$copy}/vendor/onstage2426/gaffer"], $copy);
+    symlink($gaffer, "{$copy}/vendor/onstage2426/gaffer");
+    symlink("{$theme}/node_modules", "{$copy}/node_modules");
+    $pm = is_file("{$theme}/bun.lock") ? 'bun' : 'npm';
+    $code = LocalSites::run([$pm, 'run', 'build'], $copy);
+    echo "\nBuilt with this clone's resources/ in {$copy} (exit {$code}); delete it when done.\n";
+    exit($code);
+}
+
+if (is_string($site['container'] ?? null)) {
+    fwrite(STDERR, "{$target} runs PHP in a container, which can't load this clone: push first, or use another site.\n");
+    exit(2);
+}
+
+if (getenv('GAFFER_TEST_FATAL')) {
+    register_shutdown_function(static function (): void {
+        $error = error_get_last();
+        if ($error !== null) {
+            fwrite(STDERR, "Last error: {$error['message']} in {$error['file']}:{$error['line']}\n");
+        }
+    });
+}
+
+require "{$gaffer}/vendor/autoload.php";
+spl_autoload_register(static function (string $class) use ($theme): void {
+    if (str_starts_with($class, 'Theme\\')) {
+        $file = "{$theme}/app/" . str_replace('\\', '/', substr($class, 6)) . '.php';
+        if (is_file($file)) {
+            require $file;
+        }
+    }
+});
+$src = "{$gaffer}/src";
+foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS)) as $file) {
+    $class = 'Gaffer\\' . str_replace(['/', '.php'], ['\\', ''], substr($file->getPathname(), strlen($src) + 1));
+    class_exists($class) || interface_exists($class) || trait_exists($class) || enum_exists($class);
+}
+
+// Not from the theme folder (its vendor/autoload.php must not be the one found), and the
+// command sees only its own arguments. Absolute: a render starts this script again as a child.
+chdir(sys_get_temp_dir());
+putenv("GAFFER_TEST_SITE={$target}");
+$_SERVER['argv'] = $argv = [__FILE__, ...$rest];
+$_SERVER['SCRIPT_FILENAME'] = __FILE__; // what the renderer starts again
+$_SERVER['argc'] = $argc = count($argv);
+exit(Gaffer\Console\Console::boot($theme));

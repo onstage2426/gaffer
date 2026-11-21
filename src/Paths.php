@@ -104,7 +104,7 @@ final class Paths
     }
 
     /**
-     * Compiled Twig templates (when theme.cache is on).
+     * Compiled Twig templates (unless theme.cache is false), in a folder per Gaffer version.
      *
      * @internal
      */

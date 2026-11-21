@@ -62,18 +62,16 @@ final class AdminBar
     }
 
     /**
-     * Red: debug on in production/staging. Orange: the Twig cache off in production. Green:
-     * otherwise, debug on a local or development site included (expected there: `php gaffer
-     * health` stays quiet on a dev site).
+     * Red: debug on in production/staging. Green otherwise, debug on a local or development
+     * site included (expected there: `php gaffer health` stays quiet on a dev site).
      *
      * @return array{color: 'red'|'orange'|'green', reason: string}
      */
-    public static function status(string $environment, bool $debug, bool $cache): array
+    public static function status(string $environment, bool $debug): array
     {
         return match (true) {
             $debug && in_array($environment, ['production', 'staging'], true) => ['color' => 'red', 'reason' => "Debug is on in {$environment}"],
             $debug => ['color' => 'green', 'reason' => "OK (debug on, {$environment})"],
-            !$cache && $environment === 'production' => ['color' => 'orange', 'reason' => 'Twig cache is off in production'],
             default => ['color' => 'green', 'reason' => 'OK'],
         };
     }
@@ -191,7 +189,7 @@ final class AdminBar
     /** @return array{color: 'red'|'orange'|'green', reason: string} */
     private static function own(): array
     {
-        return self::status(\wp_get_environment_type(), View::env()->isDebug(), TwigCache::enabled());
+        return self::status(\wp_get_environment_type(), View::env()->isDebug());
     }
 
     /** @return array<string, array{color: 'red'|'orange'|'green', reason: string}> */

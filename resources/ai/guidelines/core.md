@@ -40,7 +40,8 @@ site-specific code.
 
 - No nonces on ajax actions (pages are cached: nonces go stale).
 - ACF block editor previews are empty on purpose (`is_admin()` guard).
-- The Twig cache is off by default (`theme.cache`).
+- The Twig cache is on and keeps itself fresh (a changed template compiles again, also after a
+  rollback): no `twig:clear` after edits.
 - No PHPUnit or phpstan in the theme: the `php gaffer` checks are the tests.
 - Themes are standalone, never child themes.
 - No InnerBlocks and no flexible content fields; rich text is a wysiwyg field.

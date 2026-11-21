@@ -9,12 +9,15 @@ return [
     | Template Cache
     |--------------------------------------------------------------------------
     |
-    | When true, compiled Twig templates are cached to storage/cache/views
-    | instead of being recompiled on every request. Defaults to false.
+    | Compiled Twig templates are cached in storage/cache/views (a folder per
+    | Gaffer version) instead of being compiled on every request. On unless
+    | false. A changed template compiles again by itself (any change of its
+    | modification time or size); a folder the web server can't write renders
+    | without the cache.
     |
     */
 
-    // 'cache' => false,
+    // 'cache' => true,
 
     /*
     |--------------------------------------------------------------------------

@@ -18,7 +18,21 @@ final class TwigCache
 {
     public static function enabled(): bool
     {
-        return (bool) Config::get('theme.cache');
+        return Config::get('theme.cache') !== false;
+    }
+
+    /**
+     * Delete everything in the cache but this folder (the previous Gaffer version's templates).
+     */
+    public static function keep_only(string $folder): void
+    {
+        foreach (self::items(dirname($folder)) as $item) {
+            $path = $item->getPathname();
+            if ($path === $folder || str_starts_with($path, $folder . '/') || str_starts_with($folder, $path . '/')) {
+                continue;
+            }
+            @($item->isDir() ? rmdir($path) : unlink($path));
+        }
     }
 
     /**
@@ -61,9 +75,9 @@ final class TwigCache
      *
      * @return iterable<SplFileInfo>
      */
-    private static function items(): iterable
+    private static function items(?string $dir = null): iterable
     {
-        $dir = Paths::twig_cache();
+        $dir ??= Paths::twig_cache();
         if (!is_dir($dir)) {
             return [];
         }

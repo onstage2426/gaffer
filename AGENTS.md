@@ -235,7 +235,9 @@ included; the theme's own `.ai/guidelines/` get a `doctor` warning above 30 KB).
   even when the starter doesn't use SHORTINIT. Improve the dispatcher, don't
   replace it with the REST API or WordPress routing.
 - ACF block editor previews are intentionally empty (`is_admin()` guard).
-- Twig cache stays off by default (when a theme turns it on, `auto_reload` keeps it fresh).
+- The Twig cache is on by default (2026-11-21, the user; was off): a folder per Gaffer version, a
+  key per template's modification time and size (a rollback recompiles), and a folder it can't
+  write renders uncached (`Twig\Cache`, `Twig\Loader`). `theme.cache: false` turns it off.
 - No code generators (`make:*`); `doctor` enforces conventions instead.
 - No test/analysis tooling in sites (phpstan, PHPUnit). Gaffer can have any
   dev dependency.

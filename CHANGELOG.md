@@ -9,6 +9,17 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-21 (break-first audit)
 
+- **The Twig cache is on by default** (it was off unless `config/theme.php` set `'cache' => true`):
+  compiled templates are kept in `storage/cache/views/<version>/`, about 15 ms less per uncached
+  page render on a shop page. It can't break a page: a template changed in any way (also put back
+  with an older modification time, as a rollback or `rsync -a` does) compiles again, a Gaffer
+  update starts a fresh folder and removes the previous one, and when the web server can't write
+  the folder, pages render without the cache as before. `twig:clear` is no longer needed after
+  editing a template. The admin bar no longer marks "Twig cache off in production" orange. Find:
+  `grep -n "'cache'" config/theme.php`: delete a `'cache' => true` line (the default now); keep
+  `'cache' => false` only to turn it off on purpose. Check: the admin bar's "Twig cache: on (N
+  files…)" after a few page views, and `storage/cache/` stays out of git (the starter's
+  `.gitignore` has it).
 - **Debug on a local or development site is green** in the admin bar and `php gaffer health`
   ("OK (debug on, development)"; it was orange, so `health` printed and exited 1 on every dev
   site). Debug in production or staging stays red; `WP_ENVIRONMENT_TYPE` unset is production.

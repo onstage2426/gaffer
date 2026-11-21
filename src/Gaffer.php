@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Gaffer;
 
 use Gaffer\Mcp\Mcp;
+use Gaffer\Twig\Cache;
 use Gaffer\Twig\Extension;
+use Gaffer\Twig\Loader;
 use Twig\Environment;
 use Twig\Extension\AttributeExtension;
 use Twig\Extension\DebugExtension;
@@ -71,7 +73,7 @@ final class Gaffer
         }
         self::$twig = true;
 
-        $loader = new FilesystemLoader();
+        $loader = new Loader();
         foreach ([FilesystemLoader::MAIN_NAMESPACE => Paths::views(), ...Paths::view_namespaces()] as $namespace => $path) {
             if (is_dir($path)) {
                 $loader->addPath($path, $namespace);
@@ -82,8 +84,10 @@ final class Gaffer
         $debug = self::debug();
 
         $twig = new Environment($loader, [
-            'cache' => Config::get('theme.cache') ? Paths::twig_cache() : false,
-            // A changed template recompiles without twig:clear (a stat per template): else a deploy,
+            // On unless the theme turns it off; never breaks a render (Twig\Cache).
+            'cache' => TwigCache::enabled() ? new Cache(Paths::twig_cache()) : false,
+            // A changed template recompiles without twig:clear (a stat per template; Twig\Loader's
+            // key changes with any modification time and size): else a deploy, a rollback,
             // doctor's renders and the search index's cards would use the old one.
             'auto_reload' => true,
             'debug' => $debug,

@@ -9,23 +9,20 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 final class AdminBarTest extends TestCase
 {
-    /** @return iterable<string, array{string, bool, bool, string}> */
+    /** @return iterable<string, array{string, bool, string}> */
     public static function states(): iterable
     {
-        yield 'debug in production' => ['production', true, true, 'red'];
-        yield 'debug in staging' => ['staging', true, false, 'red'];
-        yield 'debug locally' => ['local', true, false, 'green'];
-        yield 'debug in development' => ['development', true, true, 'green'];
-        yield 'cache off in production' => ['production', false, false, 'orange'];
-        yield 'production, cached' => ['production', false, true, 'green'];
-        yield 'cache off locally' => ['local', false, false, 'green'];
-        yield 'cache off in staging' => ['staging', false, false, 'green'];
+        yield 'debug in production' => ['production', true, 'red'];
+        yield 'debug in staging' => ['staging', true, 'red'];
+        yield 'debug locally' => ['local', true, 'green'];
+        yield 'debug in development' => ['development', true, 'green'];
+        yield 'production' => ['production', false, 'green'];
     }
 
     #[DataProvider('states')]
-    public function test_status_color(string $environment, bool $debug, bool $cache, string $color): void
+    public function test_status_color(string $environment, bool $debug, string $color): void
     {
-        self::assertSame($color, AdminBar::status($environment, $debug, $cache)['color']);
+        self::assertSame($color, AdminBar::status($environment, $debug)['color']);
     }
 
     public function test_the_worst_state_wins(): void

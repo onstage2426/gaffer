@@ -44,6 +44,29 @@ final class TwigCache
     }
 
     /**
+     * Whether this process can write compiled templates into $folder: the folder and every
+     * folder in it writable, or (before the first write) the nearest folder above it.
+     */
+    public static function writable(string $folder): bool
+    {
+        if (!is_dir($folder)) {
+            $parent = dirname($folder);
+
+            return $parent === $folder ? false : self::writable($parent);
+        }
+        if (!is_writable($folder)) {
+            return false;
+        }
+        foreach (self::items($folder) as $item) {
+            if ($item->isDir() && !$item->isWritable()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Delete everything in the cache but this folder (the previous Gaffer version's templates).
      */
     public static function keep_only(string $folder): void

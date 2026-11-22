@@ -18,6 +18,11 @@ use Twig\Cache\FilesystemCache;
  * methods by name: after renaming one (or making it static, giving it a required argument,
  * marking it safe), templates compiled before would call what isn't there any more.
  *
+ * Only the web server writes: a CLI process (doctor's renders, an index build) reads what's there
+ * and compiles the rest in memory, so a CLI running as another user (root) can't leave folders
+ * the web server can't write to, and a CLI on newer code than the web server's (OPcache) can't
+ * remove the folder the web server uses.
+ *
  * @internal
  */
 final class Cache extends FilesystemCache
@@ -27,7 +32,7 @@ final class Cache extends FilesystemCache
     /**
      * @param list<string> $files the theme's Twig extension files (TwigCache::extension_files())
      */
-    public function __construct(string $root, array $files = [])
+    public function __construct(string $root, array $files = [], private readonly bool $write = PHP_SAPI !== 'cli')
     {
         $stamp = Gaffer::version();
         foreach ($files as $file) {
@@ -47,11 +52,14 @@ final class Cache extends FilesystemCache
     #[\Override]
     public function write(string $key, string $content): void
     {
+        if (!$this->write) {
+            return; // Twig compiles it in memory (eval) when the class isn't there
+        }
         $first = !is_dir($this->folder);
         try {
             parent::write($key, $content);
         } catch (\RuntimeException) {
-            return; // Twig compiles it in memory (eval) when the class isn't there
+            return;
         }
         if ($first) {
             TwigCache::keep_only($this->folder);

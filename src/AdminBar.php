@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer;
 
+use Gaffer\Twig\Cache;
 use Twig\Environment;
 use WP_Admin_Bar;
 
@@ -139,6 +140,12 @@ final class AdminBar
         if (TwigCache::enabled()) {
             ['files' => $files, 'bytes' => $bytes] = TwigCache::stats();
             $cache = "on ({$files} files, " . \size_format($bytes) . ')';
+            // The admin bar runs as the web server, the one process that writes the cache.
+            $folder = $twig->getCache(false);
+            if ($folder instanceof Cache && !TwigCache::writable($folder->folder())) {
+                $path = str_starts_with($folder->folder(), Paths::base() . '/') ? substr($folder->folder(), strlen(Paths::base()) + 1) : $folder->folder();
+                $cache = "on, but not writable for the web server (pages render uncached: check the owner of {$path})";
+            }
         }
 
         return [

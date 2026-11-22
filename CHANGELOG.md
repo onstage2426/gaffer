@@ -17,6 +17,12 @@ the entries since the version in your `composer.lock` after every
   index with cards rebuilds when one changes (a card prints its filters' output: a price format).
   **On updating, every index with cards rebuilds once** (on a large catalog, update at a quiet
   hour). Nothing to change in the theme. Check: `php gaffer doctor --wp` after the rebuild.
+- **Only the web server writes the Twig cache.** `php gaffer` (doctor's renders, `wp
+  gaffer-search` builds) reads it and compiles the rest in memory: run as another user (root), it
+  left folders the web server couldn't write to, and pages rendered uncached without saying so.
+  The admin bar now says "Twig cache: on, but not writable for the web server" when that's the
+  case. Check: the admin bar's Twig cache line; if it says so, give the folder it names to the web
+  server's user (`chown -R`) or delete it (`php gaffer twig:clear` as that user).
 
 ## 2026-11-21 (break-first audit)
 

@@ -94,6 +94,9 @@ Gaffer improves from real work on themes. The prompts in `prompts/` carry that b
   what breaks first, ranked by likelihood, blast radius and how long it would go unnoticed; how
   archives are built with gaffer-search and where that hurts; whether CLI-only holds. Leads for it
   are in `local/AGENTS_LOCAL.md`.
+- `prompts/audit-full.md`: the whole stack bottom up (Fuzor, plugins, Gaffer, themes), using the
+  three audits above as its methods: what must change before a freeze (1.0 of Gaffer or a plugin),
+  what breaks or fails silently, and which promises nothing checks. Before a 1.0.
 - `prompts/plugin.md`: a new plugin for the catalog (see "Plugins"): whether it should be one,
   the proposal, then the plugin and Gaffer's side.
 

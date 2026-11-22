@@ -156,3 +156,18 @@ From the first run (2026-11-21):
   template's modification time with the compiled file's, so restoring an older template
   (`git checkout`, `rsync -a`, a deploy tool keeping times) served the stale compiled one. Any
   cache keyed on "newer than" needs the same test.
+
+From the second run (2026-11-22):
+- **A cache key must cover everything the cached code calls, not only its source:** compiled
+  Twig templates call the theme's extension methods by name, and the key covered only the template
+  and the class names. Ask of every cache what its compiled output inlines, and change that input
+  alone (a renamed method, no template edit).
+- **Check whether a check sees what visitors get:** doctor's strict renders compile their own set
+  of templates, so it couldn't see a stale compiled one production served. Same for the CLI and
+  the web server writing one cache as two users.
+- **A failure that looks like "nothing to do" is the quietest:** the updater stores a failed check
+  as "no update". For each "nothing new" a job reports, ask how it would look if the job couldn't
+  ask at all.
+- **Measure the lead before trusting it:** the "200 instead of 304" lead turned out to be a host
+  without an ETag (If-Modified-Since worked); the real gap was weak ETags on other hosts, found by
+  reading the comparison.

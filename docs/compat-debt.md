@@ -19,6 +19,24 @@ versions; at those Gaffer called nothing deprecated and `doctor --wp` showed no 
 
 Start the next round here; remove an item when it's done or decided.
 
+- **From the second break-first audit (2026-11-22).** Built: a compiled template calls the
+  theme's Twig extension methods by name, so the cache folder follows the `theme.twig_extensions`
+  files (a renamed method was a fatal error on every page using it until the template changed;
+  `doctor --wp` couldn't see it: its strict renders compile their own set) and a card index's
+  version includes them by content; only the web server writes the cache (a CLI run as root left
+  folders the web server couldn't write; a CLI on newer code than the web server's OPcache removed
+  the folder in use), and the admin bar says when the web server can't write it; gaffer-search's
+  health line turns orange when its updater hasn't found a release for 7 days (feature
+  `update_checks`). Checked and fine: rolling a whole Gaffer update back and forward with the
+  cache on (a cold compile, nothing stale), OPcache with compiled templates (each file's name
+  follows its template). Open:
+  - **Two installs sharing `GAFFER_STORAGE` on different Gaffer versions** (a staged copy, a
+    second theme on a network) delete each other's cache folder on every first write, and share
+    `acf-json`. No site defines it. A subfolder per theme when one does.
+  - The cache folder doesn't follow a template's mtime and size changing within the same second
+    to the same size (an edit in place by a tool, twice in one second): the old compiled file
+    stays until the next edit. Accepted.
+
 - **From the break-first audit (2026-11-21, `prompts/audit-break-first.md`).** Built: an inactive
   gaffer-search keeps search pages out of caches and the archive answers 503 (before: an empty
   shop, HTTP 200, cached and indexable); `doctor --wp` and the admin bar flag a daily check older

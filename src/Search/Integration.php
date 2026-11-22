@@ -67,6 +67,16 @@ final class Integration
         }
     }
 
+    /**
+     * Whether WordPress's search (its post_type query var) goes to the shop: the site's search
+     * does, a search of another post type (the blog's) stays. WordPress sets `any` for a search
+     * without a post type before template_redirect.
+     */
+    public static function searches_products(mixed $type): bool
+    {
+        return in_array($type, ['', 'any', 'product', ['product']], true);
+    }
+
     private static function redirect(): void
     {
         $index = Search::archive_index();
@@ -75,10 +85,8 @@ final class Integration
         }
 
         $shop = Search::shop_url();
-        // The site's search goes to the shop; a search of another post type (the blog's) stays.
-        $type = \get_query_var('post_type');
-        $products = $type === '' || $type === 'product' || $type === ['product'];
-        if (Config::get('search.archive.urls.redirect_search') === true && \is_search() && !\is_admin() && $shop !== null && $products) {
+        if (Config::get('search.archive.urls.redirect_search') === true && \is_search() && !\is_admin() && $shop !== null
+            && self::searches_products(\get_query_var('post_type'))) {
             \wp_safe_redirect(ArchiveUrl::url($shop, ['q' => \get_search_query(false)]), 302);
             exit;
         }

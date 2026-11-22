@@ -251,6 +251,17 @@ final class SearchTest extends TestCase
         Search::searchbar('products', []);
     }
 
+    public function test_wordpress_search_without_a_post_type_goes_to_the_shop(): void
+    {
+        // WordPress sets post_type to `any` for every search without one (WP_Query::get_posts()).
+        foreach (['', 'any', 'product', ['product']] as $type) {
+            self::assertTrue(\Gaffer\Search\Integration::searches_products($type), var_export($type, true));
+        }
+        foreach (['post', ['post', 'page'], ['product', 'post']] as $type) {
+            self::assertFalse(\Gaffer\Search\Integration::searches_products($type), var_export($type, true));
+        }
+    }
+
     public function test_without_the_plugin_templates_get_empty_states(): void
     {
         self::config(['indexes' => ['products' => ['type' => 'products', 'cards' => ['grid' => 'card.twig']]]]);

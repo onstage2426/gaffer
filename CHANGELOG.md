@@ -7,6 +7,16 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-22 (full audit)
+
+- **WordPress's search URL (`/?s=…`) goes to the archive again with `urls.redirect_search`.**
+  WordPress sets the `post_type` query var to `any` for a search without one, and the redirect
+  only accepted an empty one, so `/?s=…` stayed on WordPress's search: the theme's `search.php`,
+  or a blank page with HTTP 200 (cached by a page cache) when `index.php` prints nothing. A
+  search of another post type (`?s=…&post_type=post`) still stays. Find:
+  `grep -n redirect_search config/search.php`. Check: `/?s=test` answers 302 to the archive with
+  `?q=test`.
+
 ## 2026-11-22 (break-first audit 2)
 
 - **A changed Twig extension compiles the templates again.** A compiled template calls the

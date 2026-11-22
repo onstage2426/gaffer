@@ -139,3 +139,19 @@ The narrower audits' lessons apply here. From building this prompt (2026-11-22):
 - **A dev pin outlives its reason:** the plugin required `^2.0@dev` through a VCS repository
   until the tag; after a tag, switch the range and drop fallbacks for values the new release
   guarantees (`totalHits` is never null in 2.0).
+
+From the first run (2026-11-22):
+- **Render every URL WordPress itself answers, and read the size:** `/?s=` was a blank HTTP 200
+  for as long as the redirect existed (WordPress sets `post_type=any` before
+  `template_redirect`), and doctor rendered that very URL every run without looking at `bytes`.
+  An empty 200 is now a render error; ask the same of every "ok" a check reports.
+- **Reproduce an agent's root cause before building its fix:** the 503 after an index swap
+  looked like PHP's realpath cache (it lasted about `realpath_cache_ttl`), but a CLI repro
+  stayed green; as the web server's user it failed at once: SQLite can't open a fresh WAL file
+  read-only without creating its `-shm`, and that user couldn't write the folder (the host runs
+  the CLI as another user). Test as the user the site runs as.
+- **Check a record against the code:** compat-debt said the builders never read post meta;
+  one query does. Each "never" in a debt file is a grep.
+- **A layer's "experimental" can be most of its users' code:** seven themes call Search, which
+  promises nothing until the plugin's 1.0. List what's unpromised by how much runs on sites,
+  not by how much there is.

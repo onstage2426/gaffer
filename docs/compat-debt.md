@@ -5,7 +5,7 @@ and what we carry or plan because of it. Kept by `prompts/audit.md` (run it now 
 1.x minor and before a major). Every entry is dated, says why, and what removing or fixing it
 takes. Fixed entries are removed here and mentioned in `CHANGELOG.md`.
 
-Last audit: 2026-11-21, break-first audit of the whole system; before it, the third round (WordPress 7.1.5, ACF PRO 6.8.10 with 6.8.12 out, WooCommerce
+Last audit: 2026-11-22, full-stack audit (`prompts/audit-full.md`); before it 2026-11-21, break-first audit of the whole system; before it, the third round (WordPress 7.1.5, ACF PRO 6.8.10 with 6.8.12 out, WooCommerce
 11.2.1 with 11.3.1 out, Gravity Forms 3.2.3.1, Twig 3.30 with 4.0.0-alpha1 published, PHP 8.5.12,
 htmx `latest` 2.0.11 and `next` 4.0.2, Alpine 3.17.5). WooCommerce 11.3.1 keeps the three
 functions Gaffer's runtime calls, none deprecated. ACF 6.8.11 has two fatal regressions
@@ -18,6 +18,34 @@ versions; at those Gaffer called nothing deprecated and `doctor --wp` showed no 
 ## Open after the third 2026-11-21 round
 
 Start the next round here; remove an item when it's done or decided.
+
+- **From the full-stack audit (2026-11-22, `prompts/audit-full.md`, first run).** Built:
+  `/?s=` with `urls.redirect_search` (WordPress sets `post_type=any`, so the redirect never ran:
+  a blank, cacheable 200 or the theme's `search.php`); `doctor --wp` errors on an empty 200
+  render; `Post::is_current()` only for a queried post; `token_required` isn't `stale`; a missing
+  Vite entry keeps the page out of caches; unreachable `ajax.php`/private-file probes warn; ACF
+  JSON in `acf-json/` (out of `GAFFER_STORAGE`'s reach; `storage/acf-json` read until a theme
+  moves it); `rolldownOptions` (Vite 8). Internal now: `FormAction::run()`, `Spam::log()`,
+  `Turnstile::enabled()`; removed `MenuItem::is_external()`. Checked and fine: plugin head with
+  the previous two Gaffer pushes, Gaffer head with plugin v0.1.0–v0.3.1, tokens byte-identical
+  across all of them, an old `gaffer.json` stamp. Open:
+  - **Ajax errors show the visitor nothing** (empty body + `HX-Reswap: none`; the starter has no
+    `htmx:error` handler): a default handler in the starter (or `forms.js`) and an `HtmxCheck`
+    warning for `hx-post` without one.
+  - **Unguarded:** the PHP-written search attributes and `initial()` JSON reach the JS tests
+    only as hand-built markup (a fixture generated from PHP would join them); `bin/dev/contract`
+    runs by hand only (a CI job cloning the plugin); no recorded format-1 migrate backup is
+    restored in a test; stored cards after a Gaffer code change are caught only by `RENDERING`
+    (doctor could compare its first rendered card with the stored one: deterministic).
+  - **Kept as they are (freeze review):** `MenuItem::has_children()` (7 themes; an alias, but a
+    migration costs more), `Post::modified_date()`/`Attachment::mime()` (unused; adding back
+    needs a major), `theme.types`/`theme.terms` naming, the whole answer in `Archive::$results`
+    (frozen contract keys).
+  - **At the 1.0 tag:** themes require `^1.0` instead of `0.x-dev`; `FormAction`'s old `form`
+    key goes after 2026-12-31 (internal now, so it doesn't hold the tag).
+  - **ACF's container list** (`AcfValues`: wysiwyg, repeater, group, flexible content, clone) is
+    a Gaffer-kept list of ACF internals; a new container type would be decoded twice. Ask ACF at
+    runtime when touched.
 
 - **From the second break-first audit (2026-11-22).** Built: a compiled template calls the
   theme's Twig extension methods by name, so the cache folder follows the `theme.twig_extensions`
@@ -170,8 +198,10 @@ Start the next round here; remove an item when it's done or decided.
 - **Cloudflare Turnstile** (2026-11-20). `api.js?render=explicit&onload=` and `siteverify` are
   unchanged; tokens live 300 s, and the widget refreshes them itself. Both ends are Gaffer's now
   (`Turnstile`, `@gaffer/forms/meta.twig`): a change is a Gaffer patch.
-- **Alpine** (2026-11-20): no v4 announced. `search.js` uses `x-data`, `x-model` and
-  `$nextTick`.
+- **Alpine** (2026-11-20): no v4 announced. `search.js` uses `x-data`, `x-model`,
+  `$nextTick` and `$root`.
+- **Vite** (2026-11-22): Vite 8 deprecates `build.rollupOptions` (`rolldownOptions`); `doctor`
+  warns on Vite 8+. Gaffer's plugin reads only the manifest and its own stamp.
 - **The History API** (2026-11-21). `form-search.js` writes the address bar with
   `pushState`/`replaceState` after each answer (a debounced keystroke replaces). Safari and
   Firefox throw above about 100 calls in 30 seconds, and Chrome has proposed throwing above 200 a

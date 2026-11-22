@@ -381,6 +381,12 @@ included; the theme's own `.ai/guidelines/` get a `doctor` warning above 30 KB).
   `uploadState()`, `doctor --only`, `--browser=webkit`, `ajax:call --no-mail` (muting mail needs a
   server switch a header flips), a doctor check for callables in `inc/` (`doctor --wp` loads it),
   comments/emoji off in Gaffer (the starter does it), WooCommerce tips in guidelines.
+- **Full-stack audit (2026-11-22), deferred:** the plugin-1.0 freeze list in gaffer-search's
+  `docs/compat-debt.md` (Search's `count()`/`facet_counts()` null on failure, `Counter::attrs()`,
+  JS locale fallbacks, index name length, the dead settings option, `?check=`, API docs); a
+  default htmx error handler in the starter; the unguarded promises in Gaffer's
+  `docs/compat-debt.md` (PHP-written search markup in JS tests, `bin/dev/contract` in CI, a
+  format-1 backup restore test, stored cards vs Gaffer code).
 - **Standalone documents:** e-mail bodies and PDF sources are whole documents through
   `View::fetch()` (views guideline, 2026-11-20). A print view with its own `<html>` (one site)
   still gets doctor's "HTML in PHP"; revisit when a second site needs one.

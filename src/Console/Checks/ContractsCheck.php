@@ -70,7 +70,8 @@ final class ContractsCheck implements Check
             }
             $response = \wp_remote_get(\get_template_directory_uri() . '/' . $relative, ['timeout' => 20, 'redirection' => 0, 'sslverify' => false, 'cookies' => []]);
             if (\is_wp_error($response)) {
-                $report->info('contracts', 'The theme\'s private files weren\'t fetched over HTTP (' . $response->get_error_message() . '), so they weren\'t checked');
+                $report->warning('contracts', 'The theme\'s private files weren\'t fetched over HTTP (' . $response->get_error_message() . '), so they weren\'t checked', null, null,
+                    'doctor fetches them from this server (a loopback request): allow it, or check by hand that .env and storage/logs/ answer 403 or 404 to a browser.');
                 $served = ['error' => [], 'warning' => []];
                 break;
             }
@@ -102,7 +103,8 @@ final class ContractsCheck implements Check
         $url = Ajax::url('');
         $response = \wp_remote_get($url, ['timeout' => 20, 'redirection' => 0, 'sslverify' => false, 'cookies' => []]);
         if (\is_wp_error($response)) {
-            $report->info('contracts', 'ajax.php wasn\'t fetched over HTTP (' . $response->get_error_message() . '), so it wasn\'t checked');
+            $report->warning('contracts', 'ajax.php wasn\'t fetched over HTTP (' . $response->get_error_message() . '), so it wasn\'t checked', null, null,
+                'doctor fetches it from this server (a loopback request): allow it, or open ajax.php in a browser (a 400 answer is right; a 403 or 404 means the host blocks it and every action and form fails).');
             return false;
         }
         $status = (int) \wp_remote_retrieve_response_code($response);

@@ -44,5 +44,6 @@ final class ViteTest extends TestCase
             $html,
         );
         self::assertNull(Vite::url('assets/js/gone.js'));
+        self::assertTrue(defined('DONOTCACHEPAGE') && constant('DONOTCACHEPAGE') === true, 'a page missing an entry stays out of page caches');
     }
 }

@@ -30,6 +30,22 @@ final class Vite
     }
 
     /**
+     * An entry the build doesn't have (not built yet, a renamed entry, a deploy without
+     * public/): the page is missing its styles or scripts, so it stays out of page caches
+     * (`DONOTCACHEPAGE`, no-cache headers while they can still be sent) until the build is there.
+     * `doctor` names the entry (AssetsCheck).
+     */
+    private static function unbuilt(): void
+    {
+        if (!defined('DONOTCACHEPAGE')) {
+            define('DONOTCACHEPAGE', true);
+        }
+        if (function_exists('nocache_headers') && !headers_sent()) {
+            \nocache_headers();
+        }
+    }
+
+    /**
      * The tags for these entries: <link rel="stylesheet"> for CSS,
      * <script type="module"> for JS (plus, in the build, the CSS it imports and a
      * modulepreload for each chunk it imports), a font preload for woff2.
@@ -41,6 +57,7 @@ final class Vite
         foreach ($assets as $asset) {
             $url = self::url($asset);
             if ($url === null) {
+                self::unbuilt();
                 continue;
             }
 

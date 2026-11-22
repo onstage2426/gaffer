@@ -9,6 +9,14 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-22 (full audit)
 
+- **A page missing a Vite entry stays out of page caches** (`DONOTCACHEPAGE`): an entry the build
+  doesn't have (not built yet, renamed, a deploy without `public/`) rendered the page without its
+  styles or scripts, and a page cache kept it that way. `doctor` names the entry as before.
+  Nothing to change.
+- **`doctor --wp` warns when it can't fetch `ajax.php` or the private-file probe** (a server that
+  blocks requests to itself): it was an info line, so on such a host neither was ever checked and
+  nothing said so. Check: the hint says what to try in a browser instead.
+
 - **A search request without a token isn't "stale" any more** (`error.stale` is false for
   `token_required`): it comes from a build older than the templates that write the token
   (`search.attrs()`), and refreshing the page doesn't fix that; the error state says "try again

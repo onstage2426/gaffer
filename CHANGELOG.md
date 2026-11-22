@@ -9,6 +9,10 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-22 (full audit)
 
+- **`post.is_current()` is false on a term's or an author's archive.** It compared the post's ID
+  with the queried object's, so post 12 counted as current on category 12's archive (a highlighted
+  link that shouldn't be). Nothing to change. Find: `grep -rn is_current views blocks app`.
+
 - **WordPress's search URL (`/?s=…`) goes to the archive again with `urls.redirect_search`.**
   WordPress sets the `post_type` query var to `any` for a search without one, and the redirect
   only accepted an empty one, so `/?s=…` stayed on WordPress's search: the theme's `search.php`,

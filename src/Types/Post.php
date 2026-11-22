@@ -203,7 +203,10 @@ class Post
      */
     final public function is_current(): bool
     {
-        return $this->wp->ID === \get_queried_object_id();
+        // get_queried_object_id() is a term's or an author's ID on their archives.
+        $queried = \get_queried_object();
+
+        return $queried instanceof \WP_Post && $queried->ID === $this->wp->ID;
     }
 
     /**

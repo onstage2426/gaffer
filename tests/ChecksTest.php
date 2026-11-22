@@ -868,6 +868,15 @@ final class ChecksTest extends TestCase
         self::assertSame(['gaffer-search slow', null, null], RenderCheck::notice('gaffer-search slow'));
     }
 
+    public function test_an_empty_page_with_http_200_is_a_render_error(): void
+    {
+        $result = ['status' => 'ok', 'http' => 200, 'bytes' => 0];
+        self::assertTrue(RenderCheck::blank($result));
+        self::assertFalse(RenderCheck::blank(['bytes' => 10] + $result));
+        self::assertFalse(RenderCheck::blank(['http' => 404] + $result));
+        self::assertFalse(RenderCheck::blank(['status' => 'redirect', 'http' => 302] + $result));
+    }
+
     private function messages(Check $check): string
     {
         return implode("\n", array_column($this->findings($check), 'message'));

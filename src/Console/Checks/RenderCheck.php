@@ -32,6 +32,7 @@ final class RenderCheck implements Check
         $notices = [];
         $alpine = [];
         $sidebar = [];
+        $empty = [];
         foreach ($results as $path => $result) {
             if (is_string($result)) {
                 $report->error('render', "{$path}: {$result}");
@@ -41,6 +42,8 @@ final class RenderCheck implements Check
                 $key = "{$result['error']}|{$result['file']}|{$result['line']}";
                 $errors[$key] ??= ['result' => $result, 'paths' => []];
                 $errors[$key]['paths'][] = $path;
+            } elseif (self::blank($result)) {
+                $empty[] = $path;
             }
             foreach (array_unique($result['notices']) as $notice) {
                 $notices[$notice][] = $path;
@@ -63,6 +66,10 @@ final class RenderCheck implements Check
                 'Seen' . self::on($sidebar) . ". Something calls get_sidebar() and the theme has no sidebar.php: on WooCommerce pages it's the woocommerce_sidebar hook (remove_action('woocommerce_sidebar', 'woocommerce_get_sidebar') in inc/).");
         }
 
+        if ($empty !== []) {
+            $report->error('render', 'Empty page with HTTP 200' . self::on($empty), null, null,
+                'Nothing printed the page: a template file with no output (an empty index.php), or a redirect that didn\'t run. A page cache keeps it.');
+        }
         foreach ($errors as ['result' => $result, 'paths' => $paths]) {
             $report->error('render', $result['error'] . self::on($paths), $result['file'], $result['line']);
         }
@@ -96,6 +103,16 @@ final class RenderCheck implements Check
         }
 
         return [$notice, null, null];
+    }
+
+    /**
+     * A render that answered 200 with no body at all.
+     *
+     * @param array<string, mixed> $result
+     */
+    public static function blank(array $result): bool
+    {
+        return $result['status'] === 'ok' && $result['http'] === 200 && $result['bytes'] === 0;
     }
 
     /** @param list<string> $paths */

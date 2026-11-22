@@ -86,8 +86,9 @@ describe("the browser side of gaffer-search's contract", () => {
                 expect(s.facetStats).toEqual(body.facetStats);
                 expect(s.labels).toEqual(body.labels);
             } else {
-                // 4xx: the page is stale (its token no longer works); 5xx: try again later.
-                expect(s.error).toEqual({ message: body.error, code: body.code, status, stale: status < 500 });
+                // 4xx: the page is stale (its token no longer works); 5xx and a request without a
+                // token: try again later.
+                expect(s.error).toEqual({ message: body.error, code: body.code, status, stale: status < 500 && body.code !== "token_required" });
                 expect(s.results).toEqual([]);
             }
         });

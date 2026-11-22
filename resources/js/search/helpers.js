@@ -39,9 +39,9 @@
  * What a failed request rejects with (and what `gaffer-search:error`'s `detail` holds): an Error whose
  * `message` is the endpoint's own `error` text when it sent one.
  * @typedef {Error & {name: "GafferSearchError", status: number, code: string|null, stale: boolean, body: Object|null}} GafferSearchError
- *   stale — the page is out of date (any 4xx: its token no longer works, e.g. after a
- *   token-secret rotation or a `ttl`): ask for a refresh. Otherwise (5xx, no answer) the
- *   search may work later: "try again later".
+ *   stale — the page is out of date (a 4xx but token_required: its token no longer works,
+ *   e.g. after a token-secret rotation or a `ttl`): ask for a refresh. Otherwise (5xx, no
+ *   answer, a request without a token) a refresh won't help: "try again later".
  *   code — the endpoint's code when it sent one (gaffer-search's contract, "Error codes"):
  *   400 invalid_token, token_expired, token_required, index_missing; 503 index_unknown,
  *   index_not_built, search_failed, config_missing. New codes may come; decide on `stale`.
@@ -190,7 +190,9 @@ function createGafferSearchError(status, body) {
     err.name = "GafferSearchError";
     err.status = status;
     err.code = body?.code ?? null;
-    err.stale = status >= 400 && status < 500;
+    // token_required: the page sent no token, which a refresh doesn't fix (a build older than
+    // the templates that write the token).
+    err.stale = status >= 400 && status < 500 && err.code !== "token_required";
     err.body = body;
     return err;
 }

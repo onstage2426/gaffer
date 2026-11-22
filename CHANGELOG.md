@@ -9,6 +9,12 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-22 (full audit)
 
+- **A search request without a token isn't "stale" any more** (`error.stale` is false for
+  `token_required`): it comes from a build older than the templates that write the token
+  (`search.attrs()`), and refreshing the page doesn't fix that; the error state says "try again
+  later" now. Needs the theme's next build. Nothing to change; deploy templates and their build
+  together.
+
 - **`post.is_current()` is false on a term's or an author's archive.** It compared the post's ID
   with the queried object's, so post 12 counted as current on category 12's archive (a highlighted
   link that shouldn't be). Nothing to change. Find: `grep -rn is_current views blocks app`.

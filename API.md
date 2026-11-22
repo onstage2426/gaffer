@@ -70,8 +70,8 @@ The functions `config()` and `ajax_url()`; the filter `t`; the namespaces `@bloc
 
 - `resources/js/forms.js`: `shrinkUploads()` (inputs with `data-gaffer-resize`; the form has
   `aria-busy="true"` while it runs).
-- `resources/js/search.js` (experimental): a failed request's error has `stale`: true for any
-  4xx (the page needs a refresh). Gaffer reserves, in the objects its JavaScript returns
+- `resources/js/search.js` (experimental): a failed request's error has `stale`: true for a
+  4xx but `token_required` (the page needs a refresh). Gaffer reserves, in the objects its JavaScript returns
   (`createAlpineSearch()`, `createFilterForm()`, ...), every name starting with `_` and every
   name it ships: a theme's mixin adds its own names and calls the shipped ones, it doesn't
   redefine them.

@@ -17,6 +17,13 @@ the entries since the version in your `composer.lock` after every
   index with cards rebuilds when one changes (a card prints its filters' output: a price format).
   **On updating, every index with cards rebuilds once** (on a large catalog, update at a quiet
   hour). Nothing to change in the theme. Check: `php gaffer doctor --wp` after the rebuild.
+- **gaffer-search's health line says when its updater stops finding releases** (plugin 0.4.0,
+  feature `update_checks`): a failed update check (GitHub's rate limit for a server's IP address,
+  a moved repository, a release without its built zip) looked like "no update", so a site could
+  stay on an old release unnoticed. The admin bar's line and `php gaffer health` turn orange after
+  7 days without a successful check; `doctor --wp` warns, with the last error. Nothing to change.
+  Check: `doctor --wp` shows "gaffer-search's updater found its releases …" once the plugin is
+  updated.
 - **Only the web server writes the Twig cache.** `php gaffer` (doctor's renders, `wp
   gaffer-search` builds) reads it and compiles the rest in memory: run as another user (root), it
   left folders the web server couldn't write to, and pages rendered uncached without saying so.

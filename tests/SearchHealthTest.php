@@ -46,4 +46,14 @@ final class SearchHealthTest extends TestCase
         self::assertSame('green', Health::of(['a' => self::ok(['drift_checked' => self::NOW - 86400 - 3600])], ['a' => 'v1'], self::NOW)['color'], 'a day and an hour: the job runs late on a quiet site');
         self::assertSame('green', Health::of(['a' => self::ok(['pending' => 1, 'pending_since' => self::NOW - 60])], ['a' => 'v1'], self::NOW)['color'], 'a minute: the job runs soon');
     }
+
+    public function test_an_updater_that_hasnt_found_a_release_for_a_week_is_orange(): void
+    {
+        self::assertSame('green', Health::of(['a' => self::ok(['updates_checked' => self::NOW - 3 * 86400])], ['a' => 'v1'], self::NOW)['color']);
+        self::assertSame('green', Health::of(['a' => self::ok(['updates_checked' => null])], ['a' => 'v1'], self::NOW)['color'], 'an engine without update_checks');
+        self::assertSame(
+            ['color' => 'orange', 'reason' => 'its updater last found a release 9 days ago: no plugin updates (wp gaffer-search status)'],
+            Health::of(['a' => self::ok(['updates_checked' => self::NOW - 9 * 86400]), 'b' => self::ok(['updates_checked' => self::NOW - 9 * 86400])], ['a' => 'v1', 'b' => 'v1'], self::NOW),
+        );
+    }
 }

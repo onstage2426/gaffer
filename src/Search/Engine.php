@@ -69,9 +69,10 @@ final class Engine
      * yet, and when the oldest was logged (Unix time); drift/drift_checked/served (feature
      * health_checks): how many documents of the engine's last daily sample differed from the
      * database and when it ran, and the plugin folders a visitor could fetch files from. Null
-     * when the engine doesn't say.
+     * when the engine doesn't say. `updates_checked` and `update_error` (feature update_checks):
+     * when the plugin's updater last found its releases, and the last failed check's error.
      *
-     * @return array<string, array{built: bool, documents: int, version: ?string, building: bool, error: ?string, pending: ?int, pending_since: ?int, drift: ?int, drift_checked: ?int, served: ?list<string>}>
+     * @return array<string, array{built: bool, documents: int, version: ?string, building: bool, error: ?string, pending: ?int, pending_since: ?int, drift: ?int, drift_checked: ?int, served: ?list<string>, updates_checked: ?int, update_error: ?string}>
      */
     public function status(): array
     {
@@ -89,6 +90,8 @@ final class Engine
                 'drift' => is_int($state['drift'] ?? null) ? $state['drift'] : null,
                 'drift_checked' => is_int($state['drift_checked'] ?? null) ? $state['drift_checked'] : null,
                 'served' => is_array($state['served'] ?? null) ? self::strings($state['served']) : null,
+                'updates_checked' => is_int($state['updates_checked'] ?? null) ? $state['updates_checked'] : null,
+                'update_error' => is_string($state['update_error'] ?? null) ? $state['update_error'] : null,
             ];
         }
 

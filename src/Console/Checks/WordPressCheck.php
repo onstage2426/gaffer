@@ -747,6 +747,7 @@ final class WordPressCheck implements Check
             $report->info('search', 'gaffer-search doesn\'t check its indexes against the database or its folders over HTTP', $file, null,
                 'gaffer-search 0.2.0 (feature health_checks) does, daily: doctor then shows content written without WordPress\'s hooks and index files a visitor can download.');
         }
+        $this->search_updates($report, $engine, $status, $file);
         foreach ($definitions as $name => $definition) {
             $state = $status[$name] ?? null;
             if ($state === null) {
@@ -782,6 +783,33 @@ final class WordPressCheck implements Check
             $this->search_http($report, $engine, $name, $file);
             $this->search_card($report, $engine, $name);
             $this->search_labels($report, $engine, $name);
+        }
+    }
+
+    /**
+     * Whether the plugin's updater still finds its releases: a failed check looks like "no update"
+     * to it, so a site could stay on an old release unnoticed (feature update_checks).
+     *
+     * @param array<string, array<string, mixed>> $status
+     */
+    private function search_updates(Report $report, SearchEngine $engine, array $status, string $file): void
+    {
+        if (!$engine->supports('update_checks')) {
+            $report->info('search', 'gaffer-search doesn\'t say whether its updater still finds its releases', $file, null,
+                'An update of gaffer-search (feature update_checks) does: a failed check otherwise looks like "no update".');
+            return;
+        }
+        $state = reset($status);
+        if (!is_array($state) || !is_int($state['updates_checked'] ?? null)) {
+            return;
+        }
+        $days = intdiv(time() - $state['updates_checked'], 86400);
+        $error = is_string($state['update_error'] ?? null) ? " ({$state['update_error']})" : '';
+        if ($days >= Health::UPDATE_DAYS) {
+            $report->warning('search', "gaffer-search's updater last found its releases {$days} days ago{$error}: this site gets no plugin updates", $file, null,
+                'GitHub unreachable from this server, its rate limit for the server\'s IP address, or a moved repository: wp gaffer-search status, and gaffer-search docs/hosting.md, "Plugin updates".');
+        } else {
+            $report->info('search', "gaffer-search's updater found its releases " . ($days === 0 ? 'today' : "{$days} day(s) ago") . $error, $file);
         }
     }
 

@@ -160,6 +160,10 @@ final class SearchContractTest extends TestCase
                 continue;
             }
             $answer = (array) $case['expect'];
+            // A recorded "*" is a value that varies (a time): the engine sends a number there.
+            array_walk_recursive($answer, static function (mixed &$value): void {
+                $value = $value === '*' ? 1_800_000_000 : $value;
+            });
             $engine = new Engine(new class ($answer) {
                 /** @param array<string, mixed> $answer */
                 public function __construct(private readonly array $answer) {}

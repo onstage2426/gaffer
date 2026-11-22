@@ -18,6 +18,9 @@ final class Health
     /** Days without the engine's daily health check (`drift_checked`) before it counts: WP-cron has stopped. */
     public const int CHECK_DAYS = 2;
 
+    /** Days without the engine's updater finding its releases (`updates_checked`; it checks every 12 to 72 hours). */
+    public const int UPDATE_DAYS = 7;
+
     /**
      * Null when the theme defines no index (no search on this site).
      *
@@ -41,7 +44,7 @@ final class Health
     /**
      * The worst state of these indexes, with the reason for it.
      *
-     * @param array<string, array{built: bool, building: bool, error: ?string, version: ?string, pending: ?int, pending_since: ?int, drift?: ?int, drift_checked?: ?int, served?: ?list<string>}> $status
+     * @param array<string, array{built: bool, building: bool, error: ?string, version: ?string, pending: ?int, pending_since: ?int, drift?: ?int, drift_checked?: ?int, served?: ?list<string>, updates_checked?: ?int, update_error?: ?string}> $status
      * @param array<string, string> $versions the definitions' version per index
      * @return array{color: 'red'|'orange'|'green', reason: string}
      */
@@ -82,6 +85,11 @@ final class Health
             if (($state['drift'] ?? 0) > 0) {
                 $orange[] = "{$index}: {$state['drift']} document(s) changed without WordPress's hooks";
             }
+        }
+        // The same for every index: one updater serves the site.
+        $updates = array_values(array_filter(array_column($status, 'updates_checked'), is_int(...)));
+        if ($updates !== [] && $updates[0] < $now - self::UPDATE_DAYS * 86400) {
+            $orange[] = 'its updater last found a release ' . intdiv($now - $updates[0], 86400) . ' days ago: no plugin updates (wp gaffer-search status)';
         }
 
         return match (true) {

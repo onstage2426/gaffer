@@ -1,0 +1,19 @@
+{
+    "call": "status",
+    "expect": {
+        "products": {
+            "built": true,
+            "documents": 12,
+            "version": null,
+            "building": false,
+            "error": null,
+            "pending": 0,
+            "pending_since": null,
+            "drift": null,
+            "drift_checked": null,
+            "served": null,
+            "updates_checked": "*",
+            "update_error": null
+        }
+    }
+}

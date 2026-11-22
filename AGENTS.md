@@ -178,7 +178,9 @@ Every plugin follows the same rules:
   updater's fallback to GitHub's source zip has no `vendor/` and would fatal on every request.
 - **Every cron job it has reports its last run** through `status()`, and its health line in the
   admin bar (and `php gaffer health`) goes orange when a run is days overdue; work done only on
-  `admin_init` also runs from a cron job (a site nobody logs into).
+  `admin_init` also runs from a cron job (a site nobody logs into). **So does its updater:** when
+  a check last found the latest release (gaffer-search's `updates_checked`): a failed check looks
+  like "no update" to the updater, and a site would stay on an old release unnoticed.
 - **A new plugin:** `prompts/plugin.md`. The catalog stays small (up to about ten): a plugin that
   isn't used by sites any more is retired, not kept.
 

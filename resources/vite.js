@@ -3,7 +3,7 @@
  * checks, owned by Gaffer so both ends change together. In the theme's vite.config.js:
  *
  *   import gaffer from "./vendor/onstage2426/gaffer/resources/vite.js";
- *   export default defineConfig({ plugins: [gaffer(), tailwindcss()], build: { rollupOptions: { input: entryFiles } } });
+ *   export default defineConfig({ plugins: [gaffer(), tailwindcss()], build: { rolldownOptions: { input: entryFiles } } });
  *
  * It sets:
  * - the build Gaffer\Vite reads: public/ with .vite/manifest.json, relative URLs (base "./"),

@@ -200,6 +200,12 @@ final class AssetsCheck implements Check
             $report->warning('assets', 'vite.config.js or package.json still has Vite dev server settings', null, null,
                 'Gaffer has no dev server mode since 2026-11-21 (a change shows after `npm run build`): remove ' . implode(', ', array_keys($leftovers)) . ' (and uninstall vite-plugin-full-reload).');
         }
+        $vite = json_decode((string) @file_get_contents(Paths::base('node_modules/vite/package.json')), true);
+        $major = is_array($vite) && is_string($vite['version'] ?? null) ? (int) $vite['version'] : 0;
+        if ($major >= 8 && preg_match('/\brollupOptions\s*:/', $config)) {
+            $report->warning('assets', "vite.config.js uses build.rollupOptions, which Vite {$major} deprecates", null, null,
+                'Rename it to rolldownOptions (the same settings: input: entryFiles); a later Vite may drop the old name.');
+        }
         $stamp = json_decode((string) @file_get_contents(Paths::public() . '/.vite/gaffer.json'), true);
         $built = is_array($stamp) && is_string($stamp['js'] ?? null) ? $stamp['js'] : null;
         if ($built === null) {

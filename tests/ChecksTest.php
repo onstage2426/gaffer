@@ -341,6 +341,22 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString('remove the vite-plugin-full-reload plugin, a server: block, a "dev" script in package.json', (string) $warning['hint']);
     }
 
+    public function test_assets_rollup_options_on_vite_8(): void
+    {
+        mkdir("{$this->theme}/assets/js", 0755, true);
+        mkdir("{$this->theme}/public/.vite", 0755, true);
+        file_put_contents("{$this->theme}/public/.vite/manifest.json", '{}');
+        self::reset(Vite::class, 'manifest', null);
+        mkdir("{$this->theme}/node_modules/vite", 0755, true);
+        file_put_contents("{$this->theme}/node_modules/vite/package.json", '{"version": "8.3.1"}');
+        file_put_contents("{$this->theme}/vite.config.js", "import gaffer from \"./vendor/onstage2426/gaffer/resources/vite.js\";\nexport default { plugins: [gaffer()], build: { rollupOptions: { input: [] } } };");
+        $messages = array_column($this->findings(new AssetsCheck()), 'message');
+        self::assertContains('vite.config.js uses build.rollupOptions, which Vite 8 deprecates', $messages);
+
+        file_put_contents("{$this->theme}/vite.config.js", "import gaffer from \"./vendor/onstage2426/gaffer/resources/vite.js\";\nexport default { plugins: [gaffer()], build: { rolldownOptions: { input: [] } } };");
+        self::assertNotContains('vite.config.js uses build.rollupOptions, which Vite 8 deprecates', array_column($this->findings(new AssetsCheck()), 'message'));
+    }
+
     public function test_assets_two_lockfiles(): void
     {
         file_put_contents("{$this->theme}/bun.lock", '{}');

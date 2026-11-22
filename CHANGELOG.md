@@ -9,6 +9,12 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-22 (full audit)
 
+- **`vite.config.js`: `build.rollupOptions` is `build.rolldownOptions`** (Vite 8 deprecates the
+  old name; a later Vite may drop it). `doctor` warns on Vite 8 and later. Find:
+  `grep -n rollupOptions vite.config.js`. Before: `build: { rollupOptions: { input: entryFiles } }`;
+  after: `build: { rolldownOptions: { input: entryFiles } }`. Check: `npm run build` (or `bun run
+  build`) still writes every entry to `public/.vite/manifest.json`.
+
 - **Removed `MenuItem::is_external()`** (no theme used it). Find:
   `grep -rn is_external views blocks app inc`; compare the link's host with `home_url()`'s in the
   theme instead. **Internal now:** `FormAction::run()` (the dispatcher calls it; its parameters

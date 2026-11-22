@@ -152,3 +152,7 @@ From the first run (2026-11-21):
   flagged the starter's notices, which dropped WooCommerce's `data-id`; fixing the starter-based
   themes was part of the round.
 
+- **Test a cache against a rollback, not only an edit:** Twig's own `auto_reload` compares the
+  template's modification time with the compiled file's, so restoring an older template
+  (`git checkout`, `rsync -a`, a deploy tool keeping times) served the stale compiled one. Any
+  cache keyed on "newer than" needs the same test.

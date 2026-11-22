@@ -22,7 +22,12 @@ final class AcfJsonCheck implements Check
         $blocks = array_flip(BlocksCheck::names()); // name => directory
         $stays = []; // groups fields/ can't express: "title" (location)
 
-        foreach (glob(Paths::storage() . '/acf-json/*.json') ?: [] as $file) {
+        $before = glob(Paths::acf_json_before() . '/*.json') ?: [];
+        if ($before !== []) {
+            $report->warning('acf', 'ACF JSON is still in storage/acf-json/ (' . count($before) . ' file' . (count($before) === 1 ? '' : 's') . '): it moved to acf-json/ in the theme', null, null,
+                'GAFFER_STORAGE moves storage/ (the theme would lose what\'s made in the ACF UI): git mv storage/acf-json acf-json. Gaffer reads both until then.');
+        }
+        foreach (Paths::acf_json_files() as $file) {
             $json = (string) file_get_contents($file);
             if (!json_validate($json)) {
                 $report->error('acf', 'Invalid JSON: ' . json_last_error_msg(), $file);
@@ -69,7 +74,7 @@ final class AcfJsonCheck implements Check
 
         if ($stays !== []) {
             $report->info('acf', 'Field groups that fields/ can\'t express stay in the ACF UI', null, null,
-                count($stays) . ': ' . implode(', ', $stays) . '. fields/ has one file per target (one post type, taxonomy or options page); keep these in the UI (their JSON in storage/acf-json/).');
+                count($stays) . ': ' . implode(', ', $stays) . '. fields/ has one file per target (one post type, taxonomy or options page); keep these in the UI (their JSON in acf-json/).');
         }
     }
 

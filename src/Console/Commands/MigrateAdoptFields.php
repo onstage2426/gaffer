@@ -65,12 +65,12 @@ final class MigrateAdoptFields extends MigrateCommand
             $done = [];
             foreach ($groups as $group) {
                 $post = acf_get_field_group_post((string) $group['key']);
-                $json = Paths::storage() . "/acf-json/{$group['key']}.json";
+                $json = Paths::acf_json_files("{$group['key']}.json")[0] ?? '';
                 if ($post !== false) {
                     // ACF deletes the group's fields and its local JSON with it.
                     $done[] = (acf_delete_field_group($post->ID) ? 'Deleted' : 'Could not delete') . " the field group \"{$group['title']}\"";
-                } elseif (is_file($json)) {
-                    $done[] = (unlink($json) ? 'Deleted' : 'Could not delete') . " the field group \"{$group['title']}\" (only in JSON: storage/acf-json/{$group['key']}.json)";
+                } elseif ($json !== '') {
+                    $done[] = (unlink($json) ? 'Deleted' : 'Could not delete') . " the field group \"{$group['title']}\" (only in JSON: {$json})";
                 }
             }
             return $done;

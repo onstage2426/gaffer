@@ -16,7 +16,7 @@ site-specific code.
   (ACF field groups of options pages, post types, taxonomies), `inc/` (hooks,
   auto-included), `app/` (`Theme\`: types, ajax actions in `Theme\Ajax\`,
   Twig extensions, shared fields), `config/`, `assets/` (sources), `public/`
-  (Vite build), `storage/` (Twig cache, ACF JSON, logs, backups; deny it on
+  (Vite build), `acf-json/` (ACF UI JSON, committed), `storage/` (Twig cache, logs, backups; deny it on
   servers other than Apache). Private files of the site's own (uploaded
   documents, generated PDFs) go in `Gaffer\Storage::private_dir('offers/' . $id)`,
   never `uploads/`; serve them through code that checks access.

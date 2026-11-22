@@ -92,7 +92,7 @@ final class Paths
     }
 
     /**
-     * Writable runtime files: Twig cache, ACF JSON, logs. storage/ in the theme,
+     * Writable runtime files: Twig cache, logs, backups. storage/ in the theme,
      * unless the server defines GAFFER_STORAGE in wp-config.php (e.g. when the
      * theme directory isn't writable).
      *
@@ -101,6 +101,40 @@ final class Paths
     public static function storage(): string
     {
         return defined('GAFFER_STORAGE') ? rtrim((string) constant('GAFFER_STORAGE'), '/') : self::base('storage');
+    }
+
+    /**
+     * ACF local JSON (what's made in the ACF UI: post types, taxonomies, options pages, the field
+     * groups fields/ can't express): acf-json/ in the theme, committed with it. GAFFER_STORAGE
+     * never moves it (it's code, not runtime files).
+     *
+     * @internal
+     */
+    public static function acf_json(): string
+    {
+        return self::base('acf-json');
+    }
+
+    /**
+     * Where ACF JSON was until 2026-11-22 (storage/acf-json, which GAFFER_STORAGE moved): still
+     * loaded, and saved in place, until the theme moves it to acf-json/ (doctor warns).
+     *
+     * @internal
+     */
+    public static function acf_json_before(): string
+    {
+        return self::storage() . '/acf-json';
+    }
+
+    /**
+     * The theme's ACF JSON files in both folders (acf-json/ first).
+     *
+     * @internal
+     * @return list<string>
+     */
+    public static function acf_json_files(string $pattern = '*.json'): array
+    {
+        return [...glob(self::acf_json() . "/{$pattern}") ?: [], ...glob(self::acf_json_before() . "/{$pattern}") ?: []];
     }
 
     /**

@@ -229,7 +229,7 @@ final class WordPressCheck implements Check
             return;
         }
 
-        foreach (glob(Paths::storage() . '/acf-json/group_*.json') ?: [] as $file) {
+        foreach (Paths::acf_json_files('group_*.json') as $file) {
             $json = json_decode((string) file_get_contents($file), true);
             if (!is_array($json) || !isset($json['key'])) {
                 continue; // AcfJsonCheck reports invalid files
@@ -340,7 +340,7 @@ final class WordPressCheck implements Check
     }
 
     /**
-     * What's made in the ACF UI but only in the database, not in storage/acf-json/ (ACF names
+     * What's made in the ACF UI but only in the database, not in acf-json/ (ACF names
      * each file after its key, the post's post_name): not in git, so another checkout or a
      * fresh site doesn't have it.
      */
@@ -354,15 +354,15 @@ final class WordPressCheck implements Check
              WHERE post_type IN ('" . implode("', '", array_keys($kinds)) . "') AND post_status IN ('publish', 'acf-disabled') ORDER BY post_type, post_title",
         );
         foreach ($rows as $row) {
-            if (is_file(Paths::storage() . "/acf-json/{$row->post_name}.json")) {
+            if (Paths::acf_json_files("{$row->post_name}.json") !== []) {
                 continue;
             }
             $kind = $kinds[$row->post_type] ?? $row->post_type;
             $code = $row->post_type === 'acf-field-group' ? self::code_target((string) $row->post_name) : null;
-            $report->warning('wp', "ACF {$kind} \"{$row->post_title}\" is only in the database, not in storage/acf-json/", null, null, match (true) {
+            $report->warning('wp', "ACF {$kind} \"{$row->post_title}\" is only in the database, not in acf-json/", null, null, match (true) {
                 $code !== null => "Its target defines its fields in code ({$code}): php gaffer migrate:adopt-fields " . (str_starts_with($code, 'blocks/') ? self::block_of($code) : substr($code, strlen('fields/'), -4)) . ', then delete this group in ACF.',
-                $row->post_type === 'acf-field-group' => "Move its fields to code (fields/ or a block's fields.php, gaffer-fields skill); until then save it once in ACF so it writes storage/acf-json/{$row->post_name}.json, and commit that.",
-                default => "Open it in ACF and save it once: ACF writes storage/acf-json/{$row->post_name}.json; commit that.",
+                $row->post_type === 'acf-field-group' => "Move its fields to code (fields/ or a block's fields.php, gaffer-fields skill); until then save it once in ACF so it writes acf-json/{$row->post_name}.json, and commit that.",
+                default => "Open it in ACF and save it once: ACF writes acf-json/{$row->post_name}.json; commit that.",
             });
         }
     }

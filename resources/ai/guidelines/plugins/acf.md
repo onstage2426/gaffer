@@ -15,4 +15,4 @@
   `fields/taxonomy/{taxonomy}.php` (the `gaffer-fields` skill). Options pages
   share one namespace: a field name once across them.
 - Registering post types, taxonomies and options pages is theme code (or ACF
-  UI JSON in `storage/acf-json/`, committed).
+  UI JSON in `acf-json/`, committed).

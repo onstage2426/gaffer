@@ -82,8 +82,8 @@ These live in databases and theme folders, so a change breaks sites even
 without a code change:
 
 - **The theme layout:** `views/`, `blocks/`, `fields/`, `inc/` (`*.php` then
-  `*/*.php`), `app/` (`Theme\`), `config/`, `public/`, `assets/`, `storage/`;
-  `GAFFER_STORAGE`; ajax actions as `app/Ajax/{Name}/{Name}.php` (`Theme\Ajax\{Name}\{Name}`).
+  `*/*.php`), `app/` (`Theme\`), `config/`, `public/`, `assets/`, `acf-json/`
+  (ACF UI JSON, committed), `storage/` (moved by `GAFFER_STORAGE`); ajax actions as `app/Ajax/{Name}/{Name}.php` (`Theme\Ajax\{Name}\{Name}`).
 - **Blocks:** `block.json` with `acf.renderTemplate`; `fields.php` (a list of ACF
   field arrays without keys) and **the derived keys**:
   `group_{name}`, `field_{name}__{field}`, sub fields `…__{parent}__{field}`,

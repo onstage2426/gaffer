@@ -154,17 +154,32 @@ final class Gaffer
     }
 
     /**
-     * ACF local JSON is saved to and loaded from storage/acf-json; block data is read
-     * without kses's "&amp;" (AcfValues).
+     * ACF local JSON is saved to and loaded from acf-json/ (and storage/acf-json, where it was
+     * until 2026-11-22: a file there is saved in place until the theme moves it); block data is
+     * read without kses's "&amp;" (AcfValues).
      */
     private static function acf(): void
     {
-        $dir = Paths::storage() . '/acf-json';
         AcfValues::register();
 
-        add_filter('acf/settings/save_json', fn(): string => $dir);
-        add_filter('acf/settings/load_json', function (array $paths) use ($dir): array {
-            $paths[] = $dir;
+        add_filter('acf/settings/save_json', static function (): string {
+            $dir = Paths::acf_json();
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0775, true); // phpcs:ignore -- ACF skips a folder that isn't there
+            }
+            return $dir;
+        });
+        add_filter('acf/json/save_paths', static function (array $paths): array {
+            if (is_dir(Paths::acf_json_before())) {
+                $paths[] = Paths::acf_json_before();
+            }
+            return $paths;
+        });
+        add_filter('acf/settings/load_json', static function (array $paths): array {
+            $paths[] = Paths::acf_json();
+            if (is_dir(Paths::acf_json_before())) {
+                $paths[] = Paths::acf_json_before();
+            }
             return $paths;
         });
     }

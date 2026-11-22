@@ -128,18 +128,18 @@ final class ChecksTest extends TestCase
 
     public function test_ui_field_groups_are_code_now(): void
     {
-        mkdir("{$this->theme}/storage/acf-json", 0755, true);
+        mkdir("{$this->theme}/acf-json", 0755, true);
         mkdir("{$this->theme}/fields/post_type", 0755, true);
         file_put_contents("{$this->theme}/fields/post_type/review.php", "<?php return [['name' => 'score', 'type' => 'number']];");
         $group = static fn(string $title, string $param, string $value): string => (string) json_encode(['key' => 'group_' . md5($title), 'title' => $title, 'fields' => [],
             'location' => [[['param' => $param, 'operator' => '==', 'value' => $value]]]]);
-        file_put_contents("{$this->theme}/storage/acf-json/group_a.json", $group('Review: Info', 'post_type', 'review'));
-        file_put_contents("{$this->theme}/storage/acf-json/group_b.json", $group('Tax: pa_kleur', 'taxonomy', 'pa_kleur'));
-        file_put_contents("{$this->theme}/storage/acf-json/post_type_c.json", '{"key": "post_type_c", "title": "Reviews", "post_type": "review"}');
+        file_put_contents("{$this->theme}/acf-json/group_a.json", $group('Review: Info', 'post_type', 'review'));
+        file_put_contents("{$this->theme}/acf-json/group_b.json", $group('Tax: pa_kleur', 'taxonomy', 'pa_kleur'));
+        file_put_contents("{$this->theme}/acf-json/post_type_c.json", '{"key": "post_type_c", "title": "Reviews", "post_type": "review"}');
 
         $findings = $this->findings(new AcfJsonCheck());
 
-        file_put_contents("{$this->theme}/storage/acf-json/group_d.json", (string) json_encode(['key' => 'group_d', 'title' => 'Merk en categorie', 'fields' => [],
+        file_put_contents("{$this->theme}/acf-json/group_d.json", (string) json_encode(['key' => 'group_d', 'title' => 'Merk en categorie', 'fields' => [],
             'location' => [[['param' => 'taxonomy', 'operator' => '==', 'value' => 'product_cat']], [['param' => 'taxonomy', 'operator' => '==', 'value' => 'pa_merk']]]]));
         $findings = $this->findings(new AcfJsonCheck());
         self::assertStringContainsString('"Merk en categorie" (taxonomy == product_cat or taxonomy == pa_merk)', (string) end($findings)['hint']);
@@ -148,6 +148,19 @@ final class ChecksTest extends TestCase
         self::assertSame(['error', 'warning'], array_column($findings, 'level'));
         self::assertStringContainsString('targets post_type/review, which defines its fields in fields/post_type/review.php', $findings[0]['message']);
         self::assertStringContainsString('"Tax: pa_kleur" is made in the ACF UI', $findings[1]['message']);
+    }
+
+    public function test_acf_json_in_storage_is_still_read_and_asked_to_move(): void
+    {
+        mkdir("{$this->theme}/storage/acf-json", 0755, true);
+        file_put_contents("{$this->theme}/storage/acf-json/group_x.json", (string) json_encode(['key' => 'group_x', 'title' => 'Tax: pa_kleur', 'fields' => [],
+            'location' => [[['param' => 'taxonomy', 'operator' => '==', 'value' => 'pa_kleur']]]]));
+
+        $findings = $this->findings(new AcfJsonCheck());
+        self::assertSame(['warning', 'warning'], array_column($findings, 'level'));
+        self::assertStringContainsString('still in storage/acf-json/ (1 file)', $findings[0]['message']);
+        self::assertStringContainsString('"Tax: pa_kleur" is made in the ACF UI', $findings[1]['message']);
+        self::assertSame(["{$this->theme}/storage/acf-json/group_x.json"], \Gaffer\Paths::acf_json_files());
     }
 
     public function test_inner_blocks_are_reported(): void
@@ -770,8 +783,8 @@ final class ChecksTest extends TestCase
 
     public function test_acfs_all_blocks_rule_is_no_missing_block(): void
     {
-        mkdir("{$this->theme}/storage/acf-json", 0755, true);
-        file_put_contents("{$this->theme}/storage/acf-json/group_x.json", (string) json_encode(['key' => 'group_x', 'title' => 'Every block', 'fields' => [],
+        mkdir("{$this->theme}/acf-json", 0755, true);
+        file_put_contents("{$this->theme}/acf-json/group_x.json", (string) json_encode(['key' => 'group_x', 'title' => 'Every block', 'fields' => [],
             'location' => [[['param' => 'block', 'operator' => '==', 'value' => 'all']]]]));
 
         self::assertSame([], $this->findings(new AcfJsonCheck()));

@@ -163,7 +163,7 @@ final class Reference
             }
             $lines[] = "- `{$target}` (`fields/{$target}.php`): " . self::field_list($fields);
         }
-        foreach (glob(Paths::storage() . '/acf-json/group_*.json') ?: [] as $file) {
+        foreach (Paths::acf_json_files('group_*.json') as $file) {
             $group = json_decode((string) file_get_contents($file), true);
             $target = is_array($group) ? FieldGroups::target_of($group['location'] ?? null) : null;
             if ($target !== null && !isset(FieldGroups::targets()[$target]) && is_array($group['fields'] ?? null)) {
@@ -277,7 +277,7 @@ final class Reference
                 continue; // doctor reports it
             }
         }
-        foreach (glob(Paths::storage() . '/acf-json/group_*.json') ?: [] as $file) {
+        foreach (Paths::acf_json_files('group_*.json') as $file) {
             $group = json_decode((string) file_get_contents($file), true);
             if (is_array($group)) {
                 $groups[] = $group;

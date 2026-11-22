@@ -18,7 +18,7 @@ description: Create or change an ACF block in a Gaffer theme (blocks/{name}/ wit
    `{% if image %}`.
 5. Fields: write `fields.php` (a list of ACF field arrays, no `key`, only
    non-default settings; shared fields via `...Fields::name()`). Don't create
-   block fields in the ACF UI or in `storage/acf-json/`.
+   block fields in the ACF UI or in `acf-json/`.
 6. **Renaming or removing an existing block or field** changes what's stored
    in post content: change the code, then `php gaffer migrate:rename-block` /
    `migrate:rename-field` / `migrate:remove-block` / `migrate:remove-field` (the `gaffer-migrate` skill: dry run first, then `--run` once the user

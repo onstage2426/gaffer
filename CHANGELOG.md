@@ -9,6 +9,19 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-22 (full audit)
 
+- **ACF's JSON moved from `storage/acf-json/` to `acf-json/` in the theme.** It's code (post types,
+  taxonomies, options pages and field groups made in the ACF UI, committed), but `storage/` holds
+  runtime files and moves with `GAFFER_STORAGE`: a site that defined it would have lost them.
+  Gaffer still reads `storage/acf-json/` (and ACF saves a file there in place) until the theme
+  moves it; `doctor` warns meanwhile. Find: `ls storage/acf-json`. Move:
+  ```sh
+  git mv storage/acf-json acf-json
+  ```
+  (not a git repository: `mv storage/acf-json acf-json`). Check: `php gaffer doctor --wp` shows no
+  "ACF JSON is still in storage/acf-json/" and no "only in the database" warnings; ACF → Field
+  Groups lists no "Sync available". On a server, the theme folder must be writable for the web
+  server where the ACF UI is used (as `storage/` was).
+
 - **A page missing a Vite entry stays out of page caches** (`DONOTCACHEPAGE`): an entry the build
   doesn't have (not built yet, renamed, a deploy without `public/`) rendered the page without its
   styles or scripts, and a page cache kept it that way. `doctor` names the entry as before.

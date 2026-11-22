@@ -248,7 +248,7 @@ included; the theme's own `.ai/guidelines/` get a `doctor` warning above 30 KB).
   dev dependency.
 - Themes are standalone, never child themes.
 - Theme layout: classes in `app/` (ajax actions too: `app/Ajax/`), templates in `views/`; blocks are the one self-contained folder (WordPress registers them from `block.json`). Field groups stay plain files in `fields/` (not classes with `get()`: the types read values; not `config/`: that's settings).
-- Field groups are code: `blocks/*/fields.php` and `fields/{param}/{value}.php`, one file per target (sections are tabs), no group settings (the title comes from WordPress's own name for the target, placement from the first tab). UI-made groups are a `doctor` warning. Registering post types/taxonomies/options pages stays theme code (or ACF UI JSON).
+- Field groups are code: `blocks/*/fields.php` and `fields/{param}/{value}.php`, one file per target (sections are tabs), no group settings (the title comes from WordPress's own name for the target, placement from the first tab). UI-made groups are a `doctor` warning. Registering post types/taxonomies/options pages stays theme code (or ACF UI JSON in `acf-json/`, never in `storage/`: `GAFFER_STORAGE` moves that).
 - No InnerBlocks and no flexible content in blocks (the user's call: nested
   content is a no-go; wysiwyg covers rich text). `doctor` and `BlockFields`
   enforce it.

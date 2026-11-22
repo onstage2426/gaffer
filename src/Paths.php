@@ -92,7 +92,22 @@ final class Paths
     }
 
     /**
-     * Writable runtime files: Twig cache, logs, backups. storage/ in the theme,
+     * The site's own private files (Storage::private_dir()): uploads/gaffer/ in WordPress's uploads
+     * folder, per site on a multisite.
+     *
+     * @internal
+     */
+    public static function data(): string
+    {
+        if (!function_exists('wp_upload_dir')) {
+            throw new \LogicException('Gaffer\'s private folders are in uploads/gaffer/: they need WordPress loaded (not SHORTINIT).');
+        }
+
+        return rtrim((string) \wp_upload_dir(null, false)['basedir'], '/') . '/gaffer';
+    }
+
+    /**
+     * Files that can be made again: the Twig cache, screenshots, ajax sessions, snapshots. storage/ in the theme,
      * unless the server defines GAFFER_STORAGE in wp-config.php (e.g. when the
      * theme directory isn't writable).
      *

@@ -16,10 +16,12 @@ site-specific code.
   (ACF field groups of options pages, post types, taxonomies), `inc/` (hooks,
   auto-included), `app/` (`Theme\`: types, ajax actions in `Theme\Ajax\`,
   Twig extensions, shared fields), `config/`, `assets/` (sources), `public/`
-  (Vite build), `acf-json/` (ACF UI JSON, committed), `storage/` (Twig cache, logs, backups; deny it on
-  servers other than Apache). Private files of the site's own (uploaded
-  documents, generated PDFs) go in `Gaffer\Storage::private_dir('offers/' . $id)`,
-  never `uploads/`; serve them through code that checks access.
+  (Vite build), `acf-json/` (ACF UI JSON, committed), `storage/` (Twig cache and
+  tooling files: nothing that can't be made again). Private files of the site's own
+  (uploaded documents, generated PDFs; Gaffer's logs and backups) go in
+  `Gaffer\Storage::private_dir('offers/' . $id)` (`uploads/gaffer/`, per site, with a
+  deny `.htaccess`: other servers than Apache need their own rule), never a public
+  uploads folder; serve them through code that checks access.
 - **Boot:** `functions.php` calls `Gaffer\Gaffer::boot(__DIR__)`, `ajax.php`
   calls `Gaffer\Ajax::boot(__DIR__)`. Paths in the theme:
   `Gaffer\Paths::base('relative/path')`.

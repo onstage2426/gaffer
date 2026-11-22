@@ -8,7 +8,7 @@ use Gaffer\Storage;
 use Gaffer\Turnstile;
 
 /**
- * storage/logs/spam.log: submissions rejected as spam. Gaffer's reasons: honeypot,
+ * uploads/gaffer/logs/spam.log: submissions rejected as spam. Gaffer's reasons: honeypot,
  * turnstile-missing (no widget answer), turnstile-invalid. `doctor --wp` reads the
  * log: many turnstile-missing lines can mean a widget that doesn't render.
  */

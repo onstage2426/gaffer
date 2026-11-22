@@ -7,6 +7,27 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-23
+
+- **Private folders moved from the theme's `storage/` to `uploads/gaffer/`** (WordPress's uploads
+  folder: `uploads/sites/{id}/gaffer/` on a multisite). `Storage::private_dir()` (visitors'
+  uploads, generated files), Gaffer's logs (`spam.log`, `migrate.log`) and the migration backups
+  are the site's own data: in the theme folder, a deploy that replaces the theme deleted them, every
+  site of a network shared them, and a host's backup of uploads and the database missed them. The
+  theme's `storage/` keeps what can be made again (Twig cache, screenshots, sessions, snapshots).
+  `private_dir()` needs WordPress loaded (not SHORTINIT). **Nothing breaks on updating:** a folder
+  that's still in `storage/` is used where it is until it's moved; `doctor --wp` warns and gives
+  the exact command. Find: `php gaffer doctor --wp` ("Private folders are still in the theme's
+  storage/"). Move, with the command from its hint, e.g.:
+  ```sh
+  mkdir -p /path/to/wp-content/uploads/gaffer && mv storage/logs storage/backups /path/to/wp-content/uploads/gaffer/
+  ```
+  (on a network: into the main site's folder, `doctor --wp` with its `SITE_URL`). Check: `doctor
+  --wp` shows no such warning and no "The web server serves private files" error; on a server
+  other than Apache, deny `/wp-content/uploads/gaffer/` (and `uploads/sites/*/gaffer/`) in its
+  configuration as for the theme folder. Code that wrote paths into `storage/` by hand (not through
+  `private_dir()`): `grep -rn "storage/" app inc views`.
+
 ## 2026-11-22 (full audit)
 
 - **`vite.config.js`: `build.rollupOptions` is `build.rolldownOptions`** (Vite 8 deprecates the

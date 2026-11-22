@@ -11,7 +11,7 @@ use JsonException;
 use RuntimeException;
 
 /**
- * The content of every location before a migration, in storage/backups/migrate/
+ * The content of every location before a migration, in uploads/gaffer/backups/migrate/
  * (never committed: it's site content). migrate:rollback restores from it.
  */
 final class Backup
@@ -21,7 +21,7 @@ final class Backup
 
     public static function dir(): string
     {
-        return Paths::storage() . '/backups/migrate';
+        return Storage::private_dir('backups/migrate');
     }
 
     /**

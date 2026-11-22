@@ -55,36 +55,45 @@ final class ContractsCheck implements Check
     private function private_files(Report $report): void
     {
         $theme = \get_template_directory();
-        $files = ['.env' => true, '.git/HEAD' => true, 'composer.json' => false, 'composer.lock' => false, 'vendor/composer/installed.json' => false];
-        // A file in a private storage folder (visitors' uploads, logs), without a leading dot: many
-        // servers deny dotfiles on their own, which would hide a folder that's open otherwise.
+        $uri = \get_template_directory_uri();
+        $checks = []; // [file, url, secret, label]
+        foreach (['.env' => true, '.git/HEAD' => true, 'composer.json' => false, 'composer.lock' => false, 'vendor/composer/installed.json' => false] as $relative => $secret) {
+            $checks[] = ["{$theme}/{$relative}", "{$uri}/{$relative}", $secret, $relative];
+        }
+        // A file in a private folder (visitors' uploads, logs), without a leading dot: many servers
+        // deny dotfiles on their own, which would hide a folder that's open otherwise.
         $probe = Storage::private_dir('logs') . '/doctor-probe.txt';
-        if (str_starts_with($probe, $theme . '/') && file_put_contents($probe, 'gaffer doctor ' . \wp_generate_password(20, false)) !== false) {
-            $files[substr($probe, strlen($theme) + 1)] = true;
+        $uploads = \wp_upload_dir(null, false);
+        $probe_url = match (true) {
+            str_starts_with($probe, $theme . '/') => $uri . substr($probe, strlen($theme)),
+            str_starts_with($probe, rtrim((string) $uploads['basedir'], '/') . '/') => rtrim((string) $uploads['baseurl'], '/') . substr($probe, strlen(rtrim((string) $uploads['basedir'], '/'))),
+            default => null,
+        };
+        if ($probe_url !== null && file_put_contents($probe, 'gaffer doctor ' . \wp_generate_password(20, false)) !== false) {
+            $checks[] = [$probe, $probe_url, true, 'files in ' . dirname($probe, 2) . '/ (logs, visitors\' uploads)'];
         }
         $served = ['error' => [], 'warning' => []];
-        foreach ($files as $relative => $secret) {
-            $file = "{$theme}/{$relative}";
+        foreach ($checks as [$file, $url, $secret, $label]) {
             if (!is_file($file) || filesize($file) > 5_000_000) {
                 continue;
             }
-            $response = \wp_remote_get(\get_template_directory_uri() . '/' . $relative, ['timeout' => 20, 'redirection' => 0, 'sslverify' => false, 'cookies' => []]);
+            $response = \wp_remote_get($url, ['timeout' => 20, 'redirection' => 0, 'sslverify' => false, 'cookies' => []]);
             if (\is_wp_error($response)) {
-                $report->warning('contracts', 'The theme\'s private files weren\'t fetched over HTTP (' . $response->get_error_message() . '), so they weren\'t checked', null, null,
-                    'doctor fetches them from this server (a loopback request): allow it, or check by hand that .env and storage/logs/ answer 403 or 404 to a browser.');
+                $report->warning('contracts', 'The site\'s private files weren\'t fetched over HTTP (' . $response->get_error_message() . '), so they weren\'t checked', null, null,
+                    'doctor fetches them from this server (a loopback request): allow it, or check by hand that the theme\'s .env and uploads/gaffer/logs/ answer 403 or 404 to a browser.');
                 $served = ['error' => [], 'warning' => []];
                 break;
             }
             if ((int) \wp_remote_retrieve_response_code($response) === 200 && \wp_remote_retrieve_body($response) === file_get_contents($file)) {
-                $served[$secret ? 'error' : 'warning'][] = $file === $probe ? 'files in ' . dirname(dirname($relative)) . '/ (logs, visitors\' uploads)' : $relative;
+                $served[$secret ? 'error' : 'warning'][] = $label;
             }
         }
         if (is_file($probe)) {
             unlink($probe);
         }
-        $hint = 'Anyone can download them. On Apache the theme\'s .htaccess denies everything but public/, ajax.php and screenshot.png (the starter has one); other servers (nginx) need the same rule in their own configuration.';
+        $hint = 'Anyone can download them. On Apache the theme\'s .htaccess denies everything but public/, ajax.php and screenshot.png (the starter has one), and each of Gaffer\'s private folders has a deny .htaccess; other servers (nginx) need the same rules in their own configuration (the theme folder but those three, and /wp-content/uploads/gaffer/ or uploads/sites/*/gaffer/).';
         if ($served['error'] !== []) {
-            $report->error('contracts', 'The web server serves private theme files: ' . implode(', ', $served['error']), null, null, $hint);
+            $report->error('contracts', 'The web server serves private files: ' . implode(', ', $served['error']), null, null, $hint);
         }
         if ($served['warning'] !== []) {
             $report->warning('contracts', 'The web server serves theme files that show its versions: ' . implode(', ', $served['warning']), null, null, $hint);

@@ -28,7 +28,7 @@ node bin/dev/site-checks/search-pages.mjs https://shop.test /winkel/ /en/shop/ /
   on only with `turnstile.site_key` in `config/turnstile.php` *and* the secret: the starter keeps
   it off) (and maybe a
   notification mail): note the highest entry ID first and delete newer test entries by ID.
-  Test submissions also land in `storage/logs/spam.log`; remove them, or `doctor --wp`'s
+  Test submissions also land in `uploads/gaffer/logs/spam.log`; remove them, or `doctor --wp`'s
   "many submissions without a Turnstile answer" fires.
 - `htmx4-convert.py <theme>`: the mechanical htmx 2 → 4 changes used on 2026-11-20 (renames,
   `hx-on` event names, a form wrapper's `hx-target="this"` moved onto the `<form>`).

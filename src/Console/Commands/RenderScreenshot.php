@@ -92,7 +92,7 @@ final class RenderScreenshot extends Command
             return $fail($target);
         }
 
-        $out = is_string($target['out'] ?? null) ? $target['out'] : Storage::private_dir('screenshots/' . BrowserPage::slug($path));
+        $out = is_string($target['out'] ?? null) ? $target['out'] : Storage::theme_dir('screenshots/' . BrowserPage::slug($path));
         $options = [
             ...$target,
             'widths' => $widths,

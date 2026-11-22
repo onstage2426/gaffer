@@ -41,7 +41,7 @@ final class Snapshot
             throw new InvalidArgumentException("\"{$name}\" is not a snapshot name (letters, digits, - and _)");
         }
 
-        return Storage::private_dir('snapshots') . "/{$name}.json";
+        return Storage::theme_dir('snapshots') . "/{$name}.json";
     }
 
     public function save(): string

@@ -125,6 +125,6 @@ final class Session
             throw new InvalidArgumentException("A session name is letters, digits and dashes, not \"{$name}\"");
         }
 
-        return Storage::private_dir('sessions') . "/{$name}.json";
+        return Storage::theme_dir('sessions') . "/{$name}.json";
     }
 }

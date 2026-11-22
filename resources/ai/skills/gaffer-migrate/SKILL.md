@@ -96,10 +96,10 @@ php gaffer migrate:rollback <backup>                                  # undo one
   a page open in the editor, a block to remove that contains other blocks.
 - `migrate:remove-block` reports pages and widgets left empty; deleting those
   is a person's decision.
-- `--run` saves the old content to `storage/backups/migrate/` (never
+- `--run` saves the old content to `uploads/gaffer/backups/migrate/` (never
   committed), writes everything in one transaction and reads it back.
   Rollback only restores content nobody has edited since.
-- Every `--run` is logged in `storage/logs/migrate.log` (one JSON line:
+- Every `--run` is logged in `uploads/gaffer/logs/migrate.log` (one JSON line:
   outcome `written`/`aborted`/`verify_failed`, reason, backup, the backup it
   `undoes`, user, theme commit, locations with checksums, or their count per kind
   above 200: the backup lists each one). Check it before

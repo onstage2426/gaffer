@@ -61,7 +61,7 @@ final class BrowserPage
         }
 
         $session_cookies = $visitor?->cookies() ?? [];
-        $out = Storage::private_dir('screenshots/' . self::slug($target));
+        $out = Storage::theme_dir('screenshots/' . self::slug($target));
         file_put_contents("{$out}/{$name}.html", $render['html'] ?? '');
         $home = (array) parse_url(\home_url('/'));
         $origin = ($home['scheme'] ?? 'https') . '://' . ($home['host'] ?? 'localhost') . (isset($home['port']) ? ":{$home['port']}" : '');

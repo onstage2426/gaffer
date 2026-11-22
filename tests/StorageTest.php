@@ -19,10 +19,32 @@ final class StorageTest extends TestCase
         file_put_contents("{$dir}/.gitignore", "custom\n"); // existing files are left alone
         Storage::private_dir('backups/migrate');
 
-        self::assertSame("{$theme}/storage/backups/migrate", $dir);
+        self::assertSame("{$theme}/uploads/gaffer/backups/migrate", $dir);
+        self::assertSame("Require all denied\n", file_get_contents("{$theme}/uploads/gaffer/.htaccess"));
         self::assertSame("Require all denied\n", file_get_contents("{$dir}/.htaccess"));
         self::assertSame("custom\n", file_get_contents("{$dir}/.gitignore"));
         self::assertStringEndsWith("*\n", (string) file_get_contents(Storage::private_dir('logs') . '/.gitignore'));
+
+        exec('rm -rf ' . escapeshellarg($theme));
+    }
+
+    public function test_a_folder_from_before_stays_in_storage_until_it_is_moved(): void
+    {
+        $theme = sys_get_temp_dir() . '/gaffer-storage-' . bin2hex(random_bytes(4));
+        mkdir("{$theme}/storage/offers/12", 0775, true);
+        file_put_contents("{$theme}/storage/offers/.gitignore", "*\n");
+        mkdir("{$theme}/storage/screenshots", 0775, true);
+        file_put_contents("{$theme}/storage/screenshots/.gitignore", "*\n");
+        Paths::set_base($theme);
+
+        self::assertSame("{$theme}/storage/offers/12", Storage::private_dir('offers/12'), 'the visitor\'s files are where they were');
+        self::assertSame("{$theme}/uploads/gaffer/logs", Storage::private_dir('logs'), 'a new folder is in uploads/gaffer/');
+        self::assertSame(['offers' => "{$theme}/storage/offers"], Storage::before(), 'tooling\'s folders stay in storage/');
+        self::assertSame("{$theme}/storage/screenshots", Storage::theme_dir('screenshots'));
+
+        rename("{$theme}/storage/offers", "{$theme}/uploads/gaffer/offers");
+        self::assertSame("{$theme}/uploads/gaffer/offers/12", Storage::private_dir('offers/12'));
+        self::assertSame([], Storage::before());
 
         exec('rm -rf ' . escapeshellarg($theme));
     }

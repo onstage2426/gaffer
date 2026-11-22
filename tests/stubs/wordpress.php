@@ -13,6 +13,15 @@ if (!function_exists('get_pagenum_link')) {
     }
 }
 
+if (!function_exists('wp_upload_dir')) {
+    /** @return array{basedir: string, baseurl: string} */
+    function wp_upload_dir(?string $time = null, bool $create_dir = true, bool $refresh_cache = false): array
+    {
+        // The theme under test's own uploads/, so a test's theme folder holds it and its cleanup removes it.
+        return ['basedir' => \Gaffer\Paths::base('uploads'), 'baseurl' => 'https://site.test/wp-content/uploads'];
+    }
+}
+
 if (!function_exists('wp_unslash')) {
     function wp_unslash(mixed $value): mixed
     {

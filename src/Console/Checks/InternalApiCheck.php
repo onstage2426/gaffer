@@ -21,7 +21,7 @@ final class InternalApiCheck implements Check
 
     /** Internal members with a public replacement. */
     private const array REPLACEMENTS = [
-        'Gaffer\Paths::storage' => 'Gaffer\Storage::private_dir() for a private folder in storage/.',
+        'Gaffer\Paths::storage' => 'Gaffer\Storage::private_dir() for a private folder (uploads/gaffer/).',
     ];
 
     #[\Override]

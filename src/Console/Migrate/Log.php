@@ -17,7 +17,7 @@ final class Log
 {
     public static function file(): string
     {
-        return Paths::storage() . '/logs/migrate.log';
+        return Storage::private_dir('logs') . '/migrate.log';
     }
 
     /**

@@ -92,7 +92,7 @@ without a code change:
 
 - **The theme layout:** `views/`, `blocks/`, `fields/`, `inc/` (`*.php` then
   `*/*.php`), `app/` (`Theme\`), `config/`, `public/`, `assets/`, `acf-json/`
-  (ACF UI JSON, committed), `storage/` (moved by `GAFFER_STORAGE`); ajax actions as `app/Ajax/{Name}/{Name}.php` (`Theme\Ajax\{Name}\{Name}`).
+  (ACF UI JSON, committed), `storage/` (what can be made again: the Twig cache, tooling files; moved by `GAFFER_STORAGE`); `uploads/gaffer/` (the site's private files: `Storage::private_dir()`, Gaffer's logs and backups; per site on a multisite); ajax actions as `app/Ajax/{Name}/{Name}.php` (`Theme\Ajax\{Name}\{Name}`).
 - **Blocks:** `block.json` with `acf.renderTemplate`; `fields.php` (a list of ACF
   field arrays without keys) and **the derived keys**:
   `group_{name}`, `field_{name}__{field}`, sub fields `…__{parent}__{field}`,
@@ -110,15 +110,15 @@ without a code change:
   `kept_files[...][]`. The rest of what a form sends (its name, the honeypot,
   Turnstile's token) is Gaffer's own, written by `@gaffer/forms/meta.twig` and
   read by `FormAction`: it may change in any release, both ends together.
-  Gaffer loads Turnstile's script. `storage/logs/spam.log` is Gaffer's too
+  Gaffer loads Turnstile's script. `uploads/gaffer/logs/spam.log` is Gaffer's too
   (`Spam::check()` writes it, `doctor` reads it).
 - **The build:** `vite.config.js` uses Gaffer's plugin (`resources/vite.js`,
   `gaffer()`): it owns the settings Gaffer reads (`public/`, the manifest,
   `public/.vite/gaffer.json`) and the `@gaffer` alias. Gaffer's PHP and the
   bundled JavaScript of one release work with the previous release's other half
   (a composer update changes the PHP at once, the JavaScript with the next build).
-- **Storage formats:** `storage/backups/migrate/*.json` (rollback reads old
-  backups) and `storage/logs/migrate.log`.
+- **Storage formats:** `uploads/gaffer/backups/migrate/*.json` (rollback reads old
+  backups) and `uploads/gaffer/logs/migrate.log`.
 
 ## Tooling
 

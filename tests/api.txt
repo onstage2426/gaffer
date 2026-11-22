@@ -16,7 +16,6 @@ final class Gaffer\Console\Console
   static boot(string $dir): int
 abstract class Gaffer\Forms\FormAction extends Gaffer\AjaxAction
   const METHOD = 'POST'
-  final run(string $form_name = '', array $fields = [], array $kept_files = [], string $form = ''): void
 final class Gaffer\Forms\FormState
   readonly string $name
   readonly bool $sent
@@ -32,7 +31,6 @@ final class Gaffer\Forms\KeptFile
   readonly string $value
 final class Gaffer\Forms\Spam
   static check(string $form): ?string
-  static log(string $form, string $reason): void
 final class Gaffer\Gaffer
   static boot(string $dir): void
 final class Gaffer\Paths
@@ -75,7 +73,6 @@ final class Gaffer\Search\Searchbar
 final class Gaffer\Storage
   static private_dir(string $relative): string
 final class Gaffer\Turnstile
-  static enabled(): bool
 class Gaffer\Types\Attachment extends Gaffer\Types\Post
   final mime(): string
   final url(): ?string
@@ -97,7 +94,6 @@ final class Gaffer\Types\MenuItem
   id(): int
   is_current(): bool
   is_current_ancestor(): bool
-  is_external(): bool
   link(): string
   meta(string $key): mixed
   object(): Gaffer\Types\Post|Gaffer\Types\Term|null

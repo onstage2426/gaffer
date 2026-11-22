@@ -9,6 +9,15 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-22 (full audit)
 
+- **Removed `MenuItem::is_external()`** (no theme used it). Find:
+  `grep -rn is_external views blocks app inc`; compare the link's host with `home_url()`'s in the
+  theme instead. **Internal now:** `FormAction::run()` (the dispatcher calls it; its parameters
+  follow Gaffer's own form keys), `Spam::log()` (`Spam::check()` logs) and
+  `Turnstile::enabled()` (Gaffer writes and checks the widget): `doctor` warns when theme code
+  uses them. `API.md` now lists what `ajax.php` answers (400/404/405/413/500 with
+  `HX-Reswap: none`, `no-store`), that `|t` needs the `Text Domain` header, and that only the
+  listed JavaScript exports are public.
+
 - **ACF's JSON moved from `storage/acf-json/` to `acf-json/` in the theme.** It's code (post types,
   taxonomies, options pages and field groups made in the ACF UI, committed), but `storage/` holds
   runtime files and moves with `GAFFER_STORAGE`: a site that defined it would have lost them.

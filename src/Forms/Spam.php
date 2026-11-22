@@ -46,6 +46,8 @@ final class Spam
     /**
      * One line per rejected submission: time, form and reason only. No names,
      * emails or IPs (personal data).
+     *
+     * @internal check() logs; doctor reads the lines (counts()), so their format is Gaffer's.
      */
     public static function log(string $form, string $reason): void
     {

@@ -32,7 +32,11 @@ final class Turnstile
         })();
         JS;
 
-    /** A site key and a secret: forms check tokens. */
+    /**
+     * A site key and a secret: forms check tokens.
+     *
+     * @internal Gaffer writes the widget (@gaffer/forms/meta.twig) and checks it (Spam::check()).
+     */
     public static function enabled(): bool
     {
         return self::site_key() !== null;

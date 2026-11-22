@@ -49,8 +49,13 @@ name) comes only in a major, or in a minor after one minor in which `doctor` war
 methods with that name.
 
 **Ajax**: an action extends `AjaxAction` and declares `run()` with the documented parameter
-types (scalars, `array`, `Post`/`Term`/`Image` and theme subclasses, nullable, defaults). An
-ajax request larger than PHP's `post_max_size` is answered with 413.
+types (scalars, `array`, `Post`/`Term`/`Image` and theme subclasses, nullable, defaults). What
+`ajax.php` answers before `run()`, with no body and `HX-Reswap: none` (htmx fires its error
+event and keeps the target): 400 for a malformed action name or an argument of the wrong type,
+404 for an action that doesn't exist or a post/term argument that doesn't, 405 for the wrong
+method, 413 for a request larger than PHP's `post_max_size`, 500 for an action file without its
+class. Every answer has `Cache-Control: no-store` and `X-Robots-Tag: noindex`. An action renders
+without `View::share()`'s data (that's for the page shell).
 
 **Forms**: the theme's form action extends `Forms\FormAction`; every form template includes
 `@gaffer/forms/meta.twig` (below).
@@ -60,13 +65,17 @@ with the gaffer-search plugin.
 
 ## Twig
 
-The functions `config()` and `ajax_url()`; the filter `t`; the namespaces `@block` and
+The functions `config()` and `ajax_url()`; the filter `t` (needs the `Text Domain` header in
+the theme's `style.css`); the namespaces `@block` and
 `@gaffer`; `strict_variables` with `WP_DEBUG`. Gaffer's partials:
 
 - `@gaffer/forms/meta.twig` inside every form: `form`, and an optional `turnstile`
   (`appearance`, `language`, `theme`, `size`, `class`).
 
 ## JavaScript
+
+Only what's listed here; other exports of Gaffer's JavaScript files are internal (tests use
+them).
 
 - `resources/js/forms.js`: `shrinkUploads()` (inputs with `data-gaffer-resize`; the form has
   `aria-busy="true"` while it runs).
@@ -101,7 +110,8 @@ without a code change:
   `kept_files[...][]`. The rest of what a form sends (its name, the honeypot,
   Turnstile's token) is Gaffer's own, written by `@gaffer/forms/meta.twig` and
   read by `FormAction`: it may change in any release, both ends together.
-  Gaffer loads Turnstile's script.
+  Gaffer loads Turnstile's script. `storage/logs/spam.log` is Gaffer's too
+  (`Spam::check()` writes it, `doctor` reads it).
 - **The build:** `vite.config.js` uses Gaffer's plugin (`resources/vite.js`,
   `gaffer()`): it owns the settings Gaffer reads (`public/`, the manifest,
   `public/.vite/gaffer.json`) and the `@gaffer` alias. Gaffer's PHP and the

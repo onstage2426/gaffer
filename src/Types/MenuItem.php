@@ -118,16 +118,6 @@ final class MenuItem
     }
 
     /**
-     * The link has a host, and it isn't the site's (#anchors, mailto: and tel: aren't external).
-     */
-    public function is_external(): bool
-    {
-        $host = \wp_parse_url($this->link(), PHP_URL_HOST);
-
-        return is_string($host) && strcasecmp($host, (string) \wp_parse_url(\home_url(), PHP_URL_HOST)) !== 0;
-    }
-
-    /**
      * The items below this one, in menu order.
      *
      * @return list<MenuItem>

@@ -30,6 +30,9 @@ abstract class FormAction extends AjaxAction
      * @param string $form the name as @gaffer/forms/meta.twig sent it before 2026-11-20 (a page cache
      *        may still serve that markup). Not "form" any more: an input named "form" shadows the
      *        <form> element's own .form property, and htmx 4 then can't read the form.
+     *
+     * @internal The dispatcher calls it with the keys @gaffer/forms/meta.twig and the form
+     *           template send (Gaffer's own pair): its parameters change with them.
      */
     final public function run(string $form_name = '', array $fields = [], array $kept_files = [], string $form = ''): void
     {

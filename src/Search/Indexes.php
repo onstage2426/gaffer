@@ -132,8 +132,8 @@ final class Indexes
     }
 
     /**
-     * Changes with the definition, the card's templates and the files of the methods that shape
-     * a document (card_context, card_variants, document: what the documents hold; card_variant
+     * Changes with the definition, the card's templates (and the theme's Twig extensions they
+     * call) and the files of the methods that shape a document (card_context, card_variants, document: what the documents hold; card_variant
      * only picks one) or name its values (labels).
      *
      * @param array<string, mixed> $definition
@@ -145,7 +145,7 @@ final class Indexes
         $plain['card_variants'] = array_keys((array) ($definition['card_variants'] ?? []));
         $methods = [$definition['card_context'] ?? null, $definition['document'] ?? null, $definition['labels'] ?? null, ...array_values((array) ($definition['card_variants'] ?? []))];
 
-        return md5((string) json_encode([self::RENDERING, $plain, $cards, Cards::code_version($methods), ...($cards !== [] ? [self::card_site()] : [])], JSON_PARTIAL_OUTPUT_ON_ERROR));
+        return md5((string) json_encode([self::RENDERING, $plain, $cards, Cards::code_version($methods), ...($cards !== [] ? [self::card_site(), Cards::extensions_version()] : [])], JSON_PARTIAL_OUTPUT_ON_ERROR));
     }
 
     /**

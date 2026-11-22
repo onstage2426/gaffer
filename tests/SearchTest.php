@@ -163,6 +163,25 @@ final class SearchTest extends TestCase
         exec('rm -rf ' . escapeshellarg($theme));
     }
 
+    public function test_a_change_to_a_twig_extension_changes_the_card_version(): void
+    {
+        $theme = (string) realpath(sys_get_temp_dir()) . '/gaffer-search-' . bin2hex(random_bytes(4));
+        mkdir("{$theme}/app/Twig", 0777, true);
+        $class = 'TwigExtension' . bin2hex(random_bytes(4));
+        file_put_contents("{$theme}/app/Twig/{$class}.php", "<?php final class {$class} { public static function price(string \$v): string { return \$v; } }");
+        require "{$theme}/app/Twig/{$class}.php";
+        Paths::set_base($theme);
+        $none = Cards::extensions_version();
+        new \ReflectionProperty(Config::class, 'config')->setValue(null, ['theme' => ['twig_extensions' => [$class]]]);
+
+        $before = Cards::extensions_version();
+        self::assertNotSame($none, $before);
+        file_put_contents("{$theme}/app/Twig/{$class}.php", "<?php // another price format\n", FILE_APPEND);
+        self::assertNotSame($before, Cards::extensions_version());
+
+        exec('rm -rf ' . escapeshellarg($theme));
+    }
+
     public function test_answers_in_an_unexpected_shape_become_empty_results(): void
     {
         $response = Engine::response(['total' => '3', 'results' => [['id' => 1], 'junk'], 'warnings' => ['x', ['y']], 'time' => '1ms']);

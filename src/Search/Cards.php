@@ -6,6 +6,7 @@ namespace Gaffer\Search;
 
 use Gaffer\Console\Templates;
 use Gaffer\Paths;
+use Gaffer\TwigCache;
 use Gaffer\Types\Post;
 use Gaffer\View;
 use Twig\Environment;
@@ -121,6 +122,25 @@ final class Cards
                 continue;
             }
             $file = (string) realpath((string) new \ReflectionMethod($callable[0], $callable[1])->getFileName());
+            if (str_starts_with($file, self::root() . '/')) {
+                $files[substr($file, strlen(self::root()) + 1)] = md5_file($file);
+            }
+        }
+        ksort($files);
+
+        return md5((string) json_encode($files));
+    }
+
+    /**
+     * A hash of the theme's Twig extension files (theme.twig_extensions), by content and relative
+     * to the theme: a card prints its filters' output (a price format), so changing one rebuilds
+     * the index like a template does.
+     */
+    public static function extensions_version(): string
+    {
+        $files = [];
+        foreach (TwigCache::extension_files() as $file) {
+            $file = (string) realpath($file);
             if (str_starts_with($file, self::root() . '/')) {
                 $files[substr($file, strlen(self::root()) + 1)] = md5_file($file);
             }

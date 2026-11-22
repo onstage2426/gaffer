@@ -63,4 +63,19 @@ final class TwigCacheTest extends TestCase
         self::assertCount(1, $left);
         self::assertNotSame('old-version', $left[0]);
     }
+
+    public function test_a_changed_extension_file_gets_its_own_folder(): void
+    {
+        $file = "{$this->dir}/Extension.php";
+        file_put_contents($file, '<?php // price()');
+        $before = new Cache("{$this->dir}/cache", [$file])->folder();
+        self::assertSame($before, new Cache("{$this->dir}/cache", [$file])->folder());
+
+        // A renamed method: templates compiled before would still call the old one.
+        file_put_contents($file, '<?php // format_price()');
+        self::assertNotSame($before, new Cache("{$this->dir}/cache", [$file])->folder());
+
+        self::assertNotSame(new Cache("{$this->dir}/cache")->folder(), new Cache("{$this->dir}/cache", [$file])->folder());
+    }
+
 }

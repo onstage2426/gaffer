@@ -7,6 +7,17 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-22 (break-first audit 2)
+
+- **A changed Twig extension compiles the templates again.** A compiled template calls the
+  theme's filter and function methods by name, so renaming one (or making it static, giving it a
+  required argument, marking it safe) left the templates compiled before calling what was gone:
+  "Call to undefined method" on every page using it, until the template itself changed. The Twig
+  cache now starts a fresh folder when a file in `theme.twig_extensions` changes, and a search
+  index with cards rebuilds when one changes (a card prints its filters' output: a price format).
+  **On updating, every index with cards rebuilds once** (on a large catalog, update at a quiet
+  hour). Nothing to change in the theme. Check: `php gaffer doctor --wp` after the rebuild.
+
 ## 2026-11-21 (break-first audit)
 
 - **The Twig cache is on by default** (it was off unless `config/theme.php` set `'cache' => true`):

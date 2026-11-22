@@ -9,9 +9,14 @@ use Gaffer\TwigCache;
 use Twig\Cache\FilesystemCache;
 
 /**
- * The Twig cache that can't break a page: a folder per Gaffer version (an update starts fresh
- * and the previous version's folder is removed), and a template it can't write (the folder not
- * writable for the web server, a full disk) renders without the cache, as with the cache off.
+ * The Twig cache that can't break a page: a folder per Gaffer version and per state of the theme's
+ * Twig extension files (an update or an edited extension starts fresh and the previous folder is
+ * removed), and a template it can't write (the folder not writable for the web server, a full
+ * disk) renders without the cache, as with the cache off.
+ *
+ * The extension files count because a compiled template calls the theme's filter and function
+ * methods by name: after renaming one (or making it static, giving it a required argument,
+ * marking it safe), templates compiled before would call what isn't there any more.
  *
  * @internal
  */
@@ -19,10 +24,24 @@ final class Cache extends FilesystemCache
 {
     private readonly string $folder;
 
-    public function __construct(string $root)
+    /**
+     * @param list<string> $files the theme's Twig extension files (TwigCache::extension_files())
+     */
+    public function __construct(string $root, array $files = [])
     {
-        $this->folder = rtrim($root, '/') . '/' . substr(md5(Gaffer::version()), 0, 8);
+        $stamp = Gaffer::version();
+        foreach ($files as $file) {
+            $stat = @stat($file);
+            $stamp .= $stat !== false ? "|{$stat['mtime']}:{$stat['size']}" : '|-';
+        }
+        $this->folder = rtrim($root, '/') . '/' . substr(md5($stamp), 0, 8);
         parent::__construct($this->folder);
+    }
+
+    /** The folder this cache writes to. */
+    public function folder(): string
+    {
+        return $this->folder;
     }
 
     #[\Override]

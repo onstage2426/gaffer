@@ -22,6 +22,28 @@ final class TwigCache
     }
 
     /**
+     * The files of the theme's Twig extensions (theme.twig_extensions), in config order: a
+     * compiled template calls their methods by name, so the cache folder and the search index's
+     * cards change with them.
+     *
+     * @return list<string>
+     */
+    public static function extension_files(): array
+    {
+        $files = [];
+        foreach ((array) (Config::get('theme.twig_extensions') ?? []) as $class) {
+            if (is_string($class) && class_exists($class)) {
+                $file = (new \ReflectionClass($class))->getFileName();
+                if (is_string($file)) {
+                    $files[] = $file;
+                }
+            }
+        }
+
+        return $files;
+    }
+
+    /**
      * Delete everything in the cache but this folder (the previous Gaffer version's templates).
      */
     public static function keep_only(string $folder): void

@@ -84,8 +84,9 @@ final class Gaffer
         $debug = self::debug();
 
         $twig = new Environment($loader, [
-            // On unless the theme turns it off; never breaks a render (Twig\Cache).
-            'cache' => TwigCache::enabled() ? new Cache(Paths::twig_cache()) : false,
+            // On unless the theme turns it off; never breaks a render, and a folder per Gaffer
+            // version and state of the theme's extension files (Twig\Cache).
+            'cache' => TwigCache::enabled() ? new Cache(Paths::twig_cache(), TwigCache::extension_files()) : false,
             // A changed template recompiles without twig:clear (a stat per template; Twig\Loader's
             // key changes with any modification time and size): else a deploy, a rollback,
             // doctor's renders and the search index's cards would use the old one.

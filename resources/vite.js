@@ -12,10 +12,11 @@
  * - public/.vite/gaffer.json: a hash of the Gaffer JavaScript this build bundled, so `doctor`
  *   tells when a composer update brought JavaScript the build doesn't have yet, and the files
  *   this build wrote;
- * - a build that keeps the previous build's files: public/ isn't emptied first, and afterwards
- *   only what neither this build nor the previous one wrote is deleted. A page a cache (WP
- *   Rocket, Cloudflare) or an open tab still has from before the build keeps its CSS and
- *   JavaScript, and while the build runs, the old manifest and its files stay in place.
+ * - a build that keeps the files earlier builds wrote: public/ isn't emptied first, and afterwards
+ *   only what neither this build nor the previous one wrote, and is older than a week (KEEP_MS),
+ *   is deleted. A page a cache (WP Rocket, Cloudflare) or an open tab still has from before the
+ *   build keeps its CSS and JavaScript, also after a second build the same day, and while the
+ *   build runs, the old manifest and its files stay in place.
  */
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -87,15 +88,22 @@ function previousFiles(outDir) {
     return filesIn(outDir);
 }
 
+/** How long a file an earlier build wrote stays: a page cache may serve pages that old. */
+export const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
- * Deletes the files in outDir that neither build wrote, then the directories left empty.
+ * Deletes the files in outDir that neither build wrote and that are older than keepMs, then the
+ * directories left empty.
  *
  * @param {string} outDir
  * @param {Set<string>} keep
+ * @param {number} keepMs
  */
-export function prune(outDir, keep) {
+export function prune(outDir, keep, keepMs = KEEP_MS) {
+    const before = Date.now() - keepMs;
     for (const rel of filesIn(outDir)) {
-        if (!keep.has(rel)) fs.rmSync(path.join(outDir, rel), { force: true });
+        const file = path.join(outDir, rel);
+        if (!keep.has(rel) && fs.statSync(file).mtimeMs < before) fs.rmSync(file, { force: true });
     }
     const removeEmpty = (dir) => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

@@ -244,8 +244,10 @@ Pairs where a site writes by hand what Gaffer reads; each breaks when either sid
 - PHP and bundled JavaScript ship together but deploy apart (`composer update` vs the next
   build): a contract between them only grows, and each half keeps working with the previous
   release's other half. `doctor` says when the build has older Gaffer JavaScript.
-- A build never removes what the previous build wrote (Gaffer's Vite plugin, since 2026-11-21):
-  a page cache or an open tab keeps the previous build's HTML for hours.
+- A build never removes what the previous build wrote (Gaffer's Vite plugin, since 2026-11-21),
+  nor what any build wrote in the last week (since 2026-11-23: a live multisite's page cache served
+  4,185 pages from two builds back, whose JavaScript the second build had deleted): a page cache
+  or an open tab keeps older HTML for hours or days.
 - When Gaffer checks what a template, a build or a theme file writes, Gaffer writes it too
   (a partial, a method, the Vite plugin).
 - What a site relies on in a plugin and can't get through a public API gets a real check in

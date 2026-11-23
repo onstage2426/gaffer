@@ -9,6 +9,11 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-23
 
+- **A build keeps a week of earlier builds' files** (Gaffer's Vite plugin): before, only the
+  previous build's, so a page cache holding pages from two builds back served them without their
+  JavaScript and CSS. Nothing to change; the next build after `composer update` takes it. Check:
+  `php gaffer doctor --wp` (no "loads assets the build no longer has").
+
 - **`doctor` checks the names a theme writes as strings.** A literal `Config::get('a.b')` or Twig
   `config('a.b')` key that `config/` doesn't have, and an `ajax_url('Name')`/`Ajax::url('Name')`
   for an action that doesn't exist, are errors (each read null or answered 404 without a word);

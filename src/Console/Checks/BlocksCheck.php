@@ -75,7 +75,9 @@ final class BlocksCheck implements Check
             }
 
             $php = is_file("{$dir}/functions.php") ? (string) file_get_contents("{$dir}/functions.php") : '';
-            if (array_key_exists('name', $meta) || $acf !== [] || preg_match(self::GUARD, $php)) {
+            // Only the acf keys Gaffer sets: the block's own (mode, …) stay.
+            $gaffers = array_key_exists('blockVersion', $acf) || ($acf['renderTemplate'] ?? null) === 'functions.php';
+            if (array_key_exists('name', $meta) || $gaffers || preg_match(self::GUARD, $php)) {
                 $leftovers[] = $block;
             }
 

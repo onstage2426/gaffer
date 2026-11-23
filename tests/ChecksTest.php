@@ -102,6 +102,10 @@ final class ChecksTest extends TestCase
         self::assertSame('', $this->messages(new BlocksCheck()));
         self::assertSame(['contentFaq' => 'acf/content-faq'], BlockFields::names());
 
+        // The block's own ACF settings aren't Gaffer's.
+        file_put_contents("{$this->theme}/blocks/contentFaq/block.json", '{"title": "FAQ", "description": "FAQ.", "acf": {"mode": "preview"}}');
+        self::assertSame('', $this->messages(new BlocksCheck()));
+
         // What Gaffer sets itself, still written: one warning for the whole theme.
         file_put_contents("{$this->theme}/blocks/contentFaq/block.json", '{"name": "acf/content-faq", "description": "FAQ.", "acf": {"blockVersion": 3, "renderTemplate": "functions.php"}}');
         file_put_contents("{$this->theme}/blocks/contentFaq/functions.php", "<?php\nif (is_admin()) {\n    return;\n}\nView::render('x', []);\n");

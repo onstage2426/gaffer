@@ -244,6 +244,10 @@ included; the theme's own `.ai/guidelines/` get a `doctor` warning above 30 KB).
   key per template's modification time and size (a rollback recompiles), and a folder it can't
   write renders uncached (`Twig\Cache`, `Twig\Loader`). `theme.cache: false` turns it off.
 - No code generators (`make:*`); `doctor` enforces conventions instead.
+- Where files live (2026-11-22/23, the user): code in the theme (`acf-json/` too, never under
+  `storage/`); the site's own data in `uploads/gaffer/` (`Storage::private_dir()`: visitors'
+  uploads, Gaffer's logs, migrate backups; per site on a multisite, kept by deploys and host
+  backups); the theme's `storage/` only what can be made again (Twig cache, tooling files).
 - No test/analysis tooling in sites (phpstan, PHPUnit). Gaffer can have any
   dev dependency.
 - Themes are standalone, never child themes.

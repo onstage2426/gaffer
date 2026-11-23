@@ -19,6 +19,10 @@ versions; at those Gaffer called nothing deprecated and `doctor --wp` showed no 
 
 Start the next round here; remove an item when it's done or decided.
 
+- **Private folders in `uploads/gaffer/`** (2026-11-23): a folder `private_dir()` made in the
+  theme's `storage/` before is still used until it's moved (`Storage::before()`, `doctor --wp`
+  gives the `mv`). Remove that fallback when no site has one (every known site moved on
+  2026-11-23); 2.x at the latest.
 - **From the full-stack audit (2026-11-22, `prompts/audit-full.md`, first run).** Built:
   `/?s=` with `urls.redirect_search` (WordPress sets `post_type=any`, so the redirect never ran:
   a blank, cacheable 200 or the theme's `search.php`); `doctor --wp` errors on an empty 200

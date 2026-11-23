@@ -195,9 +195,13 @@ final class StabilityTest extends TestCase
             self::markTestSkipped('No node');
         }
         $out = "{$this->theme}/public";
-        foreach (['assets/old-1.js', 'assets/new-2.js', 'assets/gone-0.js', 'fonts/gone.woff2', '.vite/manifest.json'] as $file) {
+        foreach (['assets/old-1.js', 'assets/new-2.js', 'assets/gone-0.js', 'assets/recent-0.js', 'fonts/gone.woff2', '.vite/manifest.json'] as $file) {
             @mkdir(dirname("{$out}/{$file}"), 0755, true);
             file_put_contents("{$out}/{$file}", 'x');
+        }
+        // Unkept files go once they're a week old (a page cache may still point at them).
+        foreach (['assets/gone-0.js', 'fonts/gone.woff2'] as $file) {
+            touch("{$out}/{$file}", time() - 8 * 86400);
         }
         $script = 'import(' . json_encode(dirname(__DIR__) . '/resources/vite.js') . ').then((m) => m.prune(' . json_encode($out) . ', new Set(["assets/old-1.js", "assets/new-2.js"])))';
         shell_exec(escapeshellarg($node) . ' -e ' . escapeshellarg($script));
@@ -205,6 +209,7 @@ final class StabilityTest extends TestCase
         self::assertFileExists("{$out}/assets/old-1.js");
         self::assertFileExists("{$out}/assets/new-2.js");
         self::assertFileExists("{$out}/.vite/manifest.json");
+        self::assertFileExists("{$out}/assets/recent-0.js");
         self::assertFileDoesNotExist("{$out}/assets/gone-0.js");
         self::assertDirectoryDoesNotExist("{$out}/fonts");
     }

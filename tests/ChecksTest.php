@@ -8,6 +8,8 @@ use Gaffer\Config;
 use Gaffer\Console\Checks\AjaxCheck;
 use Gaffer\Console\Checks\AppCheck;
 use Gaffer\Console\Checks\AssetsCheck;
+use Gaffer\Acf;
+use Gaffer\BlockFields;
 use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Checks\AcfJsonCheck;
 use Gaffer\Console\Checks\Check;
@@ -90,6 +92,43 @@ final class ChecksTest extends TestCase
         self::assertStringNotContainsString('"titel"', $messages);
         self::assertStringNotContainsString('"vraag"', $messages);
         self::assertStringNotContainsString('"vragen"', $messages);
+    }
+
+    public function test_blocks_need_only_what_gaffer_cant_derive(): void
+    {
+        file_put_contents("{$this->theme}/blocks/contentFaq/block.json", '{"title": "FAQ", "description": "FAQ."}');
+        file_put_contents("{$this->theme}/blocks/contentFaq/contentFaq.twig", '');
+        file_put_contents("{$this->theme}/blocks/contentFaq/functions.php", "<?php\nView::render('x', []);\n");
+        self::assertSame('', $this->messages(new BlocksCheck()));
+        self::assertSame(['contentFaq' => 'acf/content-faq'], BlockFields::names());
+
+        // What Gaffer sets itself, still written: one warning for the whole theme.
+        file_put_contents("{$this->theme}/blocks/contentFaq/block.json", '{"name": "acf/content-faq", "description": "FAQ.", "acf": {"blockVersion": 3, "renderTemplate": "functions.php"}}');
+        file_put_contents("{$this->theme}/blocks/contentFaq/functions.php", "<?php\nif (is_admin()) {\n    return;\n}\nView::render('x', []);\n");
+        $messages = $this->messages(new BlocksCheck());
+        self::assertStringContainsString('1 block still writes what Gaffer sets', $messages);
+        self::assertStringNotContainsString('Name is', $messages);
+
+        // A name that isn't the folder's stays an error (it's in post content).
+        file_put_contents("{$this->theme}/blocks/contentFaq/block.json", '{"name": "acf/faq", "description": "FAQ.", "acf": {"blockVersion": 2}}');
+        $messages = $this->messages(new BlocksCheck());
+        self::assertStringContainsString('Name is "acf/faq", expected "acf/content-faq"', $messages);
+        self::assertStringContainsString('acf.blockVersion is not 3', $messages);
+    }
+
+    public function test_block_metadata_fills_in_what_block_json_leaves_out(): void
+    {
+        $metadata = Acf::block_metadata(['file' => "{$this->theme}/blocks/contentFaq/block.json", 'title' => 'FAQ']);
+        self::assertSame('acf/content-faq', $metadata['name']);
+        self::assertSame(['blockVersion' => 3, 'renderCallback' => Acf::class . '::render_block'], $metadata['acf']);
+
+        // An older block.json says it itself: the same result.
+        $metadata = Acf::block_metadata(['file' => 'x/blocks/contentFaq/block.json', 'name' => 'acf/content-faq', 'acf' => ['blockVersion' => 3, 'renderTemplate' => 'functions.php']]);
+        self::assertSame(['blockVersion' => 3, 'renderCallback' => Acf::class . '::render_block'], $metadata['acf']);
+
+        // Its own template is left alone.
+        $metadata = Acf::block_metadata(['file' => 'x/blocks/contentFaq/block.json', 'acf' => ['renderTemplate' => 'other.php']]);
+        self::assertSame(['renderTemplate' => 'other.php', 'blockVersion' => 3], $metadata['acf']);
     }
 
     public function test_field_groups_in_code(): void

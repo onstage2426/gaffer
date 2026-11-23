@@ -149,7 +149,7 @@ final class WordPressCheck implements Check
     {
         $registry = WP_Block_Type_Registry::get_instance();
 
-        foreach (BlocksCheck::names() as $dir => $name) {
+        foreach (BlockFields::names() as $dir => $name) {
             if (!$registry->is_registered($name)) {
                 $report->error('wp', "Block {$name} is not registered", Paths::blocks() . "/{$dir}/block.json");
             }
@@ -400,7 +400,7 @@ final class WordPressCheck implements Check
         if ($target !== null && isset(FieldGroups::targets()[$target])) {
             return "fields/{$target}.php";
         }
-        $blocks = array_flip(BlocksCheck::names());
+        $blocks = array_flip(BlockFields::names());
         foreach (is_array($group['location'] ?? null) ? $group['location'] : [] as $and) {
             foreach (is_array($and) ? $and : [] as $rule) {
                 $dir = is_array($rule) && ($rule['param'] ?? null) === 'block' ? ($blocks[$rule['value'] ?? ''] ?? null) : null;
@@ -416,7 +416,7 @@ final class WordPressCheck implements Check
     /** blocks/contentFaq/fields.php → acf/content-faq */
     private static function block_of(string $file): string
     {
-        return (string) (BlocksCheck::names()[basename(dirname($file))] ?? basename(dirname($file)));
+        return (string) (BlockFields::names()[basename(dirname($file))] ?? basename(dirname($file)));
     }
 
     /**

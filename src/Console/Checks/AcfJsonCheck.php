@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Checks;
 
+use Gaffer\BlockFields;
 use Gaffer\Console\Report;
 use Gaffer\FieldGroups;
 use Gaffer\Paths;
@@ -19,7 +20,7 @@ final class AcfJsonCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
-        $blocks = array_flip(BlocksCheck::names()); // name => directory
+        $blocks = array_flip(BlockFields::names()); // name => directory
         $stays = []; // groups fields/ can't express: "title" (location)
 
         $before = glob(Paths::acf_json_before() . '/*.json') ?: [];

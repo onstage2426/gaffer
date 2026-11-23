@@ -9,16 +9,20 @@ use Gaffer\Console\Report;
 use Gaffer\Paths;
 
 /**
- * Each block: block.json + functions.php + {dir}.twig, name = acf/ + kebab-case of the
- * directory, ACF blockVersion 3, a real description, the is_admin() guard, a valid fields.php whose
- * fields functions.php all reads, and no InnerBlocks.
+ * Each block: block.json + functions.php + {dir}.twig, a name that is the folder's
+ * (BlockFields::name()), a real description, a valid fields.php whose fields functions.php all
+ * reads, and no InnerBlocks; what Gaffer sets itself (name, acf, the editor guard) as one warning.
  */
 final class BlocksCheck implements Check
 {
+    /** The editor guard functions.php had before Gaffer rendered blocks (Acf::render_block()). */
+    private const string GUARD = '/if\s*\(\s*is_admin\(\)\s*\)\s*\{?\s*return\s*;\s*\}?\s*/';
+
     #[\Override]
     public function run(Report $report): void
     {
         $seen = [];
+        $leftovers = [];
 
         foreach (glob(Paths::blocks() . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
             $block = basename($dir);
@@ -39,14 +43,18 @@ final class BlocksCheck implements Check
             }
 
             $meta = json_decode($json, true);
-            $name = $meta['name'] ?? null;
-            $expected = self::expected_name($block);
+            if (!is_array($meta)) {
+                $report->error('blocks', 'block.json is not a JSON object', "{$dir}/block.json");
+                continue;
+            }
+            $name = BlockFields::name($block);
+            $expected = BlockFields::folder_name($block);
 
             if ($name !== $expected) {
-                $report->error('blocks', "Name is \"{$name}\", expected \"{$expected}\"", "{$dir}/block.json", null,
+                $report->error('blocks', "Name is \"{$name}\", expected \"{$expected}\" (from the folder)", "{$dir}/block.json", null,
                     'The name is stored in post content: after renaming, php gaffer migrate:rename-block <old> <new>.');
             }
-            if (is_string($name) && isset($seen[$name])) {
+            if (isset($seen[$name])) {
                 $report->error('blocks', "Name \"{$name}\" is also used by {$seen[$name]}", "{$dir}/block.json");
             }
             $seen[$name] = $block;
@@ -56,20 +64,19 @@ final class BlocksCheck implements Check
                 $report->warning('blocks', 'Missing or placeholder description', "{$dir}/block.json");
             }
 
-            if (($meta['acf']['blockVersion'] ?? null) !== 3) {
-                // ACF's default depends on the ACF and WordPress versions (6.8.9 made 3 the
-                // default on WordPress 7.1): a block that says 3 renders the same everywhere.
+            $acf = is_array($meta['acf'] ?? null) ? $meta['acf'] : [];
+            if (($acf['blockVersion'] ?? 3) !== 3) {
                 $report->error('blocks', 'acf.blockVersion is not 3', "{$dir}/block.json", null,
-                    'Set "acf": { "blockVersion": 3, ... } (ACF Blocks V3: the iframed editor of WordPress 7.1+).');
+                    'Remove it: Gaffer registers every block as ACF Blocks V3 (the iframed editor of WordPress 7.1+).');
             }
-            if (($meta['acf']['renderTemplate'] ?? null) !== 'functions.php') {
-                $report->warning('blocks', 'acf.renderTemplate is not "functions.php"', "{$dir}/block.json");
+            if (isset($acf['renderCallback']) || ($acf['renderTemplate'] ?? 'functions.php') !== 'functions.php') {
+                $report->warning('blocks', 'Renders through its own acf.renderTemplate/renderCallback, not functions.php', "{$dir}/block.json", null,
+                    'Remove it: Gaffer renders functions.php (nothing in the editor).');
             }
 
             $php = is_file("{$dir}/functions.php") ? (string) file_get_contents("{$dir}/functions.php") : '';
-            if ($php !== '' && !preg_match('/if\s*\(\s*is_admin\(\)\s*\)\s*\{?\s*return/', $php)) {
-                $report->warning('blocks', 'No early `if (is_admin()) return;` guard', "{$dir}/functions.php", null,
-                    'Blocks render nothing in the editor on purpose.');
+            if (array_key_exists('name', $meta) || $acf !== [] || preg_match(self::GUARD, $php)) {
+                $leftovers[] = $block;
             }
 
             $twig = is_file("{$dir}/{$block}.twig") ? (string) file_get_contents("{$dir}/{$block}.twig") : '';
@@ -93,31 +100,11 @@ final class BlocksCheck implements Check
                 }
             }
         }
-    }
 
-    /**
-     * Block names by directory name, from each block.json (valid JSON only).
-     *
-     * @return array<string, string>
-     */
-    public static function names(): array
-    {
-        $names = [];
-
-        foreach (glob(Paths::blocks() . '/*/block.json') ?: [] as $file) {
-            $meta = json_decode((string) file_get_contents($file), true);
-            if (is_array($meta) && is_string($meta['name'] ?? null)) {
-                $names[basename(dirname($file))] = $meta['name'];
-            }
+        if ($leftovers !== []) {
+            $report->warning('blocks', count($leftovers) . (count($leftovers) === 1 ? ' block still writes' : ' blocks still write') . ' what Gaffer sets: "name" and "acf" in block.json, or the is_admin() guard in functions.php (' . implode(', ', array_slice($leftovers, 0, 5)) . (count($leftovers) > 5 ? ', …' : '') . ')', Paths::blocks(), null,
+                'Gaffer names a block after its folder, registers it as ACF Blocks V3 and renders functions.php only outside the editor. Remove them (CHANGELOG 2026-11-23).');
         }
-
-        return $names;
-    }
-
-    /** contentFaq → acf/content-faq */
-    public static function expected_name(string $directory): string
-    {
-        return 'acf/' . strtolower((string) preg_replace('/(?<!^)[A-Z]/', '-$0', $directory));
     }
 
     /**

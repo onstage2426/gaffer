@@ -25,7 +25,7 @@ description: Review changes in a Gaffer theme before calling them done - run the
    - Ajax: typed `run()` parameters (types for IDs, arrays for sets of
      values, never JSON strings), correct `METHOD`, no manual casting; actions
      that change something answer with the changed HTML (no refetch).
-   - Blocks: `is_admin()` guard, name matches the directory, fields in
+   - Blocks: `block.json` without `name`/`acf`, fields in
      `fields.php` (a renamed or removed block or field needs a `migrate:*`;
      a changed type only when the stored value means the same), no
      InnerBlocks or flexible content.

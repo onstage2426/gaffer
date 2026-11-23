@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Gaffer\Console\Commands;
 
 use Gaffer\BlockFields;
-use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Migrate\BlockData;
 use Gaffer\Console\Migrate\ContentStore;
 use Gaffer\Console\Migrate\FieldTarget;
@@ -45,7 +44,7 @@ final class MigrateRemoveLeftovers extends MigrateCommand
             return;
         }
         $blocks = array_filter(
-            BlocksCheck::names(),
+            BlockFields::names(),
             static fn(string $name, string $dir): bool => is_file(Paths::blocks() . "/{$dir}/fields.php") && $only === $name,
             ARRAY_FILTER_USE_BOTH,
         );

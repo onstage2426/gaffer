@@ -204,11 +204,19 @@ final class Gaffer
         // On init, as WordPress expects: registering runs plugin filters that may load
         // translations (WooCommerce's), which is "too early" before init.
         $register = static function (): void {
-            foreach (glob(Paths::blocks() . '/*/block.json') ?: [] as $block) {
-                $type = register_block_type($block);
-                if ($type instanceof \WP_Block_Type && $type->render_callback !== null) {
-                    $type->render_callback = Acf::rendering($type->render_callback); // Acf::block_array() knows it's in a block
+            // Gaffer writes what every block.json would repeat (Acf::block_metadata()): only for
+            // the theme's own blocks, so the filter is there only while they register.
+            $metadata = Acf::block_metadata(...);
+            add_filter('block_type_metadata', $metadata, 5); // before ACF's (10)
+            try {
+                foreach (BlockFields::names() as $dir => $name) {
+                    $type = register_block_type(Paths::blocks() . "/{$dir}/block.json", ['name' => $name]);
+                    if ($type instanceof \WP_Block_Type && $type->render_callback !== null) {
+                        $type->render_callback = Acf::rendering($type->render_callback); // Acf::block_array() knows it's in a block
+                    }
                 }
+            } finally {
+                remove_filter('block_type_metadata', $metadata, 5);
             }
         };
         // Booted after init only by the CLI when the theme isn't the active one.

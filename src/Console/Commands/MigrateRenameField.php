@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Gaffer\Console\Commands;
 
 use Gaffer\BlockFields;
-use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Migrate\BlockData;
 use Gaffer\Console\Migrate\ContentStore;
 use Gaffer\Console\Migrate\Migration;
@@ -40,7 +39,7 @@ final class MigrateRenameField extends MigrateCommand
                 return;
             }
         }
-        $dir = array_search($block, BlocksCheck::names(), true);
+        $dir = array_search($block, BlockFields::names(), true);
         if ($dir === false || !is_file(Paths::blocks() . "/{$dir}/fields.php")) {
             $migration->problem("{$block} is not a block with a fields.php");
             return;

@@ -9,6 +9,22 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-23
 
+- **Gaffer writes each block's boilerplate.** A block is named `acf/` + its folder in kebab case,
+  registered as ACF Blocks V3, and its `functions.php` runs only outside the editor (previews were
+  already empty on purpose). `block.json` keeps title, description, category and icon; the `name`,
+  the `acf` key and the `if (is_admin()) { return; }` guard at the top of `functions.php` can go.
+  **Nothing breaks on updating:** a block that still says them works as before, and a `name` other
+  than the folder's stays an error (it's stored in post content). Update Gaffer first: an older
+  Gaffer can't register a block without its `name`. Find: `php gaffer doctor` ("blocks still write
+  what Gaffer sets"). Remove them all at once, from the theme folder:
+  ```sh
+  php -r 'foreach (glob("blocks/*/block.json") as $f) { $j = json_decode(file_get_contents($f), true); $n = "acf/" . strtolower(preg_replace("/(?<!^)[A-Z]/", "-$0", basename(dirname($f)))); if (($j["name"] ?? $n) === $n) unset($j["name"]); $a = $j["acf"] ?? []; if (($a["blockVersion"] ?? 3) === 3) unset($a["blockVersion"]); if (($a["renderTemplate"] ?? null) === "functions.php") unset($a["renderTemplate"]); if ($a === []) unset($j["acf"]); else $j["acf"] = $a; file_put_contents($f, json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n"); } foreach (glob("blocks/*/functions.php") as $f) file_put_contents($f, preg_replace("/^if\\s*\\(\\s*is_admin\\(\\)\\s*\\)\\s*\\{?\\s*return\\s*;\\s*\\}?[ \\t]*\\R(\\s*\\R)?/m", "", file_get_contents($f), 1));'
+  ```
+  Before: `{"name": "acf/hero-content", "title": "Hero", …, "acf": {"blockVersion": 3, "renderTemplate":
+  "functions.php"}}`; after: `{"title": "Hero", …}`. Check: `php gaffer doctor --wp` (no such
+  warning, every block registered, renders clean), a page with blocks looks the same, and the
+  editor still shows the blocks with their fields.
+
 - **Private folders moved from the theme's `storage/` to `uploads/gaffer/`** (WordPress's uploads
   folder: `uploads/sites/{id}/gaffer/` on a multisite). `Storage::private_dir()` (visitors'
   uploads, generated files), Gaffer's logs (`spam.log`, `migrate.log`) and the migration backups

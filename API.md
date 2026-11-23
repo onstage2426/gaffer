@@ -93,7 +93,7 @@ without a code change:
 - **The theme layout:** `views/`, `blocks/`, `fields/`, `inc/` (`*.php` then
   `*/*.php`), `app/` (`Theme\`), `config/`, `public/`, `assets/`, `acf-json/`
   (ACF UI JSON, committed), `storage/` (what can be made again: the Twig cache, tooling files; moved by `GAFFER_STORAGE`); `uploads/gaffer/` (the site's private files: `Storage::private_dir()`, Gaffer's logs and backups; per site on a multisite); ajax actions as `app/Ajax/{Name}/{Name}.php` (`Theme\Ajax\{Name}\{Name}`).
-- **Blocks:** `block.json` with `acf.renderTemplate`; `fields.php` (a list of ACF
+- **Blocks:** `blocks/{dir}/` named `acf/` + the folder in kebab case (Gaffer sets the name, ACF Blocks V3 and rendering `functions.php` outside the editor; `block.json` holds title, description, category, icon); `fields.php` (a list of ACF
   field arrays without keys) and **the derived keys**:
   `group_{name}`, `field_{name}__{field}`, sub fields `…__{parent}__{field}`,
   layout fields `{type}-{label}`. Stored in post content: changing the

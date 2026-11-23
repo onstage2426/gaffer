@@ -7,9 +7,10 @@ description: Create or change an ACF block in a Gaffer theme (blocks/{name}/ wit
 
 1. Pick the closest existing block in `blocks/` and copy its files to
    `blocks/{camelName}/`. Rename the template to `{camelName}.twig`.
-2. `block.json`: `"name": "acf/{kebab-name}"` (the directory in kebab-case),
-   a real one-line `description`, the same `category` as the other blocks.
-3. `functions.php`: keep the `if (is_admin()) { return; }` guard first. Gather
+2. `block.json`: `title`, a real one-line `description`, the same `category`
+   as the other blocks, an `icon`. No `name` or `acf`: Gaffer names the block
+   `acf/{kebab-name}` after its directory and renders `functions.php`.
+3. `functions.php`: no editor guard (Gaffer renders nothing in the editor). Gather
    the data (`get_field()`, `(int)` casts, `Image::from()`, `Post::from()`,
    `Acf::block_array()`) directly in the
    `View::render('@block/{camelName}/{camelName}.twig', [...])` array.

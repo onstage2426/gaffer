@@ -62,18 +62,13 @@ final class Blocks
      */
     private static function dir(string $block): string
     {
-        $names = [];
-        foreach (glob(Paths::blocks() . '/*/block.json') ?: [] as $file) {
-            $json = json_decode((string) file_get_contents($file), true);
-            $name = is_array($json) && is_string($json['name'] ?? null) ? $json['name'] : null;
-            if ($name === $block && is_file(dirname($file) . '/fields.php')) {
-                return basename(dirname($file));
-            }
-            if ($name !== null) {
-                $names[] = $name;
+        $names = BlockFields::names();
+        foreach ($names as $dir => $name) {
+            if ($name === $block && is_file(Paths::blocks() . "/{$dir}/fields.php")) {
+                return $dir;
             }
         }
-        $suggestion = ConfigStubs::did_you_mean($block, $names);
+        $suggestion = ConfigStubs::did_you_mean($block, array_values($names));
 
         throw new InvalidArgumentException("No ACF block {$block} with a fields.php" . ($suggestion !== null ? " (did you mean {$suggestion}?)" : ''));
     }

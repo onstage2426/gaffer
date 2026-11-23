@@ -9,7 +9,6 @@ use Gaffer\AjaxAction;
 use Gaffer\AjaxArguments;
 use Gaffer\BlockFields;
 use Gaffer\Config;
-use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\ConfigStubs;
 use Gaffer\Console\Templates;
 use Gaffer\Console\ThemeFiles;
@@ -136,7 +135,7 @@ final class Reference
         $fields = self::block_fields();
         $lines = ["## Blocks\n"];
 
-        foreach (BlocksCheck::names() as $dir => $name) {
+        foreach (BlockFields::names() as $dir => $name) {
             $meta = json_decode((string) file_get_contents(Paths::blocks() . "/{$dir}/block.json"), true) ?: [];
             $lines[] = "- `{$name}` (`blocks/{$dir}/`): " . ($meta['title'] ?? $dir) . ' — ' . ($meta['description'] ?? '');
             if (isset($fields[$name])) {

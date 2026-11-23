@@ -60,6 +60,54 @@ final class Acf
     }
 
     /**
+     * What every theme block's block.json would repeat, filled in while Gaffer registers the
+     * theme's blocks (block_type_metadata): the name from the folder (BlockFields::name()),
+     * ACF Blocks V3, and functions.php rendered through render_block(). A block.json that
+     * says it itself keeps working; doctor warns that it can go.
+     *
+     * @internal
+     * @param array<string, mixed> $metadata
+     * @return array<string, mixed>
+     */
+    public static function block_metadata(array $metadata): array
+    {
+        $file = is_string($metadata['file'] ?? null) ? $metadata['file'] : '';
+        $metadata['name'] ??= BlockFields::name(basename(dirname($file)));
+        $acf = is_array($metadata['acf'] ?? null) ? $metadata['acf'] : [];
+        $acf['blockVersion'] ??= 3; // ACF's default depends on the ACF and WordPress versions
+        if (!isset($acf['renderCallback']) && ($acf['renderTemplate'] ?? 'functions.php') === 'functions.php') {
+            unset($acf['renderTemplate']);
+            $acf['renderCallback'] = self::class . '::render_block'; // a string: ACF passes block types to the editor as JSON
+        }
+        $metadata['acf'] = $acf;
+
+        return $metadata;
+    }
+
+    /**
+     * ACF's render callback for a theme block: its functions.php, with ACF's template variables
+     * ($block, $content, $is_preview, $post_id, $wp_block, $context). Nothing in the editor:
+     * previews are empty on purpose (ACF's own preview request and the REST renderer both).
+     *
+     * @internal
+     * @param array<string, mixed> $block
+     */
+    public static function render_block(array $block, mixed $content = '', mixed $is_preview = false, mixed $post_id = 0, mixed $wp_block = null, mixed $context = false): void
+    {
+        if ($is_preview === true || is_admin()) {
+            return;
+        }
+        $file = (is_string($block['path'] ?? null) ? $block['path'] : '') . '/functions.php';
+        if (!is_file($file)) {
+            throw new \LogicException("Block {$block['name']}: no {$file}");
+        }
+
+        (static function (string $__file, array $block, mixed $content, mixed $is_preview, mixed $post_id, mixed $wp_block, mixed $context): void {
+            require $__file;
+        })($file, $block, $content, $is_preview, $post_id, $wp_block, $context);
+    }
+
+    /**
      * Wraps a theme block's render callback (ACF's) so block_array() knows a block is
      * rendering: WordPress's own block type, not ACF's internals.
      *

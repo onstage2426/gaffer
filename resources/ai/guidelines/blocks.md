@@ -1,24 +1,22 @@
 ## ACF blocks (`blocks/`)
 
 One camelCase directory per block (the `gaffer-block` skill):
-`blocks/heroContent/` with `block.json` (name `acf/` + the directory in
-kebab-case, a real one-line description, the theme's category,
-`"acf": { "blockVersion": 3, "renderTemplate": "functions.php" }`),
-`fields.php` (its ACF fields, if any), `functions.php` and `heroContent.twig`.
+`blocks/heroContent/` with `block.json` (title, a real one-line description,
+the theme's category, an icon: nothing else), `fields.php` (its ACF fields, if
+any), `functions.php` and `heroContent.twig`. Gaffer names the block after its
+folder (`acf/hero-content`, stored in post content: renaming the folder renames
+the block), registers it as ACF Blocks V3 and runs `functions.php` only outside
+the editor (previews are empty on purpose).
 
 ```php
 // functions.php
-if (is_admin()) {
-    return; // editor previews are empty on purpose
-}
-
 View::render('@block/heroContent/heroContent.twig', [
     'title' => get_field('title'),
     'image' => Image::from((int) get_field('image')),
 ]);
 ```
 
-- The `is_admin()` guard first; objects resolved before rendering
+- Objects resolved before rendering
   (`Post::from()`, `Image::from()`, `Acf::block_array()`); every field read
   once, straight into the render array, by name in the block's own
   `functions.php` (an `app/` class doing the work gets the values passed).

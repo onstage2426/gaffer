@@ -239,7 +239,7 @@ included; the theme's own `.ai/guidelines/` get a `doctor` warning above 30 KB).
 - SHORTINIT and `ajax.php` stay: they're for other developers and projects,
   even when the starter doesn't use SHORTINIT. Improve the dispatcher, don't
   replace it with the REST API or WordPress routing.
-- ACF block editor previews are intentionally empty (`is_admin()` guard).
+- ACF block editor previews are intentionally empty (`Acf::render_block()`, since 2026-11-23; before, an `is_admin()` guard in every block).
 - The Twig cache is on by default (2026-11-21, the user; was off): a folder per Gaffer version, a
   key per template's modification time and size (a rollback recompiles), and a folder it can't
   write renders uncached (`Twig\Cache`, `Twig\Loader`). `theme.cache: false` turns it off.

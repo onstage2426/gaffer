@@ -10,7 +10,6 @@ use Gaffer\Console\Migrate\FieldReferences;
 use Gaffer\Console\Migrate\FieldTarget;
 use Gaffer\Console\Migrate\Reference;
 use Gaffer\FieldGroups;
-use Gaffer\Console\Checks\BlocksCheck;
 use Gaffer\Console\Migrate\BlockData;
 use Gaffer\Console\Migrate\Migration;
 use Gaffer\Paths;
@@ -80,7 +79,7 @@ final class MigrateAdoptFields extends MigrateCommand
     private function plan_blocks(Migration $migration, ?string $only): void
     {
         $blocks = array_filter(
-            BlocksCheck::names(),
+            BlockFields::names(),
             static fn(string $name, string $dir): bool => is_file(Paths::blocks() . "/{$dir}/fields.php") && (!is_string($only) || $only === $name),
             ARRAY_FILTER_USE_BOTH,
         );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gaffer\Console\Checks;
 
+use Gaffer\BlockFields;
 use Gaffer\Ai\Guidelines;
 use Gaffer\Ai\Installer;
 use Gaffer\Console\Report;
@@ -25,7 +26,7 @@ final class GuidelinesCheck implements Check
     #[\Override]
     public function run(Report $report): void
     {
-        $blocks = array_flip(BlocksCheck::names());
+        $blocks = array_flip(BlockFields::names());
         $files = [...glob(Paths::base('.ai/guidelines') . '/*.md') ?: [], ...glob(Paths::base('.ai/skills') . '/*/SKILL.md') ?: []];
 
         foreach ($files as $file) {

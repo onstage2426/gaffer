@@ -20,8 +20,8 @@ use Gaffer\Types\Term;
  * update or a server change shows up here instead of as lost form entries: Gravity Forms
  * still takes Gaffer's submissions (forms:probe on a throwaway form, not on production),
  * ajax.php answers over HTTP as Gaffer's dispatcher, the GET actions that need no arguments (or
- * only posts and terms) answer without a server error, the theme's private files aren't served, and Turnstile answers
- * arrive. Needs WordPress.
+ * only posts and terms) answer without a server error, the theme's private files aren't served,
+ * WooCommerce's Store API doesn't list hidden products, and Turnstile answers arrive. Needs WordPress.
  */
 final class ContractsCheck implements Check
 {
@@ -35,6 +35,7 @@ final class ContractsCheck implements Check
     public function run(Report $report): void
     {
         $this->private_files($report);
+        $this->store_api($report);
         if ($this->ajax($report)) {
             $this->get_actions($report);
         }
@@ -97,6 +98,29 @@ final class ContractsCheck implements Check
         }
         if ($served['warning'] !== []) {
             $report->warning('contracts', 'The web server serves theme files that show its versions: ' . implode(', ', $served['warning']), null, null, $hint);
+        }
+    }
+
+    /**
+     * WooCommerce's Store API lists products to anyone, hidden ones too when asked
+     * (`catalog_visibility=hidden`): their names, links and prices, whatever the theme's
+     * templates hide. Asked like a visitor without cookies; a warning, since a hidden product
+     * may be meant to be reachable by its link.
+     */
+    private function store_api(Report $report): void
+    {
+        if (!class_exists('WooCommerce')) {
+            return;
+        }
+        $url = \add_query_arg(['catalog_visibility' => 'hidden', 'per_page' => 1], \rest_url('wc/store/v1/products'));
+        $response = \wp_remote_get($url, ['timeout' => 20, 'redirection' => 0, 'sslverify' => false, 'cookies' => []]);
+        if (\is_wp_error($response) || (int) \wp_remote_retrieve_response_code($response) !== 200) {
+            return; // the route is off or blocked: nothing listed
+        }
+        $hidden = (int) \wp_remote_retrieve_header($response, 'x-wp-total');
+        if ($hidden > 0) {
+            $report->warning('contracts', "WooCommerce's Store API lists {$hidden} " . ($hidden === 1 ? 'product' : 'products') . " the catalog hides, to anyone: names, links and prices", null, null,
+                "{$url} answers without logging in (X-WP-Total). Products that must stay private must not be published (a draft or private post isn't listed); products meant for whoever has the link are listed with that link. Or block the route for visitors (rest_pre_dispatch) when nothing on the site uses it (the cart and checkout blocks do).");
         }
     }
 

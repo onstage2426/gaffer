@@ -9,6 +9,11 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-23
 
+- **`doctor --wp` warns when WooCommerce's Store API lists hidden products to anyone**
+  (`/wp-json/wc/store/v1/products?catalog_visibility=hidden`: their names, links and prices,
+  whatever the templates hide). Nothing changes at runtime. Check: `php gaffer doctor --wp`; a
+  product that must stay private isn't published.
+
 - **`Gaffer\Types\Product`: what every shop's product type had, in Gaffer.** A theme's `product`
   type now extends it instead of `Post` (`doctor` errors otherwise). It has `product()` (the
   `WC_Product`, a LogicException without one), `is_variable()`, `with_variation($attributes)`

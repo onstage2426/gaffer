@@ -455,6 +455,21 @@ final class ChecksTest extends TestCase
         self::assertSame(2, substr_count($messages, 'Reads the config key'));
     }
 
+    public function test_a_themes_product_type_extends_gaffers(): void
+    {
+        file_put_contents("{$this->theme}/config/theme.php", "<?php return ['types' => ['product' => \\Gaffer\\Types\\Post::class, 'page' => \\Gaffer\\Types\\Post::class]];");
+        Config::load("{$this->theme}/config");
+
+        $messages = $this->messages(new ConfigCheck());
+
+        self::assertStringContainsString("theme.types.product: Gaffer\\Types\\Post doesn't extend Gaffer\\Types\\Product", $messages);
+        self::assertStringNotContainsString('theme.types.page', $messages);
+
+        file_put_contents("{$this->theme}/config/theme.php", "<?php return ['types' => ['product' => \\Gaffer\\Types\\Product::class]];");
+        Config::load("{$this->theme}/config");
+        self::assertStringNotContainsString('theme.types', $this->messages(new ConfigCheck()));
+    }
+
     public function test_ajax_names_and_keys_templates_send(): void
     {
         mkdir("{$this->theme}/app/Ajax/CartRemove", 0755, true);

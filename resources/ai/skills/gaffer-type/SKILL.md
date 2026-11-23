@@ -6,12 +6,14 @@ description: Add or change a theme type in a Gaffer theme (a subclass of Gaffer\
 # Gaffer theme type
 
 1. Create `app/Types/{Name}.php`, namespace `Theme\Types`, extending
-   `Gaffer\Types\Post` (post types) or `Gaffer\Types\Term` (taxonomies).
+   `Gaffer\Types\Post` (post types) or `Gaffer\Types\Term` (taxonomies); WooCommerce's
+   `product` extends `Gaffer\Types\Product`.
 2. Map it in `config/theme.php`: `'types' => ['{post_type}' => Theme\Types\{Name}::class]`
    (or `'terms'` for taxonomies). From then on every factory returns it.
 3. No constructor or `build()`: read WordPress or plugin data lazily in
    methods and cache it in a private property. Extra context gets an explicit
-   method (`select_variation(array $attributes)`), never a factory argument.
+   method that returns a copy (`with_variation(array $attributes)`: `new static($this->wp)` keeps
+   the class and starts its caches empty), never a factory argument or a setter.
 4. Methods only where they add something; raw fields stay on `$this->wp`.
    snake_case names, explicit return types, `null` when data is missing (no
    fallbacks, unless the theme explicitly wants one, like a placeholder image).

@@ -31,5 +31,5 @@ theme's own types and their methods are in `gaffer-reference`.
 with `theme.types` / `theme.terms` in `config/theme.php`; every factory then
 returns it (the `gaffer-type` skill). No constructor to override: read data
 lazily in methods (cached in a private property) and pass extra context
-through an explicit method (`$product->select_variation($attributes)`). Only
+through an explicit method that returns a copy (`$product->with_variation($attributes)`). Only
 `thumbnail()` may be overridden; the other `Post`/`Term` methods are `final`.

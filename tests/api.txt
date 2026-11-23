@@ -138,6 +138,16 @@ class Gaffer\Types\Post
   final terms(string $taxonomy): array
   thumbnail(): ?Gaffer\Types\Image
   final title(): string
+class Gaffer\Types\Product extends Gaffer\Types\Post
+  final can_add_to_cart(): bool
+  final gallery(): array
+  final is_on_sale(): bool
+  final is_variable(): bool
+  final product(): WC_Product
+  final selected(): array
+  thumbnail(): ?Gaffer\Types\Image
+  final variation(): ?WC_Product_Variation
+  final with_variation(array $attributes): static
 class Gaffer\Types\Term
   readonly WP_Term $wp
   final ancestors(): array

@@ -10,6 +10,7 @@ use Gaffer\Console\ThemeFiles;
 use Gaffer\Config;
 use Gaffer\Paths;
 use Gaffer\Types\Post;
+use Gaffer\Types\Product;
 use Gaffer\Types\Term;
 
 /**
@@ -42,10 +43,13 @@ final class ConfigCheck implements Check
         $maps = ['theme.types' => Post::class, 'theme.terms' => Term::class];
         foreach ($maps as $key => $base) {
             foreach ((array) (Config::get($key) ?? []) as $type => $class) {
+                // WooCommerce's products: what every shop needs is Gaffer's Product.
+                $parent = $key === 'theme.types' && $type === 'product' ? Product::class : $base;
                 if (!class_exists($class)) {
                     $report->error('config', "{$key}.{$type}: class {$class} doesn't exist", Paths::base('config/theme.php'));
-                } elseif (!is_a($class, $base, true)) {
-                    $report->error('config', "{$key}.{$type}: {$class} doesn't extend {$base}", Paths::base('config/theme.php'));
+                } elseif (!is_a($class, $parent, true)) {
+                    $report->error('config', "{$key}.{$type}: {$class} doesn't extend {$parent}", Paths::base('config/theme.php'), null,
+                        $parent === Product::class ? 'class Product extends \\Gaffer\\Types\\Product (product(), with_variation(), gallery(), ...): see the CHANGELOG.' : null);
                 }
             }
         }

@@ -43,8 +43,10 @@ The classes and what each member does are in their docblocks. What those can't s
 doesn't have (the stored value otherwise, `''` included); `link()` is a string (`''` only for
 broken data). **Theme subclasses** of `Post` and `Term` (mapped in `theme.types` /
 `theme.terms`) may add methods and override `thumbnail()`; every other public method is
-`final`, and the constructor and factories are not theirs to change. A new public method on
-`Post`, `Term`, `Attachment` or `Image` (which could clash with a subclass's own method of that
+`final`, and the constructor and factories are not theirs to change. A theme's `product` type
+extends `Types\Product` (WooCommerce; `doctor` checks), which keeps the same rule: only
+`thumbnail()` may be overridden. A new public method on
+`Post`, `Product`, `Term`, `Attachment` or `Image` (which could clash with a subclass's own method of that
 name) comes only in a major, or in a minor after one minor in which `doctor` warned about theme
 methods with that name.
 

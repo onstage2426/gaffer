@@ -13,6 +13,10 @@
   `post_password_required()` (WooCommerce's template shows `get_the_password_form()`, which has no classes: style its field and
   button from the wrapper, or Tailwind's reset leaves them bare). Without `sidebar.php`, remove
   `woocommerce_get_sidebar` from `woocommerce_sidebar` (`doctor --wp` warns).
-- Map `product` to a theme type for product logic; keep `WC_Product` behind
-  its methods.
+- **Products:** map `product` to `app/Types/Product.php` extending `Gaffer\Types\Product`
+  (`product()`, `is_variable()`, `with_variation()`/`variation()`/`selected()`,
+  `can_add_to_cart()`, `is_on_sale()`, `thumbnail()`, `gallery()`); the theme adds its own
+  (prices, labels, attribute tables) and keeps `WC_Product` behind them. A selection is a copy:
+  `{% set product = product.with_variation(attributes) %}`. Who may buy what is WooCommerce's
+  `woocommerce_is_purchasable` filter, not a second method.
 - WooCommerce's term ordering keeps array keys: `reset($terms)`, not `$terms[0]`.

@@ -9,6 +9,32 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-23
 
+- **`Gaffer\Types\Product`: what every shop's product type had, in Gaffer.** A theme's `product`
+  type now extends it instead of `Post` (`doctor` errors otherwise). It has `product()` (the
+  `WC_Product`, a LogicException without one), `is_variable()`, `with_variation($attributes)`
+  (returns a **copy** with the matching variation; `variation()`, `selected()`),
+  `can_add_to_cart()`, `is_on_sale()`, `thumbnail()` (the variation's image, else the product's;
+  null without one: no placeholder) and `gallery()` (the product gallery without the main image).
+  All final but `thumbnail()`: a theme declaring one of the others fatals, so remove or rename
+  them in the same change. Find:
+  `grep -rnE "select_variation|hover_image|hover_thumbnail|function (product|is_variable|variation|selected|can_add_to_cart|is_on_sale|gallery|wc)\(|->variation\b|->selected\b" app views inc woocommerce blocks`.
+  - `class Product extends Post` → `class Product extends \Gaffer\Types\Product`; delete the
+    theme's `$product`/`$variation`/`$selected` properties and the methods above (its own private
+    `wc()` becomes `product()`); `$this->variation` → `$this->variation()`, `$this->selected` →
+    `$this->selected()`.
+  - `$product->select_variation($a);` → `$product = $product->with_variation($a);` (Twig:
+    `{% set product = product.with_variation(attributes) %}`). The old one changed the object
+    every partial shared; the copy doesn't, and a theme cache (a property filled lazily) starts
+    empty on it, so nothing selection-dependent needs resetting.
+  - A placeholder image: `return parent::thumbnail() ?? Image::from((int) get_option("woocommerce_placeholder_image"));`.
+  - A hover image: `product.gallery|first` (a `hover_image()` returning the second of "main image +
+    gallery" was the wrong image for a product without a main image). A gallery that included the
+    main image gets its own name (`exterior()`, `images()`).
+  - A rule on who may buy what goes in WooCommerce's `woocommerce_is_purchasable` filter, so
+    `can_add_to_cart()` and the cart agree.
+  Check: `php gaffer doctor --wp`, a product page with variations (pick each attribute; the price,
+  image and button follow), a card's hover image, adding to the cart.
+
 - **A build keeps a week of earlier builds' files** (Gaffer's Vite plugin): before, only the
   previous build's, so a page cache holding pages from two builds back served them without their
   JavaScript and CSS. Nothing to change; the next build after `composer update` takes it. Check:

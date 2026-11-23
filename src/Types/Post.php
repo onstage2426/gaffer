@@ -21,7 +21,7 @@ class Post
 
     private ?string $link = null;
 
-    protected function __construct(public readonly WP_Post $wp) {}
+    final protected function __construct(public readonly WP_Post $wp) {}
 
     /**
      * The post with this ID, as its mapped class. Null when it doesn't exist,

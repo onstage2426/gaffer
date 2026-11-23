@@ -434,6 +434,51 @@ final class ChecksTest extends TestCase
         self::assertStringNotContainsString('theme.cache ', $messages);
     }
 
+    public function test_config_keys_the_theme_reads(): void
+    {
+        file_put_contents("{$this->theme}/config/lease.php", "<?php return ['quote' => ['max_cars' => 3], 'note' => null, 'list' => [1, 2]];");
+        file_put_contents("{$this->theme}/config/theme.php", "<?php return ['types' => []];");
+        Config::load("{$this->theme}/config");
+        mkdir("{$this->theme}/app", 0755, true);
+        mkdir("{$this->theme}/views", 0755, true);
+        file_put_contents("{$this->theme}/app/Cart.php", "<?php\nConfig::get('lease.quote.max_cars');\nConfig::get('lease.quote.max_car');\nConfig::get('lease.note');\nConfig::get(\"lease.{\$x}\");\nConfig::get('theme.cache');\n\$this->config('nope.x');\n");
+        file_put_contents("{$this->theme}/views/x.twig", "{{ config('leas.quote') }} {{ config('lease.list.0') }} {{ config('turnstile.site_key') }}");
+
+        $messages = $this->messages(new ConfigCheck());
+
+        self::assertStringContainsString('Reads the config key lease.quote.max_car, which config/lease.php\'s lease.quote doesn\'t have', $messages);
+        self::assertContains('Did you mean lease.quote.max_cars?', array_column($this->findings(new ConfigCheck()), 'hint'));
+        self::assertStringContainsString('Reads the config key leas.quote, which config/leas.php doesn\'t have', $messages);
+        self::assertStringNotContainsString('lease.note', $messages); // set to null: defined
+        self::assertStringNotContainsString('theme.cache', $messages); // Gaffer's default
+        self::assertStringNotContainsString('nope.x', $messages); // not Config's
+        self::assertSame(2, substr_count($messages, 'Reads the config key'));
+    }
+
+    public function test_ajax_names_and_keys_templates_send(): void
+    {
+        mkdir("{$this->theme}/app/Ajax/CartRemove", 0755, true);
+        mkdir("{$this->theme}/views", 0755, true);
+        file_put_contents("{$this->theme}/app/Ajax/CartRemove/CartRemove.php", "<?php\nnamespace Theme\\Ajax\\CartRemove;\nfinal class CartRemove extends \\Gaffer\\AjaxAction\n{\n    public function run(string \$cart_item_key, array \$attributes = []): void {}\n}\n");
+        require_once "{$this->theme}/app/Ajax/CartRemove/CartRemove.php";
+        file_put_contents("{$this->theme}/views/cart.twig", <<<'TWIG'
+            <button hx-post="{{ ajax_url('CartRemove') }}" hx-vals='{ "cart_item_key": "{{ item.key }}", "attributes[pa_size]": "xl", "quantty": 1 }'>x</button>
+            <button hx-post="{{ ajax_url('CartRemove') }}" hx-vals="{{ { key: item.key }|json_encode }}">x</button>
+            <button hx-post="/?wc-ajax=remove_coupon" hx-vals='{ "security": "x" }'>x</button>
+            <a hx-get="{{ ajax_url('CartRmove') }}">x</a> <form hx-post="{{ ajax_url('Form') }}"></form>
+            TWIG);
+
+        $messages = $this->messages(new AjaxCheck());
+
+        self::assertStringContainsString('hx-vals sends "quantty" to CartRemove, whose run() has no $quantty', $messages);
+        self::assertStringNotContainsString('"cart_item_key"', $messages);
+        self::assertStringNotContainsString('"attributes"', $messages);
+        self::assertStringNotContainsString('security', $messages); // not an ajax action
+        self::assertStringContainsString('Calls the ajax action CartRmove, which doesn\'t exist (404)', $messages);
+        self::assertContains('Did you mean CartRemove?', array_column($this->findings(new AjaxCheck()), 'hint'));
+        self::assertStringNotContainsString('action Form', $messages); // Gaffer's own
+    }
+
     public function test_env_file(): void
     {
         file_put_contents("{$this->theme}/.env", "# comment\nSITE_URL=\"https://blueprint.test\"\nEMPTY=\n");

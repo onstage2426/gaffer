@@ -9,6 +9,13 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-23
 
+- **`doctor` checks the names a theme writes as strings.** A literal `Config::get('a.b')` or Twig
+  `config('a.b')` key that `config/` doesn't have, and an `ajax_url('Name')`/`Ajax::url('Name')`
+  for an action that doesn't exist, are errors (each read null or answered 404 without a word);
+  a literal `hx-vals` key that the action's `run()` has no parameter for is a warning (it's
+  ignored). Nothing changes at runtime. Check: `php gaffer doctor`; a key that may be unset gets
+  `=> null` in its config file.
+
 - **File inputs are named `fields[x]` like every other input** (`fields[x][]` with `multiple`).
   `files[x]` keeps working, so nothing breaks; doctor no longer asks for the two names. Find:
   `grep -rn 'files\[' views`. Before: `<input type="file" name="files[fotos][]" multiple>`; after:

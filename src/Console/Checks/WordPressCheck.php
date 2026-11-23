@@ -666,10 +666,6 @@ final class WordPressCheck implements Check
             $report->error('forms', 'views/forms/ has form templates, but Gravity Forms is not active');
             return;
         }
-        if (!is_file(Paths::ajax() . '/Form/Form.php')) {
-            $report->error('forms', 'No app/Ajax/Form/Form.php: forms post to it', null, null,
-                'class Form extends \\Gaffer\\Forms\\FormAction {} in namespace Theme\\Ajax\\Form.');
-        }
 
         foreach ($templates as $name => $file) {
             $gravity = GravityForm::find($name);

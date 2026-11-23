@@ -47,7 +47,7 @@ final class AjaxCall extends Command
             return self::FAILURE;
         };
 
-        $class = in_array($action, Ajax::actions(), true) ? Ajax::action_class($action) : null;
+        $class = in_array($action, Ajax::actions(), true) || isset(Ajax::OWN[$action]) ? Ajax::action_class($action) : null;
         if ($class === null) {
             return $fail("No ajax action {$action} (actions: " . implode(', ', Ajax::actions()) . ')');
         }

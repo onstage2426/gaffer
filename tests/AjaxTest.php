@@ -31,6 +31,11 @@ final class AjaxTest extends TestCase
         self::assertTrue(trait_exists('Theme\\Ajax\\Ping\\Pong', false));
         self::assertNull(Ajax::action_class('Broken'));
         self::assertNull(Ajax::action_class('Missing'));
+        // Forms post to Form: Gaffer's own unless the theme has the file.
+        self::assertSame(\Gaffer\Forms\FormAction::class, Ajax::action_class('Form'));
+        mkdir("{$theme}/app/Ajax/Form", 0755, true);
+        file_put_contents("{$theme}/app/Ajax/Form/Form.php", "<?php\nnamespace Theme\\Ajax\\Form;\nclass Form extends \\Gaffer\\Forms\\FormAction {}\n");
+        self::assertSame('Theme\\Ajax\\Form\\Form', Ajax::action_class('Form'));
 
         // doctor --wp calls the GET actions that need no argument
         foreach ([

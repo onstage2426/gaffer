@@ -22,6 +22,13 @@ final class Ajax
     public const string NAMESPACE = 'Theme\\Ajax';
 
     /**
+     * Actions Gaffer answers itself when the theme has no app/Ajax/{Name}/{Name}.php.
+     *
+     * @internal
+     */
+    public const array OWN = ['Form' => Forms\FormAction::class];
+
+    /**
      * Entry point for the theme's ajax.php: answers the request and exits.
      */
     public static function boot(string $dir): void
@@ -59,8 +66,8 @@ final class Ajax
     }
 
     /**
-     * The class of an action: null when its file doesn't define
-     * {NAMESPACE}\{Name}\{Name} extending AjaxAction.
+     * The class of an action: the theme's {NAMESPACE}\{Name}\{Name} extending AjaxAction, or
+     * Gaffer's own (OWN) when the theme has no file for it; null when the file doesn't define it.
      *
      * @return class-string<AjaxAction>|null
      *
@@ -69,6 +76,9 @@ final class Ajax
     public static function action_class(string $name): ?string
     {
         $class = self::NAMESPACE . "\\{$name}\\{$name}";
+        if (!is_file(Paths::ajax() . "/{$name}/{$name}.php") && isset(self::OWN[$name])) {
+            return self::OWN[$name];
+        }
 
         return is_subclass_of($class, AjaxAction::class) ? $class : null;
     }
@@ -94,7 +104,7 @@ final class Ajax
             self::fail(400);
         }
 
-        if (!is_file(Paths::ajax() . "/{$action}/{$action}.php")) {
+        if (!is_file(Paths::ajax() . "/{$action}/{$action}.php") && !isset(self::OWN[$action])) {
             self::fail(404);
         }
 

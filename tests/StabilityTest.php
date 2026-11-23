@@ -98,12 +98,15 @@ final class StabilityTest extends TestCase
         }
         mkdir("{$this->theme}/app/Ajax/Contact");
         file_put_contents("{$this->theme}/app/Ajax/Contact/Contact.php", "<?php\nclass Contact extends FormAction\n{\n    public function run(string \$email): void {}\n}");
+        mkdir("{$this->theme}/app/Ajax/Form");
+        file_put_contents("{$this->theme}/app/Ajax/Form/Form.php", "<?php\n\nnamespace Theme\\Ajax\\Form;\n\nuse Gaffer\\Forms\\FormAction;\n\n/** Every form posts here. */\nclass Form extends FormAction {}\n");
 
         Gaffer::twig();
         $found = array_map(static fn(array $f): string => basename((string) $f['file']) . ':' . $f['line'] . ' ' . $f['message'], $this->findings(new FormsCheck()));
         sort($found);
 
         self::assertSame([
+            'Form.php: app/Ajax/Form/ only repeats Gaffer\'s form action',
             'NotifyMe.php:4 Takes an e-mail address without a spam check',
             'QuoteForm.php:3 Reads Gaffer\'s honeypot or Turnstile field itself',
             'assets.php: Loads or renders Turnstile itself',

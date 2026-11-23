@@ -8,8 +8,8 @@ use Gaffer\AjaxAction;
 use Gaffer\View;
 
 /**
- * The one ajax action every form posts to (the theme's app/Ajax/Form/Form.php
- * extends it). Checks the honeypot and Turnstile, submits to the Gravity Forms
+ * The one ajax action every form posts to: `Form` (the dispatcher's own when the theme has no
+ * app/Ajax/Form/Form.php; before 2026-11-23 every theme extended it there). Checks the honeypot and Turnstile, submits to the Gravity Forms
  * form named like the template, and answers with views/forms/{form}.twig
  * re-rendered (errors, or sent), or an HX-Redirect for a confirmation page.
  * Spam gets the same answer as a submission; outside production with an
@@ -19,7 +19,7 @@ use Gaffer\View;
  * `files[field][]` (multipart) for File Upload fields; spam never reaches Gravity
  * Forms, so its files are never stored (PHP deletes a request's uploads).
  */
-abstract class FormAction extends AjaxAction
+class FormAction extends AjaxAction
 {
     public const string METHOD = 'POST';
 

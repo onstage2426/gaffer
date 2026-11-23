@@ -48,6 +48,12 @@ final class FormsCheck implements Check
             }
         }
 
+        $form = Paths::ajax() . '/Form/Form.php';
+        if (is_file($form) && preg_match('/class\s+Form\s+extends\s+\\\\?(?:Gaffer\\\\Forms\\\\)?FormAction\s*\{\s*\}/', (string) file_get_contents($form))) {
+            $report->warning('forms', 'app/Ajax/Form/ only repeats Gaffer\'s form action', $form, null,
+                'Gaffer answers forms itself when the theme has no app/Ajax/Form/: delete the folder (CHANGELOG 2026-11-23).');
+        }
+
         foreach (ThemeFiles::find(['php'], Paths::ajax()) as $file) {
             $code = (string) file_get_contents($file);
             if (preg_match('/\$(?:website|turnstile)\b|\$_(?:POST|REQUEST)\[\s*[\'"](?:website|turnstile|form_name)[\'"]/', $code, $m, PREG_OFFSET_CAPTURE)) {

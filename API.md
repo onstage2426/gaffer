@@ -57,7 +57,7 @@ method, 413 for a request larger than PHP's `post_max_size`, 500 for an action f
 class. Every answer has `Cache-Control: no-store` and `X-Robots-Tag: noindex`. An action renders
 without `View::share()`'s data (that's for the page shell).
 
-**Forms**: the theme's form action extends `Forms\FormAction`; every form template includes
+**Forms**: every form posts to Gaffer's `Form` action (`Forms\FormAction`; a theme's own `app/Ajax/Form/` replaces it); every form template includes
 `@gaffer/forms/meta.twig` (below).
 
 **Search** is experimental (see above): `Gaffer\Search\*` and `config/search.php`'s keys,

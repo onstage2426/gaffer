@@ -88,9 +88,8 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
 5. Render it from PHP with `FormState::blank('{name}')` passed in (a block's
    `functions.php`, `footer.php`, ...) and include it with
    `with_context = false`.
-6. The theme has one `app/Ajax/Form/Form.php` (`class Form extends
-   \Gaffer\Forms\FormAction {}`) for every form; create it only if it's
-   missing.
+6. Every form posts to Gaffer's own `Form` action: the theme has no
+   `app/Ajax/Form/` (an old one that only extends `FormAction` can go).
 7. Run `php gaffer doctor --wp` (form exists, only known fields, every
    required one sent, fields without an Admin Field Label, files sent as
    `files[x]` from a multipart form, the meta partial; outside production it

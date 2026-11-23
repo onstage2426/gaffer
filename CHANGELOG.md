@@ -9,6 +9,14 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-23
 
+- **Gaffer answers forms itself: `app/Ajax/Form/` can go.** Every theme had the same
+  `class Form extends \Gaffer\Forms\FormAction {}`; the dispatcher now uses `FormAction` (no
+  longer abstract) when the theme has no `app/Ajax/Form/Form.php`. A theme that keeps the file keeps
+  working. Find: `php gaffer doctor` ("app/Ajax/Form/ only repeats Gaffer's form action"). Before:
+  `app/Ajax/Form/Form.php` with the empty class; after: `rm -r app/Ajax/Form`, then `composer
+  dump-autoload` when the theme uses a classmap. Check: submit a form for real (an entry, one with
+  errors) and `php gaffer doctor --wp`.
+
 - **Gaffer writes each block's boilerplate.** A block is named `acf/` + its folder in kebab case,
   registered as ACF Blocks V3, and its `functions.php` runs only outside the editor (previews were
   already empty on purpose). `block.json` keeps title, description, category and icon; the `name`,

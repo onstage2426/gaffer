@@ -243,7 +243,14 @@ included; the theme's own `.ai/guidelines/` get a `doctor` warning above 30 KB).
 - The Twig cache is on by default (2026-11-21, the user; was off): a folder per Gaffer version, a
   key per template's modification time and size (a rollback recompiles), and a folder it can't
   write renders uncached (`Twig\Cache`, `Twig\Loader`). `theme.cache: false` turns it off.
-- No code generators (`make:*`); `doctor` enforces conventions instead.
+- No code generators (`make:*`); `doctor` enforces conventions instead. But where `doctor` only
+  checks boilerplate every theme repeats, Gaffer writes it (2026-11-23: block name/ACF settings/
+  editor guard, the form action).
+- No typed field values (2026-11-23, the user): `get_field()` plus a visible cast
+  (`Image::from((int) get_field('x'))`) stays; typing values by field type would be a
+  Gaffer-maintained map of ACF types and return formats. Typos in names are `doctor`'s job.
+- Vite entries stay listed in `vite.config.js` (2026-11-23): the top-level files of `assets/css/`
+  and `assets/js/` aren't all entries (partials like `fonts.css`, `alpine.js` are imported).
 - Where files live (2026-11-22/23, the user): code in the theme (`acf-json/` too, never under
   `storage/`); the site's own data in `uploads/gaffer/` (`Storage::private_dir()`: visitors'
   uploads, Gaffer's logs, migrate backups; per site on a multisite, kept by deploys and host

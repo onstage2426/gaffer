@@ -15,8 +15,8 @@ use Gaffer\View;
  * Spam gets the same answer as a submission; outside production with an
  * X-Gaffer-Spam header with the reason (Spam::log()). The form key, the honeypot and
  * the Turnstile widget are written by Gaffer's @gaffer/forms/meta.twig, so both ends
- * change together. Files come as `files[field]` /
- * `files[field][]` (multipart) for File Upload fields; spam never reaches Gravity
+ * change together. Files come as `fields[field]` / `fields[field][]` (multipart) for File
+ * Upload fields, like the other inputs (`files[…]` before 2026-11-23 still works); spam never reaches Gravity
  * Forms, so its files are never stored (PHP deletes a request's uploads).
  */
 class FormAction extends AjaxAction
@@ -63,7 +63,9 @@ class FormAction extends AjaxAction
                 $kept[$field] = array_values(array_filter($values, 'is_string'));
             }
         }
-        $result = $gravity->submit($fields, Uploads::by_field($_FILES['files'] ?? null), $kept);
+        // Files under fields[x] like every other input; files[x] as before 2026-11-23.
+        $files = Uploads::by_field($_FILES['fields'] ?? null) + Uploads::by_field($_FILES['files'] ?? null);
+        $result = $gravity->submit($fields, $files, $kept);
         if (!$result['valid']) {
             $this->render(new FormState($form, $fields, $result['errors'], message: $result['message'], failed: $result['failed'], files: $result['kept']));
             return;

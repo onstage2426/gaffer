@@ -41,8 +41,8 @@ final class FormTemplates
     }
 
     /**
-     * Names a template sends literally under one request key: `fields[x]`, or
-     * `files[x]` (with `$list`: only `files[x][]`, several files).
+     * Names a template sends literally under one request key, `fields[x]` or `files[x]`
+     * (with `$list`: only `…[x][]`, several values or files).
      *
      * @param 'fields'|'files' $key
      * @return list<string>

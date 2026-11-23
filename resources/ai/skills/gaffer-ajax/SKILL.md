@@ -28,7 +28,7 @@ calls the action over HTTP the way htmx does (the action's own method,
 `HX-Request`), and prints the status, the `HX-*`/`X-Gaffer-*`/`Location`
 headers and the HTML (or only `--select`'s elements). Array keys work:
 `"attributes[pa_size]=xl"`, `"fields[email]=a@b.nl"`. It doesn't send files:
-for an action that takes uploads, use `curl -F "files[x]=@photo.jpg"` with an
+for an action that takes uploads, use `curl -F "fields[x]=@photo.jpg"` with an
 `HX-Request: true` header against `ajax_url()`'s URL.
 
 - `--session=<name>` keeps the visitor's cookies between calls, so a sequence

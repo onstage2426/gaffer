@@ -693,8 +693,8 @@ final class WordPressCheck implements Check
     }
 
     /**
-     * File Upload fields: sent as files[x] (files[x][] when several), from a form that
-     * sends multipart; other fields not as files.
+     * File Upload fields: from a form that sends multipart, fields[x][] (or the older files[x][])
+     * when the field takes several files; files[x] only for File Upload fields.
      *
      * @param list<string> $sent
      */
@@ -705,19 +705,16 @@ final class WordPressCheck implements Check
             $report->error('forms', 'Sends files without multipart, so none arrive', $file, null,
                 'Add hx-encoding="multipart/form-data" to the <form>.');
         }
-        foreach (FormTemplates::literal_names($file, 'fields') as $name) {
-            if (isset($uploads[$name])) {
-                $report->error('forms', "Sends the File Upload field \"{$name}\" as fields[{$name}]", $file, null,
-                    "Files go as <input type=\"file\" name=\"files[{$name}]\">, or files[{$name}][] with multiple.");
+        $several = [...FormTemplates::literal_names($file, 'fields', list: true), ...FormTemplates::literal_names($file, 'files', list: true)];
+        foreach ([...FormTemplates::literal_names($file, 'fields'), ...FormTemplates::literal_names($file, 'files')] as $name) {
+            if (isset($uploads[$name]) && $uploads[$name]->multipleFiles && !in_array($name, $several, true)) {
+                $report->warning('forms', "Sends one file for \"{$name}\", a field that takes several: only one arrives", $file, null,
+                    "Name the input fields[{$name}][] and give it multiple.");
             }
         }
-        $several = FormTemplates::literal_names($file, 'files', list: true);
         $fields = $gravity->fields();
         foreach (FormTemplates::literal_names($file, 'files') as $name) {
-            if (isset($uploads[$name]) && $uploads[$name]->multipleFiles && !in_array($name, $several, true)) {
-                $report->warning('forms', "Sends files[{$name}] for a field that takes several files: only one arrives", $file, null,
-                    "Name the input files[{$name}][] and give it multiple.");
-            } elseif (!isset($uploads[$name]) && isset($fields[$name])) {
+            if (!isset($uploads[$name]) && isset($fields[$name])) {
                 $report->error('forms', "Sends \"{$name}\" as files[{$name}], but it isn't a File Upload field in {$gravity->title()}", $file, null,
                     "Send it as fields[{$name}].");
             }

@@ -52,7 +52,7 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
    ```twig
    <form hx-post="{{ ajax_url('Form') }}" hx-target="#form-schade" hx-swap="outerHTML" hx-encoding="multipart/form-data" hx-disable="find button" novalidate>
        ...
-       <input type="file" name="files[fotos][]" multiple accept="image/*" data-gaffer-resize="2000">
+       <input type="file" name="fields[fotos][]" multiple accept="image/*" data-gaffer-resize="2000">
        {% for file in form.files('fotos') %}
            <span>{{ file.name }}<input type="hidden" name="kept_files[fotos][]" value="{{ file.value }}">
                <button type="button" @click="$el.parentElement.remove()" aria-label="{{ 'Verwijderen'|t }}">×</button></span>
@@ -61,8 +61,8 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
    ```
    - The `<form>` tag with `hx-encoding` may sit in a partial that several
      form templates include (doctor follows the include).
-   - `files[x][]` + `multiple` for a multi-file field, `files[x]` for one
-     file. `accept` only filters the picker. No `capture`: phones then offer
+   - `fields[x][]` + `multiple` for a multi-file field, `fields[x]` for one
+     file (the same key as every other input; `files[x]` is the older name). `accept` only filters the picker. No `capture`: phones then offer
      camera and library.
    - After errors, `form.files('x')` are the files Gravity Forms kept
      (`name`, `value`): list them and send each `value` back as
@@ -91,8 +91,8 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
 6. Every form posts to Gaffer's own `Form` action: the theme has no
    `app/Ajax/Form/` (an old one that only extends `FormAction` can go).
 7. Run `php gaffer doctor --wp` (form exists, only known fields, every
-   required one sent, fields without an Admin Field Label, files sent as
-   `files[x]` from a multipart form, the meta partial; outside production it
+   required one sent, fields without an Admin Field Label, files sent
+   from a multipart form, the meta partial; outside production it
    also submits to a throwaway Gravity Forms form to check that Gravity Forms
    still stores Gaffer's submissions right), then submit it
    for real through the web server: a valid entry (use an e-mail address on a real domain), one with errors,
@@ -100,6 +100,6 @@ description: Create or change a form in a Gaffer theme (a Gravity Forms form wit
    isn't proof: check the response has no `X-Gaffer-Spam` header and that the
    entry and the e-mail exist (a script gets no Turnstile token, so with
    Turnstile on, test valid entries in a browser or ask the user). Delete your
-   test entries by ID afterwards. Files: `curl -F 'files[fotos][]=@photo.jpg'
+   test entries by ID afterwards. Files: `curl -F 'fields[fotos][]=@photo.jpg'
    -F form_name=... -H 'HX-Request: true'` to the action's URL (`ajax:call` sends
    no files); test shrinking in a browser.

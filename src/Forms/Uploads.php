@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Gaffer\Forms;
 
 /**
- * The files a form sent (`files[field]` or `files[field][]`, multipart), turned
+ * The files a form sent (`fields[field]` or `fields[field][]`, multipart; `files[…]` before
+ * 2026-11-23), turned
  * from PHP's $_FILES['files'] shape (each property keyed by field) into one
  * $_FILES-style entry per field, as Gravity Forms reads `$_FILES['input_{id}']`.
  *

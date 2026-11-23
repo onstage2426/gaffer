@@ -118,6 +118,8 @@ final class FormsTest extends TestCase
             'formulier' => ['name' => 'f.pdf', 'type' => 'application/pdf', 'tmp_name' => '/tmp/p3', 'error' => 0, 'size' => 30],
         ], Uploads::by_field($files));
         self::assertSame([], Uploads::by_field(null));
+        // fields[x] (since 2026-11-23) has the same shape as files[x]
+        self::assertSame(Uploads::by_field($files), Uploads::by_field(['fields' => $files]['fields']));
         self::assertSame([], Uploads::by_field(['name' => 'a.jpg']));
     }
 

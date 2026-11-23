@@ -9,6 +9,12 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-23
 
+- **File inputs are named `fields[x]` like every other input** (`fields[x][]` with `multiple`).
+  `files[x]` keeps working, so nothing breaks; doctor no longer asks for the two names. Find:
+  `grep -rn 'files\[' views`. Before: `<input type="file" name="files[fotos][]" multiple>`; after:
+  `<input type="file" name="fields[fotos][]" multiple>` (`kept_files[...]` stays). Check: submit the
+  form with a file for real and see it in the entry.
+
 - **Gaffer answers forms itself: `app/Ajax/Form/` can go.** Every theme had the same
   `class Form extends \Gaffer\Forms\FormAction {}`; the dispatcher now uses `FormAction` (no
   longer abstract) when the theme has no `app/Ajax/Form/Form.php`. A theme that keeps the file keeps

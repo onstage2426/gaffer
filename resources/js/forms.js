@@ -8,7 +8,7 @@
  *
  * An input opts in with the longest side in pixels:
  *
- *   <input type="file" name="files[fotos][]" multiple accept="image/*,.pdf" data-gaffer-resize="2000">
+ *   <input type="file" name="fields[fotos][]" multiple accept="image/*,.pdf" data-gaffer-resize="2000">
  *
  * A JPEG, PNG, WebP or HEIC photo larger than that is drawn at that size and sent as JPEG
  * (quality 0.85, the name's extension becomes .jpg: allow jpg in Gravity Forms). HEIC is always

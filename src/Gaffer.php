@@ -59,6 +59,7 @@ final class Gaffer
         Turnstile::register();
         Mcp::register();
         Search\Integration::register();
+        Purchases::register();
     }
 
     /**

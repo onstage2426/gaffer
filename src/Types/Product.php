@@ -16,7 +16,9 @@ use WC_Product_Variation;
  *
  * A selected variation is a copy: with_variation() returns a new object, so a selection made
  * for one partial (a card, the product page) never leaks into another. Every method is final
- * but thumbnail(), which a theme may override (a placeholder, images from elsewhere).
+ * but thumbnail(), which a theme may override (a placeholder, images from elsewhere), and the
+ * two a shop overrides whose stock and prices live elsewhere: confirm_purchase() and
+ * price_changed_notice().
  */
 class Product extends Post
 {
@@ -103,6 +105,37 @@ class Product extends Post
     {
         return Image::from((int) $this->variation?->get_image_id())
             ?? Image::from((int) $this->product()->get_image_id());
+    }
+
+    /**
+     * Whether this can be bought right now, asked of the system that owns its stock and price (an
+     * ERP, a dealer system) when WordPress only holds a copy. Override it and Gaffer asks it at
+     * every step that sells: when it goes into a cart (any way: a form, `?add-to-cart=`, the
+     * Store API, a theme's own `WC()->cart->add_to_cart()`), on the cart and checkout pages, when
+     * the order is placed and before an existing order is paid. Return null when it can be
+     * bought, or the reason it can't (shown to the customer; the item leaves the cart).
+     *
+     * Bring WordPress's copy up to date here (the price, the stock): Gaffer reads the price
+     * after this and refuses a checkout or payment when it changed since the customer last saw
+     * it (price_changed_notice()). An exception refuses too, with WooCommerce's "try again"
+     * message (the source couldn't be asked: never sell on an unconfirmed answer), and is logged.
+     * It runs again at each step (once per request): make it safe to repeat. Two customers
+     * buying the last one at once is the source's to settle (a reservation it refuses twice).
+     * Without an override (the default), Gaffer asks nothing and checks no prices.
+     */
+    public function confirm_purchase(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * The notice when the price changed since the customer last saw it (prices as wc_price()
+     * HTML). The checkout or payment stops once; with the new price shown, it goes through.
+     * Override it for the site's language.
+     */
+    public function price_changed_notice(string $was, string $now): string
+    {
+        return sprintf('The price of %s changed from %s to %s. Check the new total and try again.', $this->title(), $was, $now);
     }
 
     /**

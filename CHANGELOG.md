@@ -9,6 +9,21 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-23
 
+- **Shops whose stock or prices live in another system can have Gaffer check every sale live:
+  `confirm_purchase()`.** Nothing changes unless the theme's `Product` overrides it (return null
+  when it can be bought now, or the reason it can't; bring WordPress's copy of the price and stock
+  up to date in it; throw when the system can't be asked). Gaffer then asks it when the product
+  goes into a cart by any route (forms, `?add-to-cart=`, the Store API, the theme's own
+  `WC()->cart->add_to_cart()`), on the cart and checkout pages, when the order is placed and
+  before an existing order is paid, and stops a checkout or payment once when the price changed
+  since the customer saw it (`price_changed_notice()`, English by default: override it for the
+  site's language). A theme that freezes a price in the cart (`$cart_item['data']->set_price()`
+  from a stored cart item value) charges the old price anyway: move per-customer prices to
+  WooCommerce's `woocommerce_product_get_price` filter. Find:
+  `grep -rn "set_price\|custom_price\|woocommerce_add_cart_item\b" app inc`.
+  Check: with an override, add a product, change its price, open the checkout (one notice, then
+  the new total) and place a test order.
+
 - **`doctor --wp` warns when WooCommerce's Store API lists hidden products to anyone**
   (`/wp-json/wc/store/v1/products?catalog_visibility=hidden`: their names, links and prices,
   whatever the templates hide). Nothing changes at runtime. Check: `php gaffer doctor --wp`; a

@@ -18,5 +18,8 @@
   `can_add_to_cart()`, `is_on_sale()`, `thumbnail()`, `gallery()`); the theme adds its own
   (prices, labels, attribute tables) and keeps `WC_Product` behind them. A selection is a copy:
   `{% set product = product.with_variation(attributes) %}`. Who may buy what is WooCommerce's
-  `woocommerce_is_purchasable` filter, not a second method.
+  `woocommerce_is_purchasable` filter, not a second method. A price per customer is WooCommerce's
+  `woocommerce_product_get_price` filter too, never a price stored in the cart item (it would be
+  charged after it changed). Stock or prices owned by another system (an ERP, a dealer system):
+  override `confirm_purchase()` to ask it live (its docblock); Gaffer calls it at every buy step.
 - WooCommerce's term ordering keeps array keys: `reset($terms)`, not `$terms[0]`.

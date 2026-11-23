@@ -140,9 +140,11 @@ class Gaffer\Types\Post
   final title(): string
 class Gaffer\Types\Product extends Gaffer\Types\Post
   final can_add_to_cart(): bool
+  confirm_purchase(): ?string
   final gallery(): array
   final is_on_sale(): bool
   final is_variable(): bool
+  price_changed_notice(string $was, string $now): string
   final product(): WC_Product
   final selected(): array
   thumbnail(): ?Gaffer\Types\Image

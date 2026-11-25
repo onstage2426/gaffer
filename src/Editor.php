@@ -36,7 +36,12 @@ final class Editor
             }
         });
         add_action('enqueue_block_assets', static function (): void {
-            $url = is_admin() ? self::url() : null;
+            // The hook also fires for the admin page around the editor (and the Customizer's,
+            // the site editor's): Tailwind's preflight there would restyle WordPress's own UI.
+            // Only while WordPress collects the iframe's assets does it turn the editor's own
+            // scripts and styles off (_wp_get_iframed_editor_assets()), so that's the canvas.
+            // Without an iframe, the stylesheet goes nowhere: previews unstyled, the admin intact.
+            $url = is_admin() && !wp_should_load_block_editor_scripts_and_styles() ? self::url() : null;
             if ($url !== null) {
                 wp_enqueue_style('gaffer-editor', $url, [], null);
                 wp_add_inline_style('gaffer-editor', self::CANVAS);

@@ -7,6 +7,7 @@ namespace Gaffer\Console\Checks;
 use Gaffer\Ajax;
 use Gaffer\Config;
 use Gaffer\Console\Report;
+use Gaffer\Editor;
 use Gaffer\Forms\FormTemplates;
 use Gaffer\Forms\Spam;
 use Gaffer\Mcp\GafferCli;
@@ -14,6 +15,7 @@ use Gaffer\Storage;
 use Gaffer\Turnstile;
 use Gaffer\Types\Post;
 use Gaffer\Types\Term;
+use Gaffer\Vite;
 
 /**
  * What a site's running code relies on outside Gaffer, tried for real so that a plugin
@@ -21,7 +23,8 @@ use Gaffer\Types\Term;
  * still takes Gaffer's submissions (forms:probe on a throwaway form, not on production),
  * ajax.php answers over HTTP as Gaffer's dispatcher, the GET actions that need no arguments (or
  * only posts and terms) answer without a server error, the theme's private files aren't served,
- * WooCommerce's Store API doesn't list hidden products, and Turnstile answers arrive. Needs WordPress.
+ * WooCommerce's Store API doesn't list hidden products, the editor's iframe gets the theme's
+ * editor.css without the admin's styles, and Turnstile answers arrive. Needs WordPress.
  */
 final class ContractsCheck implements Check
 {
@@ -36,6 +39,7 @@ final class ContractsCheck implements Check
     {
         $this->private_files($report);
         $this->store_api($report);
+        $this->editor_canvas($report);
         if ($this->ajax($report)) {
             $this->get_actions($report);
         }
@@ -44,6 +48,48 @@ final class ContractsCheck implements Check
         }
         $this->gravity_forms($report);
         $this->turnstile($report);
+    }
+
+    /**
+     * With an editor.css entry, the editor's iframe as WordPress assembles it for the post editor
+     * (the settings Gaffer's Editor filters): the theme's stylesheet in it, and no admin
+     * stylesheet (wp-admin/css/, the editor reset) left. Both rest on what WordPress doesn't
+     * promise (`__unstableResolvedAssets`, the handles): after a WordPress update they fail
+     * quietly, as previews whose spacing no longer matches the site. Never breaks the editor.
+     */
+    private function editor_canvas(Report $report): void
+    {
+        if (Vite::url(Editor::ENTRY) === null || !function_exists('get_block_editor_settings')) {
+            return;
+        }
+        require_once ABSPATH . 'wp-admin/includes/admin.php';
+        $screen = $GLOBALS['current_screen'] ?? null;
+        try {
+            \set_current_screen('post'); // is_admin(), as on the post editor
+            $settings = \get_block_editor_settings([], new \WP_Block_Editor_Context(['name' => 'core/edit-post']));
+        } catch (\Throwable $e) {
+            $report->warning('contracts', "The block editor's settings couldn't be read: {$e->getMessage()}");
+            return;
+        } finally {
+            $GLOBALS['current_screen'] = $screen;
+        }
+
+        $hint = 'Block previews still render, but WordPress changed how it builds the editor\'s iframe: a Gaffer update adapts Editor.';
+        $styles = $settings['__unstableResolvedAssets']['styles'] ?? null;
+        if (!is_string($styles)) {
+            $report->warning('contracts', "WordPress no longer gives the editor's iframe styles as __unstableResolvedAssets: the admin's styles stay in block previews", null, null, $hint);
+            return;
+        }
+        if (!str_contains($styles, 'gaffer-editor-css')) {
+            $report->warning('contracts', 'The editor\'s iframe doesn\'t get ' . Editor::ENTRY . ': block previews are unstyled', null, null, $hint);
+        }
+        preg_match_all('~<link\\b[^>]*\\bhref=([\'"])([^\'"]*(?:/wp-admin/css/|/reset[.-])[^\'"]*)\\1~', $styles, $m);
+        if ($m[2] !== []) {
+            $report->warning('contracts', 'The editor\'s iframe still loads admin styles: block previews\' spacing and type differ from the site', null, null,
+                implode(', ', array_map(static fn(string $href): string => basename((string) parse_url($href, PHP_URL_PATH)), $m[2])) . '. ' . $hint);
+        } else {
+            $report->info('contracts', 'The editor\'s iframe loads ' . Editor::ENTRY . ' without the admin\'s styles');
+        }
     }
 
     /**

@@ -12,12 +12,23 @@ functions Gaffer's runtime calls, none deprecated. ACF 6.8.11 has two fatal regr
 (`wp_insert_post()` with a post object, saving relational fields) fixed in 6.8.12: a site skips
 6.8.11. Gaffer calls neither (migrations write the database directly). ACF 6.8.12 turns its
 abilities on by default and stops preview scripts in blocks: Gaffer's MCP server lists only its
-own tools, and its block previews are empty. Earlier rounds: 2026-11-20 and 2026-11-21 (same
+own tools, and its block previews run no scripts (since 2026-11-25 they render, without JavaScript). Earlier rounds: 2026-11-20 and 2026-11-21 (same
 versions; at those Gaffer called nothing deprecated and `doctor --wp` showed no notices).
 
 ## Open after the third 2026-11-21 round
 
 Start the next round here; remove an item when it's done or decided.
+
+- **Block previews' canvas** (2026-11-25, `Editor`): removing the admin's `common`, `forms` and
+  `wp-reset-editor-styles` from the editor's iframe filters `__unstableResolvedAssets` (unstable
+  by name) and matches `<link id='{handle}-css'>`. When WordPress changes either, previews keep
+  rendering but their margins and line heights drift from the site (the reset sets `p` and
+  headings back to the browser's); `doctor --wp` warns (`ContractsCheck::editor_canvas()`). The
+  canvas CSS also leans on `.editor-styles-wrapper` and `.wp-block[data-type]`. Telling the iframe
+  from the admin page rests on `wp_should_load_block_editor_scripts_and_styles()` being false
+  while `_wp_get_iframed_editor_assets()` runs; if WordPress stops doing that, the stylesheet goes
+  nowhere (safe). When WordPress gives a supported way to keep admin styles out of the canvas,
+  use it and drop the filter.
 
 - **Private folders in `uploads/gaffer/`** (2026-11-23): a folder `private_dir()` made in the
   theme's `storage/` before is still used until it's moved (`Storage::before()`, `doctor --wp`

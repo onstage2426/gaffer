@@ -5,10 +5,11 @@ One camelCase directory per block (the `gaffer-block` skill):
 the theme's category, an icon: nothing else), `fields.php` (its ACF fields, if
 any), `functions.php` and `heroContent.twig`. Gaffer names the block after its
 folder (`acf/hero-content`, stored in post content: renaming the folder renames
-the block), registers it as ACF Blocks V3 and runs `functions.php` on the site
-and as the editor's preview, styled by `assets/css/editor.css` (the `gaffer-block`
-skill). A block must render with no field filled in (`doctor --wp` checks);
-`$is_preview` is true in the editor, where no theme JavaScript runs.
+the block), registers it as ACF Blocks V3 and runs `functions.php` on the site.
+In the editor only with `'block_previews' => true` in `config/theme.php` (off by
+default: an empty preview), styled by `assets/css/editor.css` (the `gaffer-block`
+skill); then a block must render with no field filled in (`doctor --wp` checks),
+and `$is_preview` is true there, where no theme JavaScript runs.
 
 ```php
 // functions.php

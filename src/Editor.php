@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Gaffer;
 
 /**
- * The block editor's canvas as the site: when the build has an `assets/css/editor.css` entry,
- * it goes into the editor's iframe (WordPress 7.1+ always iframes the post editor), where
- * Gaffer's block previews (Acf::render_block()) render with it.
+ * The block editor's canvas as the site, with `theme.block_previews` on: when the build has an
+ * `assets/css/editor.css` entry, it goes into the editor's iframe (WordPress 7.1+ always iframes
+ * the post editor), where Gaffer's block previews (Acf::render_block()) render with it.
  *
  * The theme builds that entry with Tailwind's parts imported without `layer()`: everything
  * WordPress loads in the iframe is unlayered, and unlayered CSS beats layered CSS whatever its
@@ -28,8 +28,20 @@ final class Editor
     private const CANVAS = '.editor-styles-wrapper{padding:0}'
         . '.editor-styles-wrapper .wp-block[data-type^="acf/"]{max-width:none;margin-block:0}';
 
+    /**
+     * Block previews in the editor (`theme.block_previews`, off unless true): off, a theme block
+     * renders nothing there (Acf::render_block()) and the editor is WordPress's own.
+     */
+    public static function enabled(): bool
+    {
+        return Config::get('theme.block_previews') === true;
+    }
+
     public static function register(): void
     {
+        if (!self::enabled()) {
+            return;
+        }
         add_action('after_setup_theme', static function (): void {
             if (is_admin() && self::url() !== null) {
                 add_theme_support('editor-styles');

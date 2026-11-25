@@ -89,8 +89,8 @@ final class Acf
 
     /**
      * ACF's render callback for a theme block: its functions.php, with ACF's template variables
-     * ($block, $content, $is_preview, $post_id, $wp_block, $context), on the site and as the
-     * editor's preview (styled by Editor). It counts as a block render itself: ACF's preview
+     * ($block, $content, $is_preview, $post_id, $wp_block, $context), on the site and, with
+     * `theme.block_previews` on, as the editor's preview (styled by Editor); off, nothing there. It counts as a block render itself: ACF's preview
      * request after a field edit calls it without WordPress's block type. A preview that throws
      * shows the error in the block (PREVIEW_ERROR) instead of breaking the editor.
      *
@@ -111,6 +111,9 @@ final class Acf
         if ($is_preview !== true && !is_admin()) {
             $render($file, $block, $content, $is_preview, $post_id, $wp_block, $context);
             return;
+        }
+        if (!Editor::enabled()) {
+            return; // theme.block_previews off: an empty preview
         }
         $level = ob_get_level();
         try {

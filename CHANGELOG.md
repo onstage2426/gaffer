@@ -9,8 +9,15 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-25
 
-- **Block previews in the editor show the block, styled like the site.** Gaffer now runs a
-  block's `functions.php` in the editor too (it rendered nothing there since 2026-11-23); a
+- **Block previews are off unless `config/theme.php` has `'block_previews' => true`** (the
+  previews below came on for every site earlier today; off, the editor's previews are empty
+  again, as before). A theme that set up `editor.css` turns them on with that line. Find:
+  `ls assets/css/editor.css`. Check: `php gaffer doctor --wp` says when the build has
+  `editor.css` but previews are off, or previews are on without it.
+
+- **Block previews in the editor can show the block, styled like the site.** With
+  `block_previews` on (see above), Gaffer runs a block's `functions.php` in the editor too (it
+  rendered nothing there since 2026-11-23); a
   preview that throws shows its error in the block instead. With an `assets/css/editor.css`
   entry in the build, Gaffer loads it into the editor, makes theme blocks full width and takes
   WordPress's admin styles out of the editor canvas. The entry must import Tailwind without

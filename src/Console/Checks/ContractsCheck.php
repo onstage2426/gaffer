@@ -11,6 +11,7 @@ use Gaffer\Editor;
 use Gaffer\Forms\FormTemplates;
 use Gaffer\Forms\Spam;
 use Gaffer\Mcp\GafferCli;
+use Gaffer\Paths;
 use Gaffer\Storage;
 use Gaffer\Turnstile;
 use Gaffer\Types\Post;
@@ -59,7 +60,20 @@ final class ContractsCheck implements Check
      */
     private function editor_canvas(Report $report): void
     {
-        if (Vite::url(Editor::ENTRY) === null || !function_exists('get_block_editor_settings')) {
+        $built = Vite::url(Editor::ENTRY) !== null;
+        if (!Editor::enabled()) {
+            if ($built) {
+                $report->info('contracts', 'The build has ' . Editor::ENTRY . ', but block previews are off', Paths::base('config/theme.php'), null,
+                    "'block_previews' => true in config/theme.php shows the blocks in the editor, styled with it.");
+            }
+            return;
+        }
+        if (!$built) {
+            $report->warning('contracts', 'Block previews are on, but the build has no ' . Editor::ENTRY . ': the editor shows the blocks unstyled', Paths::base('config/theme.php'), null,
+                'Add the entry (the gaffer-block skill, "The editor\'s styles") and list it in vite.config.js, or turn block_previews off.');
+            return;
+        }
+        if (!function_exists('get_block_editor_settings')) {
             return;
         }
         require_once ABSPATH . 'wp-admin/includes/admin.php';

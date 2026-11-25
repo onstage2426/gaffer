@@ -7,6 +7,7 @@ namespace Gaffer\Console\Checks;
 use Closure;
 use Gaffer\Acf;
 use Gaffer\BlockFields;
+use Gaffer\Editor;
 use Gaffer\FieldGroups;
 use Gaffer\Console\Render\HtmlProblems;
 use Gaffer\Console\Report;
@@ -197,7 +198,7 @@ final class WordPressCheck implements Check
      */
     private function block_previews(Report $report): void
     {
-        if (!function_exists('acf_prepare_block') || !function_exists('acf_setup_meta')) {
+        if (!Editor::enabled() || !function_exists('acf_prepare_block') || !function_exists('acf_setup_meta')) {
             return;
         }
         $registry = WP_Block_Type_Registry::get_instance();

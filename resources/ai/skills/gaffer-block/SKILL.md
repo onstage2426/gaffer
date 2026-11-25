@@ -16,7 +16,7 @@ description: Create or change an ACF block in a Gaffer theme (blocks/{name}/ wit
    `View::render('@block/{camelName}/{camelName}.twig', [...])` array.
 4. Template: markup only, from the variables you passed. Images:
    `<img class="..." {{ image.attrs('large') }} loading="lazy">` inside
-   `{% if image %}`. It is also the editor's preview: it must render with no
+   `{% if image %}`. With `block_previews` on, it is also the editor's preview: it must render with no
    field filled in (a freshly inserted block), and without JavaScript (no Alpine
    or sliders in the editor; `$is_preview` in `functions.php` to pass a simpler
    variant).
@@ -34,8 +34,10 @@ description: Create or change an ACF block in a Gaffer theme (blocks/{name}/ wit
 
 ## The editor's styles
 
-Gaffer loads the build's `assets/css/editor.css` entry into the editor (WordPress's
-iframe), makes theme blocks full width and removes the admin styles there. The theme
+Block previews are off unless `config/theme.php` has `'block_previews' => true` (ask the
+user before turning them on). Then Gaffer renders the blocks in the editor and loads the
+build's `assets/css/editor.css` entry there (WordPress's iframe), makes theme blocks full
+width and removes the admin styles there. The theme
 writes the entry (list it in `vite.config.js`): Tailwind's parts **without** `layer()`,
 since everything WordPress loads in the editor is unlayered and would win every
 conflict with a layered rule; the `@theme` tokens shared with `app.css` from a partial;

@@ -212,6 +212,7 @@ final class WordPressCheck implements Check
                 continue; // a block with its own template or callback
             }
             \acf_setup_meta([], $id, true);
+            $log = ini_set('error_log', '/dev/null'); // the failed preview's log line: reported below
             ob_start();
             try {
                 Acf::render_block($block, '', true, 0);
@@ -221,6 +222,7 @@ final class WordPressCheck implements Check
                 $html = '';
                 $report->error('wp', "Block {$name}: its editor preview fails: {$e->getMessage()}", Paths::blocks() . "/{$dir}/functions.php");
             } finally {
+                ini_set('error_log', $log === false ? '' : $log);
                 if (function_exists('acf_reset_meta')) {
                     \acf_reset_meta($id);
                 }

@@ -7,6 +7,23 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-25
+
+- **Block previews in the editor show the block, styled like the site.** Gaffer now runs a
+  block's `functions.php` in the editor too (it rendered nothing there since 2026-11-23); a
+  preview that throws shows its error in the block instead. With an `assets/css/editor.css`
+  entry in the build, Gaffer loads it into the editor, makes theme blocks full width and takes
+  WordPress's admin styles out of the editor canvas. The entry must import Tailwind without
+  layers (`tailwindcss/theme.css`, `preflight.css`, `utilities.css`, no `layer()`): WordPress's
+  styles in the editor are unlayered and win every conflict with a layered rule. Move `@theme`
+  and `@utility` out of `app.css` into a partial both entries import; an example is in the
+  `gaffer-block` skill. Find a block still guarding the editor:
+  `grep -rn "is_preview\|is_admin" blocks/*/functions.php`. Before: `if (is_admin()) return;`
+  at the top. After: nothing, or a simpler variant for `$is_preview` (no theme JavaScript runs
+  in the editor: sliders and Alpine stay still). Check: `php gaffer doctor --wp` renders each
+  block's preview with no field filled in and reports the ones that fail; then open a page with
+  blocks in the editor and change a field.
+
 ## 2026-11-23
 
 - **Shops whose stock or prices live in another system can have Gaffer check every sale live:

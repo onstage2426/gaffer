@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Checks;
 
 use Closure;
+use Gaffer\Acf;
 use Gaffer\BlockFields;
 use Gaffer\FieldGroups;
 use Gaffer\Console\Render\HtmlProblems;
@@ -187,6 +188,48 @@ final class WordPressCheck implements Check
         }
 
         $this->stale_fields($report, $rows);
+        $this->block_previews($report);
+    }
+
+    /**
+     * Each theme block's editor preview, as it looks when inserted: no field filled in yet,
+     * strict variables on. A preview that throws shows its error in the editor (Acf::render_block()).
+     */
+    private function block_previews(Report $report): void
+    {
+        if (!function_exists('acf_prepare_block') || !function_exists('acf_setup_meta')) {
+            return;
+        }
+        $registry = WP_Block_Type_Registry::get_instance();
+        View::env()->enableStrictVariables();
+        foreach (BlockFields::names() as $dir => $name) {
+            if (!$registry->is_registered($name)) {
+                continue;
+            }
+            $id = 'block_gaffer-doctor-' . $dir;
+            $block = \acf_prepare_block(['name' => $name, 'id' => $id, 'data' => []]);
+            if (!is_array($block) || ($block['render_callback'] ?? null) !== Acf::class . '::render_block') {
+                continue; // a block with its own template or callback
+            }
+            \acf_setup_meta([], $id, true);
+            ob_start();
+            try {
+                Acf::render_block($block, '', true, 0);
+                $html = (string) ob_get_clean();
+            } catch (\Throwable $e) {
+                ob_end_clean();
+                $html = '';
+                $report->error('wp', "Block {$name}: its editor preview fails: {$e->getMessage()}", Paths::blocks() . "/{$dir}/functions.php");
+            } finally {
+                if (function_exists('acf_reset_meta')) {
+                    \acf_reset_meta($id);
+                }
+            }
+            if (preg_match('~class="' . Acf::PREVIEW_ERROR . '"[^>]*>(.*?)</div>~s', $html, $m)) {
+                $report->error('wp', 'Block ' . html_entity_decode($m[1], ENT_QUOTES) . ' in its editor preview with no fields filled in', Paths::blocks() . "/{$dir}/functions.php", null,
+                    'What an editor sees right after inserting the block: give each field a fallback (|default, {% if %}), or render a placeholder when $is_preview.');
+            }
+        }
     }
 
     /**

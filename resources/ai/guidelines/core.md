@@ -41,7 +41,6 @@ site-specific code.
 ### Decided (don't propose otherwise)
 
 - No nonces on ajax actions (pages are cached: nonces go stale).
-- ACF block editor previews are empty on purpose (Gaffer renders blocks only outside the editor).
 - The Twig cache is on and keeps itself fresh (a changed template compiles again, also after a
   rollback): no `twig:clear` after edits.
 - No PHPUnit or phpstan in the theme: the `php gaffer` checks are the tests.

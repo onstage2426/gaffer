@@ -111,3 +111,10 @@ if (!function_exists('wp_get_environment_type')) {
         return 'development';
     }
 }
+
+if (!function_exists('is_admin')) {
+    function is_admin(): bool
+    {
+        return false;
+    }
+}

@@ -60,6 +60,7 @@ final class Gaffer
         Mcp::register();
         Search\Integration::register();
         Purchases::register();
+        Editor::register();
     }
 
     /**

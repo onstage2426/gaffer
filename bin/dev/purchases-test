@@ -1,0 +1,115 @@
+#!/usr/bin/env php
+<?php
+// Product::confirm_purchase() through every WooCommerce route (Purchases), with this clone's code,
+// against a local site's WooCommerce in the CLI. Restores what it changes (price, cart, the orders
+// and the variable product it makes). Usage: bin/dev/purchases-test <WordPress dir> <theme dir> <host>
+[$_, $site, $theme, $host] = $argv + [null, null, null, null];
+if ($host === null) { fwrite(STDERR, "usage: bin/dev/purchases-test <WordPress dir> <theme dir> <host>\n"); exit(2); }
+$gaffer = dirname(__DIR__, 2);
+require "$gaffer/vendor/autoload.php";
+spl_autoload_register(function (string $c) use ($theme) {
+    if (str_starts_with($c, 'Theme\\')) { $f = "$theme/app/" . str_replace('\\', '/', substr($c, 6)) . '.php'; if (is_file($f)) require $f; }
+});
+$src = "$gaffer/src";
+foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS)) as $file) {
+    $class = 'Gaffer\\' . str_replace(['/', '.php'], ['\\', ''], substr($file->getPathname(), strlen($src) + 1));
+    class_exists($class) || interface_exists($class) || trait_exists($class);
+}
+$GLOBALS['answer'] = null;
+eval('namespace PT; class P extends \Theme\Types\Product { public function confirm_purchase(): ?string { $a = $GLOBALS["answer"]; if ($a instanceof \Throwable) throw $a; $GLOBALS["asked"] = ($GLOBALS["asked"] ?? 0) + 1; $GLOBALS["seen"] = $this->variation()?->get_id(); return $a; } public function price_changed_notice(string $was, string $now): string { return "PRICE " . strip_tags($was) . " -> " . strip_tags($now); } }');
+define('WP_USE_THEMES', false);
+$_SERVER['HTTP_HOST'] = $host; $_SERVER['REQUEST_URI'] = '/'; $_SERVER['HTTPS'] = 'on';
+require "$site/wp-load.php";
+$r = new ReflectionProperty(Gaffer\Config::class, 'config');
+$c = $r->getValue(); $c['theme']['types']['product'] = PT\P::class; $r->setValue(null, $c);
+
+$fail = 0;
+function ok($cond, $what) { global $fail; echo ($cond ? "ok   " : "FAIL ") . $what . "\n"; $fail += $cond ? 0 : 1; }
+function notices() { $n = wc_get_notices(); wc_clear_notices(); return array_map(fn($x) => strip_tags($x['notice']), $n['error'] ?? []); }
+function reset_verdicts() { (new ReflectionProperty(Gaffer\Purchases::class, 'verdicts'))->setValue(null, []); }
+
+wc_load_cart();
+$id = (int) $GLOBALS['wpdb']->get_var("SELECT p.ID FROM {$GLOBALS['wpdb']->posts} p JOIN {$GLOBALS['wpdb']->postmeta} m ON m.post_id=p.ID AND m.meta_key='_price' AND m.meta_value+0>0 JOIN {$GLOBALS['wpdb']->postmeta} s ON s.post_id=p.ID AND s.meta_key='_stock_status' AND s.meta_value='instock' WHERE p.post_type='product' AND p.post_status='publish' AND NOT EXISTS (SELECT 1 FROM {$GLOBALS['wpdb']->posts} v WHERE v.post_parent=p.ID AND v.post_type='product_variation') AND NOT EXISTS (SELECT 1 FROM {$GLOBALS['wpdb']->postmeta} sp WHERE sp.post_id=p.ID AND sp.meta_key='_sale_price' AND sp.meta_value<>'') LIMIT 1");
+$product = wc_get_product($id);
+$orig = [$product->get_regular_price(), $product->get_price()];
+echo "product $id {$product->get_name()} price {$orig[1]}\n";
+$set_price = function (string $p) use ($id) { $x = wc_get_product($id); $x->set_regular_price($p); $x->save(); };
+$cart = WC()->cart; $order = null; $variable = null; $hide = get_option('woocommerce_hide_out_of_stock_items');
+try {
+    // 1. refused on add, every way in
+    $GLOBALS['answer'] = 'Sold just now';
+    ok($cart->add_to_cart($id) === false && notices() === ['Sold just now'], 'add_to_cart refused with the theme\'s reason');
+    reset_verdicts();
+    $GLOBALS['answer'] = new RuntimeException('API down');
+    ok($cart->add_to_cart($id) === false && notices() === [__('We were unable to process your order, please try again.', 'woocommerce')], 'exception refuses with WooCommerce\'s try-again message');
+    // 2. allowed
+    reset_verdicts(); $GLOBALS['answer'] = null;
+    $key = $cart->add_to_cart($id);
+    ok(is_string($key) && ($cart->cart_contents[$key]['gaffer_price'] ?? null) === wc_format_decimal($orig[1], wc_get_price_decimals()), 'added, with the price it was shown at');
+    notices();
+    // 3. cart check, nothing changed
+    reset_verdicts(); do_action('woocommerce_check_cart_items');
+    ok(notices() === [] && isset($cart->cart_contents[$key]), 'cart check: no notice when nothing changed');
+    // 4. price changed
+    $set_price((string) ($orig[0] + 1)); reset_verdicts();
+    do_action('woocommerce_check_cart_items');
+    $n = notices();
+    ok(count($n) === 1 && str_starts_with($n[0], 'PRICE '), 'price change stops once: ' . ($n[0] ?? '-'));
+    reset_verdicts(); do_action('woocommerce_check_cart_items');
+    ok(notices() === [], 'second check goes through with the new price');
+    // 5. memo: asked once per request
+    $GLOBALS['asked'] = 0; reset_verdicts(); do_action('woocommerce_check_cart_items'); do_action('woocommerce_check_cart_items');
+    ok($GLOBALS['asked'] === 1, 'asked once per request');
+    // 6. order-pay
+    $order = wc_create_order(); $order->add_product(wc_get_product($id), 1);
+    foreach ($order->get_items() as $item) { $item->add_meta_data('_gaffer_price', $cart->cart_contents[$key]['gaffer_price'], true); $item->save(); }
+    $order->calculate_totals(); $order->save();
+    reset_verdicts(); do_action('woocommerce_before_pay_action', $order);
+    ok(notices() === [], 'order-pay: same price passes');
+    $set_price((string) ($orig[0] + 2)); reset_verdicts();
+    do_action('woocommerce_before_pay_action', $order);
+    $n = notices(); ok(count($n) === 1 && str_starts_with($n[0], 'PRICE '), 'order-pay: changed price refused');
+    $errors = new WP_Error(); reset_verdicts(); do_action('woocommerce_checkout_validate_order_before_payment', $order, $errors);
+    ok($errors->has_errors(), 'Store API order payment: changed price refused');
+    reset_verdicts(); $GLOBALS['answer'] = 'Sold'; do_action('woocommerce_before_pay_action', $order);
+    ok(notices() === ['Sold'], 'order-pay: refused product');
+    // 7. refused in cart: removed
+    reset_verdicts(); do_action('woocommerce_check_cart_items');
+    ok(notices() === ['Sold'] && !isset($cart->cart_contents[$key]), 'cart check: refused item removed');
+    // 8. Store API add-item
+    add_filter('woocommerce_store_api_disable_nonce_check', '__return_true');
+    reset_verdicts(); $GLOBALS['answer'] = 'Sold (store api)';
+    $req = new WP_REST_Request('POST', '/wc/store/v1/cart/add-item'); $req->set_param('id', $id); $req->set_param('quantity', 1);
+    $res = rest_do_request($req);
+    ok($res->get_status() === 409 && ($res->get_data()['message'] ?? '') === 'Sold (store api)', 'Store API add-item refused: ' . $res->get_status() . ' ' . ($res->get_data()['message'] ?? ''));
+    reset_verdicts(); $GLOBALS['answer'] = null;
+    $res = rest_do_request($req);
+    ok($res->get_status() === 201, 'Store API add-item allowed: ' . $res->get_status());
+    // 9. untouched product type: nothing asked
+    $c['theme']['types']['product'] = Theme\Types\Product::class; $r->setValue(null, $c);
+    $GLOBALS['answer'] = 'Should not be asked'; reset_verdicts(); $cart->empty_cart();
+    ok(is_string($cart->add_to_cart($id)) && notices() === [], 'a type without confirm_purchase(): nothing asked');
+    // 10. variations: the item's own one, even behind an "any" variation listed first, and out of stock
+    $c['theme']['types']['product'] = PT\P::class; $r->setValue(null, $c);
+    $cart->empty_cart(); $GLOBALS['answer'] = null;
+    $attribute = new WC_Product_Attribute(); $attribute->set_name('Kleur'); $attribute->set_options(['Rood', 'Blauw']); $attribute->set_variation(true); $attribute->set_visible(true);
+    $variable = new WC_Product_Variable(); $variable->set_name('Gaffer purchases test'); $variable->set_status('publish'); $variable->set_catalog_visibility('hidden'); $variable->set_attributes([$attribute]); $variable->save();
+    $make = function (string $color, int $order, string $price) use ($variable) { $v = new WC_Product_Variation(); $v->set_parent_id($variable->get_id()); $v->set_attributes(['kleur' => $color]); $v->set_menu_order($order); $v->set_regular_price($price); $v->set_stock_status('instock'); $v->save(); return $v->get_id(); };
+    $any = $make('', 0, '10'); $red = $make('Rood', 1, '12');
+    WC_Product_Variable::sync($variable->get_id());
+    reset_verdicts(); $GLOBALS['seen'] = null;
+    $vkey = $cart->add_to_cart($variable->get_id(), 1, $red, ['attribute_kleur' => 'Rood']);
+    ok(is_string($vkey) && $GLOBALS['seen'] === $red, "add: asked about the red variation ($red), not the any one ($any): seen " . var_export($GLOBALS['seen'], true));
+    notices();
+    $v = wc_get_product($red); $v->set_stock_status('outofstock'); $v->save(); update_option('woocommerce_hide_out_of_stock_items', 'yes');
+    reset_verdicts(); $GLOBALS['seen'] = null; do_action('woocommerce_check_cart_items'); notices();
+    ok($GLOBALS['seen'] === $red, 'cart check: an out-of-stock variation is still the one asked about: seen ' . var_export($GLOBALS['seen'], true));
+} finally {
+    update_option('woocommerce_hide_out_of_stock_items', $hide);
+    if ($variable) { foreach ($variable->get_children() as $child) { wc_get_product($child)?->delete(true); } wc_get_product($variable->get_id())?->delete(true); }
+    $x = wc_get_product($id); $x->set_regular_price($orig[0]); $x->save();
+    $cart->empty_cart(); WC()->session->destroy_session();
+    $order?->delete(true);
+    echo "restored price " . wc_get_product($id)->get_price() . "\n";
+}
+exit($fail ? 1 : 0);

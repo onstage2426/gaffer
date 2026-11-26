@@ -160,16 +160,24 @@ final class Purchases
         return $problems;
     }
 
-    /** The theme's product (with the variation selected), null when its type doesn't override confirm_purchase(). */
+    /**
+     * The theme's product with the variation being sold selected, null when its type doesn't
+     * override confirm_purchase(). The variation is the cart or order item's own (by ID), not
+     * matched from its attributes: an "any" variation listed first matches every selection, and
+     * an out-of-stock one isn't among the variations with_variation() matches from.
+     */
     private static function product(int $product_id, int $variation_id): ?Product
     {
         $product = Product::from($product_id);
         if ($product === null || !self::guarded($product)) {
             return null;
         }
-        if ($variation_id > 0) {
-            $variation = \wc_get_product($variation_id);
-            $product = $product->with_variation($variation instanceof \WC_Product_Variation ? array_map('strval', $variation->get_variation_attributes()) : []);
+        $variation = $variation_id > 0 ? \wc_get_product($variation_id) : null;
+        if ($variation instanceof \WC_Product_Variation) {
+            $product = $product->with_variation(array_map('strval', $variation->get_variation_attributes()));
+            \Closure::bind(static function (Product $copy) use ($variation): void {
+                $copy->variation = $variation;
+            }, null, Product::class)($product);
         }
 
         return $product;

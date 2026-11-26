@@ -45,7 +45,7 @@ broken data). **Theme subclasses** of `Post` and `Term` (mapped in `theme.types`
 `theme.terms`) may add methods and override `thumbnail()`; every other public method is
 `final`, and the constructor and factories are not theirs to change. A theme's `product` type
 extends `Types\Product` (WooCommerce; `doctor` checks), which keeps the same rule, plus
-`confirm_purchase()` and `price_changed_notice()`: overriding `confirm_purchase()` makes Gaffer ask
+`confirm_purchase()`, `price_changed_notice()` and `order_price_changed_notice()`: overriding `confirm_purchase()` makes Gaffer ask
 it at every step that sells the product (adding to a cart by any route, the cart, the checkout,
 paying an existing order) and refuse a checkout or payment whose price changed since the customer
 saw it. A new public method on

@@ -7,6 +7,20 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-26
+
+- **Paying an existing order at an old price gets its own notice: `order_price_changed_notice()`.**
+  Only for a theme whose `Product` overrides `confirm_purchase()`. An order (pending, a failed
+  payment, made in the admin) keeps the price it was placed at, so when the product's price
+  changed since, its payment is refused every time, not once as the changelog of 2026-11-23 said:
+  the customer has to place a new order. `price_changed_notice()`'s "check the new total and try
+  again" was wrong there; the new method says so (English by default). Also fixed: Gaffer asks
+  `confirm_purchase()` about the variation actually being sold (before, an "any" variation listed
+  first, or an out-of-stock one, could make it check another). Find: `grep -rn
+  "price_changed_notice" app`. A theme that overrides `price_changed_notice()` for its language
+  overrides `order_price_changed_notice(string $was, string $now): string` too. Check: with an
+  override, place an order unpaid, change the product's price, open the order's payment page.
+
 ## 2026-11-25
 
 - **Theme blocks get a Preview button in the editor; the canvas shows a placeholder.** The

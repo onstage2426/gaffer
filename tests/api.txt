@@ -144,6 +144,7 @@ class Gaffer\Types\Product extends Gaffer\Types\Post
   final gallery(): array
   final is_on_sale(): bool
   final is_variable(): bool
+  order_price_changed_notice(string $was, string $now): string
   price_changed_notice(string $was, string $now): string
   final product(): WC_Product
   final selected(): array

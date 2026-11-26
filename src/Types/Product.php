@@ -17,8 +17,8 @@ use WC_Product_Variation;
  * A selected variation is a copy: with_variation() returns a new object, so a selection made
  * for one partial (a card, the product page) never leaks into another. Every method is final
  * but thumbnail(), which a theme may override (a placeholder, images from elsewhere), and the
- * two a shop overrides whose stock and prices live elsewhere: confirm_purchase() and
- * price_changed_notice().
+ * three a shop overrides whose stock and prices live elsewhere: confirm_purchase(),
+ * price_changed_notice() and order_price_changed_notice().
  */
 class Product extends Post
 {
@@ -116,8 +116,9 @@ class Product extends Post
      * bought, or the reason it can't (shown to the customer; the item leaves the cart).
      *
      * Bring WordPress's copy up to date here (the price, the stock): Gaffer reads the price
-     * after this and refuses a checkout or payment when it changed since the customer last saw
-     * it (price_changed_notice()). An exception refuses too, with WooCommerce's "try again"
+     * after this and refuses a checkout when it changed since the customer last saw it
+     * (price_changed_notice()), and the payment of an existing order placed at another price
+     * (order_price_changed_notice()). An exception refuses too, with WooCommerce's "try again"
      * message (the source couldn't be asked: never sell on an unconfirmed answer), and is logged.
      * It runs again at each step (once per request): make it safe to repeat. Two customers
      * buying the last one at once is the source's to settle (a reservation it refuses twice).
@@ -129,13 +130,24 @@ class Product extends Post
     }
 
     /**
-     * The notice when the price changed since the customer last saw it (prices as wc_price()
-     * HTML). The checkout or payment stops once; with the new price shown, it goes through.
+     * The notice when the price changed since the customer last saw it in the cart (prices as
+     * wc_price() HTML). The checkout stops once; with the new price shown, it goes through.
      * Override it for the site's language.
      */
     public function price_changed_notice(string $was, string $now): string
     {
         return sprintf('The price of %s changed from %s to %s. Check the new total and try again.', $this->title(), $was, $now);
+    }
+
+    /**
+     * The notice when an existing order (order-pay: a pending order, a failed payment, an order
+     * made in the admin) was placed at another price than the product has now. The order keeps
+     * the price it was placed at, so it can't be paid: the customer places a new order. Override
+     * it for the site's language.
+     */
+    public function order_price_changed_notice(string $was, string $now): string
+    {
+        return sprintf('The price of %s changed from %s to %s since this order was placed, so it can\'t be paid. Please place a new order.', $this->title(), $was, $now);
     }
 
     /**

@@ -18,7 +18,8 @@ use WP_Error;
  * the cart and checkout (woocommerce_check_cart_items: the cart and checkout pages, the classic
  * checkout's validation, the Store API's), and paying an existing order (order-pay, classic and
  * Store API). The price a customer was last shown rides along in the cart item and the order
- * item; a different price now stops the step once, with the theme's notice.
+ * item; a different price now stops a checkout once (the cart takes the new price), and the
+ * payment of an existing order for good (the order keeps its price: a new order is placed).
  *
  * @internal
  */
@@ -153,7 +154,7 @@ final class Purchases
             $was = $item->get_meta(self::ORDER_PRICE);
             $now = self::price($id);
             if (is_string($was) && $was !== '' && $now !== null && $was !== $now) {
-                $problems[] = $product->price_changed_notice(\wc_price((float) $was), \wc_price((float) $now));
+                $problems[] = $product->order_price_changed_notice(\wc_price((float) $was), \wc_price((float) $now));
             }
         }
 

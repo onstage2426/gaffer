@@ -2,7 +2,9 @@ Audit Gaffer (and its plugins' theme side, `plugins/`) for long-term stability. 
 
 Don't change code in this session. The output is the triage below and `docs/compat-debt.md`; I decide what gets built.
 
-1. **Read first:** AGENTS.md (Design principles, Settled, Open), `API.md`, `docs/architecture.md`, `docs/compat-debt.md` (you're continuing it: start from its "Open" list and check its dates), the newest CHANGELOG entries, `local/sites.md` (if present), and your memory if you have one (the earlier audits). Don't re-propose what Settled or memory declined, nor what compat-debt already plans.
+1. **Read first:** AGENTS.md (Design principles, Settled, Open), `API.md`, `docs/architecture.md`, `docs/compat-debt.md` (you're continuing it: start from its "Open" list and check its dates), the newest CHANGELOG entries, `local/sites.md` (if present), `local/plan-1.0.md` (the road to 1.0 and its open decisions) and your memory if you have one (the earlier audits). Until 1.0, prefer settling a design now even when it breaks (AGENTS.md, "Until 1.0, break now"). Don't re-propose what Settled or memory declined, nor what compat-debt already plans.
+
+   **Fresh theme copies first:** the copies in `themes/` are usually older than the sites, and the remote themes are where the variety is (their own config files and folders, copied starter code). Ask me, then pull them read-only (from where and how: `local/AGENTS_LOCAL.md`; without `vendor/`, `node_modules/`, `public/`, `storage/`, `.git`), and keep the old copies aside: they still hold pre-migration code, a corpus for testing migrations. Run nothing else on a remote server without asking.
 
    **Where the sites are:** for the local sites, `bin/dev/sites status --online` (the Gaffer reference in `composer.lock` and whether GitHub still serves it, htmx, both lockfiles present is a finding, git) and `bin/dev/sites run --summary -- doctor --wp`. For the copies in `themes/`, the same by hand (`composer.lock`, `bun.lock`/`package-lock.json`; compare the reference with the site's last report). The copies in `themes/` have no WordPress or `vendor/`: `bin/dev/doctor-copy themes/<site> doctor` runs this clone's static doctor on them (errors from what a copy lacks, like `public/` or `views/`, are noise). New copies: add them to `local/sites.md`. Which CHANGELOG entries is each site behind on? Don't commit where `local/sites.md` says not to.
 
@@ -29,7 +31,10 @@ Don't change code in this session. The output is the triage below and `docs/comp
    - **Done on 2026-11-20 (the pattern to follow):** `@gaffer/forms/meta.twig` with `Spam::check()` (form key, honeypot, Turnstile), and `Turnstile::register()`. Also the Vite plugin `resources/vite.js`, which owns the hotfile, manifest, alias and the `gaffer.json` stamp.
    - **Still open** (compat-debt, "Not self-adapting yet"): `fields[x]`/`files[x]`/`kept_files[x][]`, `data-gaffer-resize`, search's endpoint/token inputs. Look for new ones in what themes added since (grep the sites' `app/Ajax/` and `views/` for keys, attributes and paths Gaffer reads).
    - **Also look for names that collide with the platform:** an input named like a DOM property (`form`, `action`, `method`: they shadow `HTMLFormElement`'s own), request keys WordPress reserves (`name`, `p`, `page`, `s`, `year` in a GET), Alpine/htmx attribute prefixes.
+   - **Room for Gaffer to grow:** names Gaffer and themes share (config files, top-level folders, request keys, ajax action names, Twig functions and filters, methods on the types, `data-*` attributes, events, globals). Could Gaffer add one in 1.x without colliding with a theme's? And rules whose result is stored (block names from folders, field keys) freeze at 1.0: list their odd cases now.
    - Say for each whether it's already self-adapting, could be, and what it would cost.
+
+5b. **At 100–200 sites.** For each item and each recent CHANGELOG entry: does every site need a theme edit (one agent session per site), and could Gaffer apply it itself (a pair it owns, a mechanical rewrite)? Which starter code is copied into the themes (compare the copies), so a fix there is one per site? Does every site have a rollback point before an update?
 
 6. **Forms and ajax specifically** (I feel least safe here):
    - Forms depend on Gravity Forms' internals (compat-debt lists them). `doctor --wp` probes them on a throwaway form (`ContractsCheck`, `forms:probe`). Is the list still complete against the installed Gravity Forms' source? What does the probe still miss (uploads, `gform_uploaded_files`, notifications)?
@@ -39,7 +44,7 @@ Don't change code in this session. The output is the triage below and `docs/comp
 
 6b. **Click, don't only render.** `doctor --wp` renders pages but never clicks. `bin/dev/sites check` runs each local site's browser checks (`local/sites.json`; scripts in `bin/dev/site-checks/`): add to cart, the drawer, variations, archive swaps, each Gaffer form (one submit, one error answer), and cleans up after them (new Gravity Forms entries by ID, its `spam.log` lines; no form submit where Turnstile is off). Read the browser console in its output. A new interaction gets a script there and a line in the site's `checks`. Whatever only a click found is a candidate for a doctor check (compat-debt's "Nothing clicks in doctor").
 
-7. **Present the triage to me briefly**, most dangerous first. Per item: what can break, how likely and when (with the source), the smallest fix that keeps existing sites working, and whether it needs a 2.x. Then wait for my answer.
+7. **Present the triage to me briefly**, most dangerous first. Per item: what can break, how likely and when (with the source), the smallest fix that keeps existing sites working, and whether it needs a 2.x (before 1.0: whether to settle it now, grouped with other breaks in one cycle). Then wait for my answer.
 
 8. **Write `docs/compat-debt.md`** (tracked; create it the first time):
    - what we keep for compatibility and would change in 2.x;
@@ -106,3 +111,10 @@ Don't change code in this session. The output is the triage below and `docs/comp
     order (it keeps its price). When the changelog promises a behavior, check it per route.
   - **Rules that become stored data are frozen at 1.0:** a name derived from a folder (blocks) is
     in post content. Look for such derivations and decide their odd cases before the freeze.
+  - **Audit the remote themes, not only the local sites:** this run checked the local four and
+    the platforms, and only looked at the themes when asked. Fresh copies (step 1) showed what the
+    local sites can't: themes' own config files next to Gaffer's, their own top-level folders,
+    the same cart code copied into several themes and already drifting apart.
+  - **A static doctor error on a copy can be Gaffer's false positive:** config a theme computes
+    from WordPress (`facet_values` from its settings) is empty without it, and the check took an
+    empty map for a list. Read the theme's config code before reporting the site.

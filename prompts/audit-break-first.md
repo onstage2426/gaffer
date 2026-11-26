@@ -42,6 +42,10 @@ fresh copies before reading their code if they are.
 
 ## 3. What breaks first
 
+Think at 100–200 sites: a plugin release reaches every one of them within hours through its
+updater; a Gaffer update reaches each when someone runs it. Rank by how many sites a failure
+reaches before anyone sees it.
+
 For every piece that runs on a site, write down what it depends on (the exact functions, hooks,
 markup, request keys, files, options, cookies, headers) and how it fails: loudly (an error page,
 a doctor error) or silently (an empty list, a stale index, a cached broken page). Then rank:

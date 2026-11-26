@@ -11,7 +11,7 @@ A site built with Gaffer (and its plugins) sent a feedback report. The report, t
    - Docs only: a skill or guideline was wrong or missing.
    - Decline: site-specific, hidden magic (Gaffer changing another plugin's or WordPress's behaviour, muting other code's notices), content-writing commands (settled: no content:seed), a second way to do something, or a big feature for one site.
    - Defer: a real need, but wait for a second site (add it to Open in AGENTS.md).
-   Never re-propose what Settled or memory already declined. An Open "maybe" or deferred item that a second site now asks for is a decision for me: put it as a concrete choice with your recommendation.
+   Weigh each fix by what every site must do: one that needs a theme edit costs a session per site (100–200 later), so prefer one Gaffer applies itself. Never re-propose what Settled or memory already declined. An Open "maybe" or deferred item that a second site now asks for is a decision for me: put it as a concrete choice with your recommendation.
 
 4. Present the triage to me briefly: what's broken, what you recommend building, what to decline or defer, with one line of reasoning each. Then wait for my answer. If you find something that endangers a live site (data loss, an undefined index, wrong SEO), say so first.
 
@@ -30,4 +30,5 @@ A site built with Gaffer (and its plugins) sent a feedback report. The report, t
   another caller there (Prime Lease's `DriveStart` renders the notices template too; its agent
   caught it). Before handing a site a change to a template's variables, grep that theme's copy
   for every `View::render`/`include` of it and name them in the prompt.
-
+- 2026-11-26 (the road to 1.0): fixes are weighed per site, not per change (step 3); the feedback
+  prompt now asks which copied starter code the site had to fix, so copies that drift show up.

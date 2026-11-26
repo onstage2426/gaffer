@@ -30,7 +30,9 @@ the files to read, and check what they bring back against the code yourself.
 - The libraries a site runs that we own: Fuzor (`vendor/onstage2426/fuzor` in the plugin; its
   `CHANGELOG.md`, `UPGRADE-2.0.md`, `docs/operations.md`), the updater library the plugins bundle.
 - `local/AGENTS_LOCAL.md` (its leads too), `local/sites.md`, the latest reports in `feedback/`,
-  your memory (the earlier audits, the pre-1.0 audit and its open decisions).
+  `local/plan-1.0.md` (the road to 1.0: its phases and open decisions), your memory (the earlier
+  audits, the pre-1.0 audit and its open decisions). Fresh copies of the remote themes first
+  (`audit.md` step 1).
 - Working trees: `git status` in Gaffer and each plugin, `bin/dev/plugins`. Uncommitted work isn't
   yours: say what it is and ask.
 
@@ -77,6 +79,9 @@ Go through everything a site writes or reads that we'd promise at 1.0, one line 
 - stored data: options and their shape, index files and their format, tables, files in
   `GAFFER_STORAGE`, compiled caches, anything a cached page carries.
 
+Also **room to grow**: every name Gaffer and themes share (`audit.md` step 5), and every rule
+whose result is stored (block names from folders, field keys): reserve or freeze it now.
+
 Per line, one verdict: **keep** (stable as it is), **change before 1.0** (name, shape or
 behaviour we'd regret; what breaks and who must adapt), **mark experimental or internal** (not
 ready to promise), or **remove** (unused, or a second way to do something). Weigh against the
@@ -106,6 +111,16 @@ actually makes: from the oldest version a site runs (step 2) to the heads.
 list instead of an error, a stale index, a cached broken page, a job that stopped, a check that
 reads "nothing to do" when it couldn't ask. Measure: render with a plugin left out for one
 process, fetch over HTTP like a visitor, read the source of every fallback.
+
+## 7b. At 100–200 sites
+
+What an ordinary update and a major would cost per site: theme edits per CHANGELOG entry (one
+agent session each), which of them are mechanical (a rewrite Gaffer could apply), starter code
+copied into themes (a fix is one per site), whether each site has a rollback point, page caches
+after an update, and how a plugin release reaches the sites (its updater installs on every site
+within hours: rings, a waiting period, withdrawing a release, a release that drops a contract a
+site still asks for, rebuilds landing everywhere at once). Tooling (CLIs, doctor) is outside the
+runtime promise: weigh it only where it can break a site's running code.
 
 ## 8. Present the triage, then wait
 
@@ -155,3 +170,8 @@ From the first run (2026-11-22):
 - **A layer's "experimental" can be most of its users' code:** seven themes call Search, which
   promises nothing until the plugin's 1.0. List what's unpromised by how much runs on sites,
   not by how much there is.
+
+From the scale questions (2026-11-26):
+- **Count the cost per site, not per change:** at 100-200 sites every theme edit an update asks
+  for is a session per site, and copied starter code is a fix per site. The first audits judged
+  each change on its own; judge it by what every site must do.

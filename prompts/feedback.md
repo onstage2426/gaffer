@@ -6,7 +6,7 @@ Then, per item: the concrete command, file, class or skill; what happened (the e
 
 1. Broken or wrong: commands, MCP tools, doctor checks (false errors, missed problems), classes, the JS, and guidelines or skills that said something untrue or out of date.
 2. Restructuring: what made moving or renaming code, templates, blocks, fields or content hard. Which migrate/render commands helped, which were missing or refused, and what you checked by hand to be sure nothing changed.
-3. Workarounds in theme code that a framework feature should cover. Name the file and say whether another site would need the same thing.
+3. Workarounds in theme code that a framework feature should cover. Name the file and say whether another site would need the same thing. Also code the theme copied from the starter (cart actions, notices, forms) that you had to fix or change: the file and what.
 4. Done by hand more than once (how often, and roughly how long it took).
 5. Slow or flaky (with timings).
 6. What worked well and should stay as it is (short).

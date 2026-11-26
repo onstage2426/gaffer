@@ -84,6 +84,12 @@ Don't change code in this session. The output is the triage below and the plugin
    `URLSearchParams`). Measure what you can: `_deprecated_function`/`@deprecated` in the installed
    plugins for what the builders call, notices during a build and an update run.
 
+5b. **How a release reaches the sites:** the updater installs a release on every site within
+   about 12 hours, all at once. Is there a ring, a waiting period, a way to withdraw a release,
+   a guard against a release that drops a contract a site's Gaffer still asks for, and do rebuilds
+   triggered by a release land on every site in the same window? The plugin's WP-CLI is tooling,
+   outside the runtime promise.
+
 6. **Fails silently?** Look for these first; each needs a check that runs on its own
    (`doctor --wp`, the dashboard's verify, the endpoint) rather than docs:
    - an index that stops following content (cron off or failing, a write that fires no hook, a

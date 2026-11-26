@@ -5,7 +5,9 @@ and what we carry or plan because of it. Kept by `prompts/audit.md` (run it now 
 1.x minor and before a major). Every entry is dated, says why, and what removing or fixing it
 takes. Fixed entries are removed here and mentioned in `CHANGELOG.md`.
 
-Last audit: 2026-11-22, full-stack audit (`prompts/audit-full.md`); before it 2026-11-21, break-first audit of the whole system; before it, the third round (WordPress 7.1.5, ACF PRO 6.8.10 with 6.8.12 out, WooCommerce
+Last audit: 2026-11-26 (`prompts/audit.md`: WordPress 7.1.5 and 7.2-RC3 on the integration site,
+ACF PRO 6.8.10, WooCommerce 11.2.1 and 11.3.1, Gravity Forms 3.2.3.1, Twig 3.30, PHP 8.5.12, htmx
+4.0.2; no Gaffer deprecation notices). Before it 2026-11-22, full-stack audit (`prompts/audit-full.md`); before it 2026-11-21, break-first audit of the whole system; before it, the third round (WordPress 7.1.5, ACF PRO 6.8.10 with 6.8.12 out, WooCommerce
 11.2.1 with 11.3.1 out, Gravity Forms 3.2.3.1, Twig 3.30 with 4.0.0-alpha1 published, PHP 8.5.12,
 htmx `latest` 2.0.11 and `next` 4.0.2, Alpine 3.17.5). WooCommerce 11.3.1 keeps the three
 functions Gaffer's runtime calls, none deprecated. ACF 6.8.11 has two fatal regressions
@@ -18,6 +20,22 @@ versions; at those Gaffer called nothing deprecated and `doctor --wp` showed no 
 ## Open after the third 2026-11-21 round
 
 Start the next round here; remove an item when it's done or decided.
+
+- **From the 2026-11-26 audit.** Built: `Purchases` asks `confirm_purchase()` about the cart or
+  order item's own variation (by ID; matching attributes picked an "any" variation listed first,
+  or none for an out-of-stock one: reproduced on the integration site, `bin/dev/purchases-test`);
+  an existing order at an old price is refused for good with `order_price_changed_notice()` (the
+  user's choice: the customer places a new order; the order isn't repriced); `doctor` errors on a
+  block folder that doesn't make a clean name (the folder → name rule is stored data from now
+  on); browser checks for the starter's drawer and a "bought together" form. Checked and fine:
+  WordPress 7.2-RC3 and WooCommerce 11.3.1 on the integration site (doctor, every purchase route,
+  browser checks, the Preview button); its dev notes change nothing Gaffer's runtime uses. Open:
+  - **WordPress 7.2 (2026-12-08) turns `WP_DEBUG` on for `WP_ENVIRONMENT_TYPE` `local`** when
+    `wp-config.php` doesn't define it: Twig's strict variables come on there and `Acf` throws
+    instead of logging. The local sites define it; a remote site with `local` and no `WP_DEBUG`
+    would see template errors it didn't before. Watch in the next round's reports.
+  - **jQuery 4 in WordPress 7.3** (tentative): Gaffer's JavaScript doesn't use jQuery; Gravity
+    Forms' front end does, but Gaffer submits headless. Watch.
 
 - **The block Preview button** (2026-11-25, `BlockPreview`): the editor script uses WordPress's
   public script API only (`editor.BlockEdit`, `BlockControls`, `ToolbarButton`, `Modal`,

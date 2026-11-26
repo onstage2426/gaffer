@@ -23,6 +23,8 @@ Don't change code in this session. The output is the triage below and `docs/comp
 
    For each: what Gaffer uses, the timeline, the replacement, and whether Gaffer can switch without a site changing anything.
 
+   A platform release due within a few weeks: install its release candidate on the integration site (back up the database and core first; `wp core update <zip URL> --force`) and run `doctor --wp`, `bin/dev/sites check` and `bin/dev/purchases-test`.
+
 5. **Self-adapting APIs.** Look for places where a site's code writes something by hand that Gaffer checks or reads: a field name, markup, an attribute, a request key, a cookie, a build setting, a file path. Those break when either side changes. The better design is a pair Gaffer owns on both ends, so its output can change in a patch and the check adapts by itself.
    - **Done on 2026-11-20 (the pattern to follow):** `@gaffer/forms/meta.twig` with `Spam::check()` (form key, honeypot, Turnstile), and `Turnstile::register()`. Also the Vite plugin `resources/vite.js`, which owns the hotfile, manifest, alias and the `gaffer.json` stamp.
    - **Still open** (compat-debt, "Not self-adapting yet"): `fields[x]`/`files[x]`/`kept_files[x][]`, `data-gaffer-resize`, search's endpoint/token inputs. Look for new ones in what themes added since (grep the sites' `app/Ajax/` and `views/` for keys, attributes and paths Gaffer reads).
@@ -95,3 +97,12 @@ Don't change code in this session. The output is the triage below and `docs/comp
   - **Before a form check, look at `turnstile.site_key`, not only the secret:** the starter keeps
     Turnstile off, so its submit was a real entry (deleted by ID afterwards). Note the highest
     entry ID on every site first.
+- 2026-11-26 (fourth run, after the Product and purchase work):
+  - **Feed new code the data shapes a shop really has:** the purchase guard passed 15 scenarios,
+    all with simple products; an "any" variation listed first made it check the wrong variation.
+    For code that matches or selects (variations, attributes, terms), add the odd shapes to the
+    scenario script (`bin/dev/purchases-test`) and run it against the old code once to see it fail.
+  - **Read a promise against each path:** "stops once" held for the cart, never for an existing
+    order (it keeps its price). When the changelog promises a behavior, check it per route.
+  - **Rules that become stored data are frozen at 1.0:** a name derived from a folder (blocks) is
+    in post content. Look for such derivations and decide their odd cases before the freeze.

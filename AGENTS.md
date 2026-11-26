@@ -39,6 +39,11 @@ code. The repository was started fresh on 2026-11-20; it is public.
   conventions. The tooling (CLI, doctor, MCP, AI files) only runs while
   building, so it may change in a minor with a changelog entry (`API.md`,
   "Tooling"). Keep runtime code small and boring; put cleverness in tooling.
+- **Until 1.0, break now** (the user, 2026-11-26): a design that would carry a workaround into 1.x
+  changes now, the theme tree included (folders, layout, config). Prepare 1.x to last for years at
+  100-200 sites: keep routes open (Gaffer must be able to add things in 1.x without colliding with
+  theme code) and freeze what is stored. The plan and its open decisions: `local/plan-1.0.md`
+  (untracked).
 - **Before every commit:** (CI runs the same: `.github/workflows/ci.yml`)
   `composer test` (PHPUnit) and
   `vendor/bin/phpstan analyse --memory-limit=1G` (level 6, **no baseline**:
@@ -167,6 +172,10 @@ Every plugin follows the same rules:
   a theme defined, never changes what a site shows), and a newer Gaffer works with the plugin's
   previous release. A contract change lands in the plugin first (feature, fixture, push), then
   Gaffer (copy the fixtures, check `supports()`): the `contract-change` skill.
+- **Three independent versions:** Gaffer's, each plugin's and the contract number. A Gaffer major
+  never forces plugin majors (no lockstep); a contract only changes number in an emergency, and the
+  plugin then serves both. As for Gaffer, a plugin's tooling (WP-CLI, its options and output) is
+  outside the runtime promise.
 - **Gaffer's side of each plugin:** the theme-facing API (public, experimental until the plugin's
   1.0), an entry in `Ai\Plugins` with its guideline and skill (`resources/ai/*/plugins/<name>`),
   and `doctor` checks (warnings only, so a plugin release can't make `doctor` fail; a real check

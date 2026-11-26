@@ -50,6 +50,13 @@ final class BlocksCheck implements Check
             $name = BlockFields::name($block);
             $expected = BlockFields::folder_name($block);
 
+            // The folder becomes the name stored in post content, so the rule can't change later:
+            // a folder it turns into an odd name ("FAQBlock" → f-a-q-block) or an invalid one
+            // ("hero_home", "Hero-Home" → hero--home: WordPress won't register it) gets renamed now.
+            if (preg_match('/[A-Z]{2}/', $block) || !preg_match('#^acf/[a-z0-9]+(?:-[a-z0-9]+)*$#', $expected)) {
+                $report->error('blocks', "Folder \"{$block}\" doesn't make a clean block name (\"{$expected}\")", $dir,
+                    null, 'Name the folder in camelCase or kebab case with acronyms as words (faqBlock or faq-block → acf/faq-block). Pages that already use the block: php gaffer migrate:rename-block <old> <new> after renaming.');
+            }
             if ($name !== $expected) {
                 $report->error('blocks', "Name is \"{$name}\", expected \"{$expected}\" (from the folder)", "{$dir}/block.json", null,
                     'The name is stored in post content: after renaming, php gaffer migrate:rename-block <old> <new>.');

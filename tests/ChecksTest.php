@@ -120,6 +120,25 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString('acf.blockVersion is not 3', $messages);
     }
 
+    public function test_block_folders_make_clean_names(): void
+    {
+        foreach (['heroHome' => true, 'hero-home' => true, 'slider-top10' => true, 'herohome' => true, 'FAQBlock' => false, 'sliderUSPs' => false, 'hero_home' => false, 'Hero-Home' => false, 'hero-' => false] as $folder => $clean) {
+            $dir = "{$this->theme}/blocks/{$folder}";
+            mkdir($dir);
+            file_put_contents("{$dir}/block.json", '{"title": "X", "description": "X."}');
+            file_put_contents("{$dir}/{$folder}.twig", '');
+            file_put_contents("{$dir}/functions.php", "<?php\nView::render('x', []);\n");
+            $messages = $this->messages(new BlocksCheck());
+            if ($clean) {
+                self::assertStringNotContainsString('make a clean block name', $messages, $folder);
+            } else {
+                self::assertStringContainsString("Folder \"{$folder}\" doesn't make a clean block name", $messages);
+            }
+            array_map(unlink(...), glob("{$dir}/*") ?: []);
+            rmdir($dir);
+        }
+    }
+
     public function test_block_metadata_fills_in_what_block_json_leaves_out(): void
     {
         $metadata = Acf::block_metadata(['file' => "{$this->theme}/blocks/contentFaq/block.json", 'title' => 'FAQ']);

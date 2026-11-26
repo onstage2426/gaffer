@@ -9,6 +9,14 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-26
 
+- **`doctor` errors on a block folder that doesn't make a clean block name.** The folder becomes
+  the name stored in post content, so the rule stays as it is: a folder with an acronym in capitals
+  (`FAQBlock` → `acf/f-a-q-block`) or one whose name WordPress refuses (`hero_home`, `Hero-Home` →
+  `acf/hero--home`: never registered) is renamed before pages use it. Nothing changes at runtime;
+  no known theme has one. Find: `php gaffer doctor`. Before: `blocks/FAQBlock/`; after:
+  `blocks/faqBlock/` (or `faq-block/`), plus `php gaffer migrate:rename-block <old> <new>` when
+  content already uses it.
+
 - **Paying an existing order at an old price gets its own notice: `order_price_changed_notice()`.**
   Only for a theme whose `Product` overrides `confirm_purchase()`. An order (pending, a failed
   payment, made in the admin) keeps the price it was placed at, so when the product's price

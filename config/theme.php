@@ -21,20 +21,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Block Previews
-    |--------------------------------------------------------------------------
-    |
-    | Show the theme's blocks in the block editor, rendered by their own
-    | functions.php and styled with the build's assets/css/editor.css entry
-    | (Tailwind without layers). Off unless true: the editor then shows an
-    | empty preview and the block's fields.
-    |
-    */
-
-    // 'block_previews' => false,
-
-    /*
-    |--------------------------------------------------------------------------
     | Twig Extensions
     |--------------------------------------------------------------------------
     |

@@ -84,51 +84,30 @@ final class Acf
         return $metadata;
     }
 
-    /** @internal The class of the box a failed preview shows in the editor (doctor looks for it). */
-    public const PREVIEW_ERROR = 'gaffer-preview-error';
-
     /**
      * ACF's render callback for a theme block: its functions.php, with ACF's template variables
-     * ($block, $content, $is_preview, $post_id, $wp_block, $context), on the site and, with
-     * `theme.block_previews` on, as the editor's preview (styled by Editor); off, nothing there. It counts as a block render itself: ACF's preview
-     * request after a field edit calls it without WordPress's block type. A preview that throws
-     * shows the error in the block (PREVIEW_ERROR) instead of breaking the editor.
+     * ($block, $content, $is_preview, $post_id, $wp_block, $context). It counts as a block render
+     * itself (rendering()). In the editor the block's code doesn't run: the canvas shows
+     * BlockPreview's placeholder, and its Preview button shows the block on the site itself.
      *
      * @internal
      * @param array<string, mixed> $block
      */
     public static function render_block(array $block, mixed $content = '', mixed $is_preview = false, mixed $post_id = 0, mixed $wp_block = null, mixed $context = false): void
     {
-        $file = (is_string($block['path'] ?? null) ? $block['path'] : '') . '/functions.php';
-        $name = is_string($block['name'] ?? null) ? $block['name'] : '';
-        if (!is_file($file)) {
-            throw new \LogicException("Block {$name}: no {$file}");
-        }
-        $render = self::rendering(static function (string $__file, array $block, mixed $content, mixed $is_preview, mixed $post_id, mixed $wp_block, mixed $context): void {
-            require $__file;
-        });
-
-        if ($is_preview !== true && !is_admin()) {
-            $render($file, $block, $content, $is_preview, $post_id, $wp_block, $context);
+        if ($is_preview === true || is_admin()) {
+            echo BlockPreview::placeholder($block);
             return;
         }
-        if (!Editor::enabled()) {
-            return; // theme.block_previews off: an empty preview
+        $file = (is_string($block['path'] ?? null) ? $block['path'] : '') . '/functions.php';
+        if (!is_file($file)) {
+            $name = is_string($block['name'] ?? null) ? $block['name'] : '';
+            throw new \LogicException("Block {$name}: no {$file}");
         }
-        $level = ob_get_level();
-        try {
-            $render($file, $block, $content, $is_preview, $post_id, $wp_block, $context);
-        } catch (\Throwable $e) {
-            while (ob_get_level() > $level) {
-                ob_end_clean(); // a half-rendered template's buffers
-            }
-            $message = ($e instanceof \Twig\Error\Error ? $e->getRawMessage() : $e->getMessage())
-                . ' (' . basename($e instanceof \Twig\Error\Error ? (string) $e->getSourceContext()?->getPath() : $e->getFile())
-                . ':' . ($e instanceof \Twig\Error\Error ? $e->getTemplateLine() : $e->getLine()) . ')';
-            error_log("Gaffer: block {$name} preview: {$message}");
-            printf('<div class="%s" style="padding:1rem;border:1px solid #d63638;color:#d63638;font:14px/1.5 sans-serif">%s</div>',
-                self::PREVIEW_ERROR, htmlspecialchars("{$name}: {$message}", ENT_QUOTES));
-        }
+
+        self::rendering(static function (string $__file, array $block, mixed $content, mixed $is_preview, mixed $post_id, mixed $wp_block, mixed $context): void {
+            require $__file;
+        })($file, $block, $content, $is_preview, $post_id, $wp_block, $context);
     }
 
     /**

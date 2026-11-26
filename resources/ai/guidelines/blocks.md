@@ -6,10 +6,9 @@ the theme's category, an icon: nothing else), `fields.php` (its ACF fields, if
 any), `functions.php` and `heroContent.twig`. Gaffer names the block after its
 folder (`acf/hero-content`, stored in post content: renaming the folder renames
 the block), registers it as ACF Blocks V3 and runs `functions.php` on the site.
-In the editor only with `'block_previews' => true` in `config/theme.php` (off by
-default: an empty preview), styled by `assets/css/editor.css` (the `gaffer-block`
-skill); then a block must render with no field filled in (`doctor --wp` checks),
-and `$is_preview` is true there, where no theme JavaScript runs.
+The editor's canvas shows a placeholder (no theme code there, no editor guard); the
+block's Preview button shows it on the site's own preview page. A block must render with
+no field filled in (`doctor --wp` checks).
 
 ```php
 // functions.php

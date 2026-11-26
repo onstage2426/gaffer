@@ -7,7 +7,6 @@ namespace Gaffer\Console\Checks;
 use Closure;
 use Gaffer\Acf;
 use Gaffer\BlockFields;
-use Gaffer\Editor;
 use Gaffer\FieldGroups;
 use Gaffer\Console\Render\HtmlProblems;
 use Gaffer\Console\Report;
@@ -189,16 +188,16 @@ final class WordPressCheck implements Check
         }
 
         $this->stale_fields($report, $rows);
-        $this->block_previews($report);
+        $this->empty_blocks($report);
     }
 
     /**
-     * Each theme block's editor preview, as it looks when inserted: no field filled in yet,
-     * strict variables on. A preview that throws shows its error in the editor (Acf::render_block()).
+     * Each theme block on the site as an editor leaves it after inserting it: no field filled
+     * in yet, strict variables on. A block that throws there breaks the page it's saved on.
      */
-    private function block_previews(Report $report): void
+    private function empty_blocks(Report $report): void
     {
-        if (!Editor::enabled() || !function_exists('acf_prepare_block') || !function_exists('acf_setup_meta')) {
+        if (!function_exists('acf_prepare_block') || !function_exists('acf_setup_meta')) {
             return;
         }
         $registry = WP_Block_Type_Registry::get_instance();
@@ -213,24 +212,24 @@ final class WordPressCheck implements Check
                 continue; // a block with its own template or callback
             }
             \acf_setup_meta([], $id, true);
-            $log = ini_set('error_log', '/dev/null'); // the failed preview's log line: reported below
+            $level = ob_get_level();
             ob_start();
             try {
-                Acf::render_block($block, '', true, 0);
-                $html = (string) ob_get_clean();
+                Acf::render_block($block, '', false, 0);
             } catch (\Throwable $e) {
-                ob_end_clean();
-                $html = '';
-                $report->error('wp', "Block {$name}: its editor preview fails: {$e->getMessage()}", Paths::blocks() . "/{$dir}/functions.php");
+                $where = $e instanceof \Twig\Error\Error
+                    ? basename((string) $e->getSourceContext()?->getPath()) . ':' . $e->getTemplateLine()
+                    : basename($e->getFile()) . ':' . $e->getLine();
+                $report->error('wp', "Block {$name} fails with no fields filled in: " . ($e instanceof \Twig\Error\Error ? $e->getRawMessage() : $e->getMessage()) . " ({$where})",
+                    Paths::blocks() . "/{$dir}/functions.php", null,
+                    'What the page shows when an editor inserts the block and saves it before filling it in: give each field a fallback (|default, {% if %}).');
             } finally {
-                ini_set('error_log', $log === false ? '' : $log);
+                while (ob_get_level() > $level) {
+                    ob_end_clean();
+                }
                 if (function_exists('acf_reset_meta')) {
                     \acf_reset_meta($id);
                 }
-            }
-            if (preg_match('~class="' . Acf::PREVIEW_ERROR . '"[^>]*>(.*?)</div>~s', $html, $m)) {
-                $report->error('wp', 'Block ' . html_entity_decode($m[1], ENT_QUOTES) . ' in its editor preview with no fields filled in', Paths::blocks() . "/{$dir}/functions.php", null,
-                    'What an editor sees right after inserting the block: give each field a fallback (|default, {% if %}), or render a placeholder when $is_preview.');
             }
         }
     }

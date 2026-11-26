@@ -9,27 +9,22 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-25
 
-- **Block previews are off unless `config/theme.php` has `'block_previews' => true`** (the
-  previews below came on for every site earlier today; off, the editor's previews are empty
-  again, as before). A theme that set up `editor.css` turns them on with that line. Find:
-  `ls assets/css/editor.css`. Check: `php gaffer doctor --wp` says when the build has
-  `editor.css` but previews are off, or previews are on without it.
-
-- **Block previews in the editor can show the block, styled like the site.** With
-  `block_previews` on (see above), Gaffer runs a block's `functions.php` in the editor too (it
-  rendered nothing there since 2026-11-23); a
-  preview that throws shows its error in the block instead. With an `assets/css/editor.css`
-  entry in the build, Gaffer loads it into the editor, makes theme blocks full width and takes
-  WordPress's admin styles out of the editor canvas. The entry must import Tailwind without
-  layers (`tailwindcss/theme.css`, `preflight.css`, `utilities.css`, no `layer()`): WordPress's
-  styles in the editor are unlayered and win every conflict with a layered rule. Move `@theme`
-  and `@utility` out of `app.css` into a partial both entries import; an example is in the
-  `gaffer-block` skill. Find a block still guarding the editor:
-  `grep -rn "is_preview\|is_admin" blocks/*/functions.php`. Before: `if (is_admin()) return;`
-  at the top. After: nothing, or a simpler variant for `$is_preview` (no theme JavaScript runs
-  in the editor: sliders and Alpine stay still). Check: `php gaffer doctor --wp` renders each
-  block's preview with no field filled in and reports the ones that fail; then open a page with
-  blocks in the editor and change a field.
+- **Theme blocks get a Preview button in the editor; the canvas shows a placeholder.** The
+  canvas never runs a block's `functions.php`: it shows a placeholder with the block's title and
+  the first text in its fields. The Preview button in the block's toolbar opens the block on the
+  site itself in a modal: the post's preview page with the theme's header, CSS, fonts and
+  JavaScript, showing the unsaved block (or the whole unsaved page), at desktop, tablet or
+  mobile width. Nothing is saved. That replaces this day's earlier in-canvas previews:
+  `theme.block_previews` and the `assets/css/editor.css` entry are gone (doctor reports
+  `block_previews` as an unknown key). Find: `grep -n "block_previews" config/theme.php;
+  ls assets/css/editor.css; grep -n "editor.css" vite.config.js`. Remove all three, then
+  build; a `theme.css` partial `app.css` imports can stay. A theme that loads its fonts on
+  `enqueue_block_assets` for the editor only can drop that too. Blocks need no editor guard
+  (`if (is_admin()) return;`, `$is_preview` branches): `grep -rn "is_preview\|is_admin"
+  blocks/*/functions.php`. Check: `php gaffer doctor --wp` renders each block with no field
+  filled in (what a page shows when an editor saves a block before filling it in) and reports
+  the ones that fail; open a page in the editor, press Preview on a block, change a field and
+  press it again.
 
 ## 2026-11-23
 

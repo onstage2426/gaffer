@@ -10,16 +10,15 @@ description: Create or change an ACF block in a Gaffer theme (blocks/{name}/ wit
 2. `block.json`: `title`, a real one-line `description`, the same `category`
    as the other blocks, an `icon`. No `name` or `acf`: Gaffer names the block
    `acf/{kebab-name}` after its directory and renders `functions.php`.
-3. `functions.php`: no editor guard (the editor shows the block as its preview). Gather
+3. `functions.php`: no editor guard (the editor's canvas shows Gaffer's placeholder, and
+   its Preview button opens the site's own preview page). Gather
    the data (`get_field()`, `(int)` casts, `Image::from()`, `Post::from()`,
    `Acf::block_array()`) directly in the
    `View::render('@block/{camelName}/{camelName}.twig', [...])` array.
 4. Template: markup only, from the variables you passed. Images:
    `<img class="..." {{ image.attrs('large') }} loading="lazy">` inside
-   `{% if image %}`. With `block_previews` on, it is also the editor's preview: it must render with no
-   field filled in (a freshly inserted block), and without JavaScript (no Alpine
-   or sliders in the editor; `$is_preview` in `functions.php` to pass a simpler
-   variant).
+   `{% if image %}`. It must render with no field filled in (an editor may save a
+   block before filling it in): `|default`, `{% if %}`.
 5. Fields: write `fields.php` (a list of ACF field arrays, no `key`, only
    non-default settings; shared fields via `...Fields::name()`). Don't create
    block fields in the ACF UI or in `acf-json/`.
@@ -31,29 +30,6 @@ description: Create or change an ACF block in a Gaffer theme (blocks/{name}/ wit
    same (text → wysiwyg, select → radio); otherwise a new field name (see the
    guideline). No InnerBlocks, no flexible content.
 8. Run `php gaffer twig:lint` and `php gaffer doctor --wp`.
-
-## The editor's styles
-
-Block previews are off unless `config/theme.php` has `'block_previews' => true` (ask the
-user before turning them on). Then Gaffer renders the blocks in the editor and loads the
-build's `assets/css/editor.css` entry there (WordPress's iframe), makes theme blocks full
-width and removes the admin styles there. The theme
-writes the entry (list it in `vite.config.js`): Tailwind's parts **without** `layer()`,
-since everything WordPress loads in the editor is unlayered and would win every
-conflict with a layered rule; the `@theme` tokens shared with `app.css` from a partial;
-what the front end's `<body>` has on `.editor-styles-wrapper`.
-
-```css
-@import "fonts.css";
-@import "tailwindcss/theme.css";
-@import "tailwindcss/preflight.css";
-@import "tailwindcss/utilities.css";
-@import "theme.css"; /* @theme, @utility: also imported by app.css */
-
-.editor-styles-wrapper {
-    @apply font-hind;
-}
-```
 
 ## Content written by code
 

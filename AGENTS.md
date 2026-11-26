@@ -239,10 +239,11 @@ included; the theme's own `.ai/guidelines/` get a `doctor` warning above 30 KB).
 - SHORTINIT and `ajax.php` stay: they're for other developers and projects,
   even when the starter doesn't use SHORTINIT. Improve the dispatcher, don't
   replace it with the REST API or WordPress routing.
-- ACF block editor previews render the block when `theme.block_previews` is true (off by default,
-  the user, 2026-11-25), styled by the theme's `assets/css/editor.css` entry (empty from
-  2026-11-23, an `is_admin()` guard before): `Acf::render_block()`, `Editor`. That entry imports Tailwind without layers (WordPress's styles in the iframe are
-  unlayered), and Gaffer drops the admin's `common`/`forms`/`wp-reset-editor-styles` from the canvas.
+- ACF blocks in the editor (2026-11-25, the user: in-canvas previews styled by an `editor.css`
+  entry were tried that day and dropped as too much upkeep per site): the canvas shows Gaffer's
+  placeholder (title + first text), never theme code; the block's Preview button posts the
+  unsaved block or page to the post's preview URL in a modal (`BlockPreview`). No editor
+  stylesheet, no theme CSS in the canvas.
 - The Twig cache is on by default (2026-11-21, the user; was off): a folder per Gaffer version, a
   key per template's modification time and size (a rollback recompiles), and a folder it can't
   write renders uncached (`Twig\Cache`, `Twig\Loader`). `theme.cache: false` turns it off.

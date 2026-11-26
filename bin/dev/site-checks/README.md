@@ -16,6 +16,7 @@ P=/path/to/a/theme   # with playwright installed; the sites on this host: local/
 node bin/dev/site-checks/htmx.mjs $P https://shop.test /a-page-with-a-form/   # shop add-to-cart, archive, a Gaffer form, an error answer
 node bin/dev/site-checks/drawer-select.mjs $P https://shop.test               # drawer with the quantity <select> (submit-qty)
 node bin/dev/site-checks/drawer-buttons.mjs $P https://shop.test              # drawer with +/− buttons and a remove button
+node bin/dev/site-checks/add-together.mjs $P https://shop.test /product/<one>/   # a "bought together" form (CartAddTogether): all of them in the drawer
 node bin/dev/site-checks/variation.mjs $P https://shop.test /product/<variable>/ select  # or: link
 node bin/dev/site-checks/search.mjs $P https://shop.test /winkel/ ma          # searchbar and archive through search.attrs()
 node bin/dev/site-checks/search-pages.mjs https://shop.test /winkel/ /en/shop/ /second/shop/ --q=ma  # each page's own token (site, language) searched, no browser

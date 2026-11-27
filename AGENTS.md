@@ -241,6 +241,11 @@ Every plugin follows the same rules:
 - **What a site relies on in a plugin without a public API gets a real check** in `doctor --wp`
   (`ContractsCheck`: the Gravity Forms probe, `ajax.php` over HTTP), recorded in
   `docs/compat-debt.md`.
+- **The starter carries markup, design and the agency's opinions; platform behavior is Gaffer's**
+  (2026-11-27). Anything with a contract to WordPress, WooCommerce or a cache (WooCommerce's
+  sequences such as adding to the cart and notices, cookies a cached page reads, caches) is built
+  in Gaffer and called from the starter, never copied into it: each copy drifts and needs a session
+  per site to fix. `bin/dev/forks` shows what the themes still copy.
 - **Convention over configuration.** The theme layout and ajax namespace are
   fixed; only server concerns are configurable (`GAFFER_STORAGE`).
 

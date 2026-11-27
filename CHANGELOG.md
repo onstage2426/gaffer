@@ -11,6 +11,16 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **`php gaffer update` links `vendor` to a `vendor.{id}/` folder next to it** and switches the link
+  in one step, so requests running during an update finish on the old code instead of failing; the
+  theme's mechanical changes are written right before the switch, not seconds after it. The first
+  linked update moves the real `vendor/` into `storage/updates/<id>/` as before. Composer, the
+  build and the theme see `vendor/` as always (`composer install` writes through the link).
+  *Automated (`2026-11-27-vendor-link`): `.gitignore` gets `/vendor` and `/vendor.*` next to its
+  `vendor/` line (git doesn't match a link with a folder pattern).* A deploy that copies the theme
+  must keep the link (`rsync -a`, `cp -a`; not `cp -rL`), or copy `vendor/` through it. Find:
+  `grep -n vendor .gitignore`. Check: `git status` shows neither `vendor` nor `vendor.*`.
+
 - **`Types\Term`'s constructor is final, like `Post`'s** (API.md: the constructor is Gaffer's). A
   theme's term class adds methods, never a constructor. Find: `grep -rn "__construct" app/Types`.
   No known theme has one.

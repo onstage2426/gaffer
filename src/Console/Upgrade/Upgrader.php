@@ -34,6 +34,7 @@ final class Upgrader
             new Rules\ContentMarkup(),
             new Rules\FormActionFinal(),
             new Rules\SearchValues(),
+            new Rules\VendorLink(),
         ];
     }
 

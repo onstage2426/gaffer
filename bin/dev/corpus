@@ -128,7 +128,7 @@ $internal = static function (string $dir) use ($gaffer): ?array {
 
 /** A slim copy to upgrade and check: what doctor reads, node_modules/ and vendor/ linked. */
 $slim = static function (string $dir, string $to): void {
-    $run = proc_open(['rsync', '-a', '--exclude=/node_modules', '--exclude=/vendor', '--exclude=.git', '--include=/storage/', '--include=/storage/acf-json/***', '--exclude=/storage/*', '--include=/public/', '--include=/public/.vite/***', '--exclude=/public/*', "{$dir}/", "{$to}/"], [], $pipes);
+    $run = proc_open(['rsync', '-a', '--exclude=/node_modules', '--exclude=/vendor', '--exclude=/vendor.*', '--exclude=.git', '--include=/storage/', '--include=/storage/acf-json/***', '--exclude=/storage/*', '--include=/public/', '--include=/public/.vite/***', '--exclude=/public/*', "{$dir}/", "{$to}/"], [], $pipes);
     if (!is_resource($run) || proc_close($run) !== 0) {
         throw new RuntimeException("rsync of {$dir} failed");
     }

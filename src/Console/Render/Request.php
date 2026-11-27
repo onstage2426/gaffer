@@ -131,7 +131,7 @@ final class Request
 
         // PHP warnings/notices raised in theme files (not plugins or core).
         set_error_handler(function (int $no, string $message, string $file, int $line): bool {
-            if (str_starts_with($file, Paths::base() . '/') && !str_contains($file, '/vendor/')) {
+            if (str_starts_with($file, Paths::base() . '/') && !preg_match('~/vendor(\.[\w-]+)?/~', $file)) {
                 $this->result['notices'][] = substr($file, strlen(Paths::base()) + 1) . ":{$line} {$message}";
             }
             return false;

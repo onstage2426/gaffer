@@ -85,7 +85,7 @@ foreach ($themes as $dir) {
     $theme = $label($dir);
     $files = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(
         new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
-        static fn(SplFileInfo $f): bool => !($f->isDir() && in_array($f->getFilename(), ['vendor', 'node_modules', '.git', 'storage', 'public'], true)),
+        static fn(SplFileInfo $f): bool => !($f->isDir() && (in_array($f->getFilename(), ['vendor', 'node_modules', '.git', 'storage', 'public'], true) || preg_match('/^vendor\.[\w-]+$/', $f->getFilename()))),
     ));
     foreach ($files as $file) {
         $ext = $file->getFilename() === 'gaffer' ? 'php' : $file->getExtension(); // the theme's CLI entry has no extension

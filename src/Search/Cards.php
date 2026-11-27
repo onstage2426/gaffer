@@ -174,7 +174,9 @@ final class Cards
             if ($file === null) {
                 continue;
             }
-            $files[substr($file, strlen(self::root()) + 1)] = (int) filemtime($file);
+            // A Gaffer template resolves into update's current vendor.{id}/ (vendor/ links to it):
+            // named through vendor/, so the version stays the same across updates that don't change it.
+            $files[(string) preg_replace('~^vendor\.[\w-]+/~', 'vendor/', substr($file, strlen(self::root()) + 1))] = (int) filemtime($file);
             if (!str_ends_with($name, '.twig')) {
                 continue;
             }

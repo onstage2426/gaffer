@@ -310,6 +310,21 @@ final class UpgradeTest extends BaseTestCase
         self::assertSame(['blocks/hero/hero.twig'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-search-values']['by_hand']));
     }
 
+    public function test_vendor_link_in_gitignore(): void
+    {
+        $this->write('.gitignore', "node_modules/\nvendor/\n.env\n");
+        $this->upgrade();
+        self::assertSame("node_modules/\nvendor/\n/vendor\n/vendor.*\n.env\n", $this->read('.gitignore'));
+    }
+
+    public function test_vendor_link_leaves_a_theme_that_commits_vendor_or_has_the_lines(): void
+    {
+        $this->write('.gitignore', "node_modules/\n");
+        self::assertSame([], Upgrader::plan(new Theme($this->root)));
+        $this->write('.gitignore', "/vendor\n/vendor.*/\n");
+        self::assertSame([], Upgrader::plan(new Theme($this->root)));
+    }
+
     public function test_a_plan_round_trips_and_refuses_a_changed_theme(): void
     {
         $this->write('views/header.twig', "{% if item.has_children %}a{% endif %}\n");

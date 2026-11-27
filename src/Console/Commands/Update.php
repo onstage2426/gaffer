@@ -165,7 +165,7 @@ final class Update extends Command
                 file_put_contents("{$dir}/upgrade-backup", $backup);
             }
             try {
-                Swap::swap($theme, $dir, $root);
+                $how = Swap::swap($theme, $dir, $root);
             } catch (Throwable $e) {
                 $backup !== null && Upgrader::restore(new Theme($theme), $backup);
                 throw $e;
@@ -174,7 +174,9 @@ final class Update extends Command
             if ($backup !== null) {
                 $steps->detail(count($planned) . " theme files written (backup {$backup}), then at once:");
             }
-            $steps->detail("vendor/ → {$dir}/vendor.old; the staged vendor/ → vendor/ (two renames); composer.lock copied");
+            $steps->detail($how === 'link'
+                ? "the staged vendor/ → vendor.{$id}/, vendor → vendor.{$id} (a link, switched in one rename; running requests finish on the old one); composer.lock copied"
+                : "vendor/ → {$dir}/vendor.old; the staged vendor/ → vendor/ (two renames: links don't work here); composer.lock copied");
             if ($planned !== null && array_filter($planned, static fn(Change $c): bool => str_starts_with($c->path, 'app/') && ($c->before === null || $c->after === null)) !== []) {
                 // A classmap lists the files: renew it (with the new vendor/ in place).
                 $dump = $steps->run([$composer, 'dump-autoload', '-q', '--no-interaction'], $theme, 120);
@@ -245,9 +247,11 @@ final class Update extends Command
             return $finish('rolled back: ' . $why, 1);
         }
 
-        self::prune($base);
+        foreach (self::prune($theme, $base) as $removed) {
+            $steps->detail("Removed {$removed}/ (an older update's vendor/)");
+        }
         $steps->step("Done: Gaffer {$report['from']} → {$report['to']} in {$steps->elapsed()} s");
-        $steps->detail("Undo: php gaffer update --rollback={$id}  (vendor.old and the rest in {$dir}; the last " . self::KEEP . ' updates are kept)');
+        $steps->detail("Undo: php gaffer update --rollback={$id}  (the rest in {$dir}; the last " . self::KEEP . ' updates are kept)');
         $steps->detail("Log: {$steps->log}");
 
         return $finish('updated', self::SUCCESS);
@@ -270,7 +274,7 @@ final class Update extends Command
             return "{$composer} doesn't run here (--composer=<path>).";
         }
         $steps->detail(strtok(trim($version['stdout']), "\n") ?: '(no version)');
-        $size = ChildProcess::run(['du', '-sk', "{$theme}/vendor"], null, 120);
+        $size = ChildProcess::run(['du', '-sk', "{$theme}/vendor/"], null, 120); // through the link
         $kb = (int) ($size['stdout'] ?? 0);
         $free = (int) (disk_free_space($base) ?: 0);
         $steps->detail(sprintf('vendor/ %.1f MB, %.0f MB free in %s', $kb / 1024, $free / 1048576, $base));
@@ -299,7 +303,7 @@ final class Update extends Command
             }
         }
         Swap::back($theme, $dir);
-        $steps->detail(($restored ? "upgrade's changes put back ({$backup}), then at once: " : '') . "vendor/ ← {$dir}/vendor.old (the update's vendor/ kept as vendor.failed); composer files and the Vite manifest and stamp ← {$dir}/before/");
+        $steps->detail(($restored ? "upgrade's changes put back ({$backup}), then at once: " : '') . "vendor/ back as before the update (" . (is_link("{$theme}/vendor") ? 'vendor → ' . readlink("{$theme}/vendor") . ', one rename' : "{$dir}/vendor.old renamed back") . "); composer files and the Vite manifest and stamp ← {$dir}/before/");
         if ($backup !== '' && !$restored) {
             $restore = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'upgrade', "--restore={$backup}"], $theme, 300);
             $restore !== null && $restore['code'] === 0 ? $steps->detail('upgrade\'s changes put back') : $steps->failed('upgrade --restore', $restore);
@@ -467,13 +471,20 @@ final class Update extends Command
         return $dirs[0] ?? null;
     }
 
-    /** The last KEEP updates stay (vendor.old is the rollback); older folders go. */
-    private static function prune(string $base): void
+    /**
+     * The last KEEP updates stay (their vendor.old or vendor.{id}/ is the rollback); older update
+     * folders and the vendor.{id}/ folders nothing needs any more go.
+     *
+     * @return list<string> the vendor.{id}/ folders removed
+     */
+    private static function prune(string $theme, string $base): array
     {
         $dirs = glob("{$base}/2*", GLOB_ONLYDIR) ?: [];
         rsort($dirs);
         foreach (array_slice($dirs, self::KEEP) as $old) {
             ChildProcess::run(['rm', '-rf', $old], null, 300);
         }
+
+        return Swap::prune_targets($theme, array_slice($dirs, 0, self::KEEP));
     }
 }

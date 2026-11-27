@@ -65,7 +65,8 @@ final class InternalApiTest extends TestCase
         self::assertSame('internal', PublicApi::status('Gaffer\BlockFields'));
         self::assertSame('internal', PublicApi::status('Gaffer\Console\Report'));
         self::assertSame('public', PublicApi::status('Gaffer\Console\Console', 'boot'));
-        self::assertSame('public', PublicApi::status('Gaffer\Forms\FormAction', 'METHOD')); // inherited from AjaxAction
+        self::assertSame('public', PublicApi::status('Gaffer\Types\Product', 'link')); // inherited from Post
+        self::assertSame('internal', PublicApi::status('Gaffer\Forms\FormAction'));
         self::assertSame('missing', PublicApi::status('Gaffer\Search\Search', 'is_archive'));
         self::assertSame('missing', PublicApi::status('Gaffer\Nope'));
     }

@@ -11,6 +11,13 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **`Forms\FormAction` is Gaffer's own: final and internal.** A theme with form logic of its own
+  writes its own action in `app/Ajax/Form/` (or under another name) on `Gaffer\AjaxAction` and calls
+  `Forms\Spam::check()` first, instead of extending Gaffer's. An empty subclass was removed by the
+  `2026-11-23-form-action-folder` rule already; one with code of its own is listed by hand
+  (`2026-11-27-form-action-final`). Find: `grep -rn "extends FormAction\|Forms\\\\FormAction" app inc`.
+  Check: the forms submit as before.
+
 - **`Post::content()` and `Term::description()` return safe HTML (`Twig\Markup`)**, like
   `image.attrs()` and `notice.message`: print them without `|raw`. *Automated
   (`2026-11-27-content-markup`): `|raw` and its trusted comment go after `x.content()` /

@@ -293,6 +293,14 @@ final class UpgradeTest extends BaseTestCase
         self::assertSame("<?php\n\$x = \$item->description();\n\$y = (string) \$post->content();\n", $this->read('app/Show.php'));
     }
 
+    public function test_a_form_action_subclass_with_code_is_by_hand(): void
+    {
+        $this->write('app/Ajax/Quote/Quote.php', "<?php\nnamespace Theme\\Ajax\\Quote;\nuse Gaffer\\Forms\\FormAction;\nclass Quote extends FormAction { public function x(): void {} }\n");
+
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame(['app/Ajax/Quote/Quote.php'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-form-action-final']['by_hand']));
+    }
+
     public function test_restore_puts_everything_back(): void
     {
         $this->write('views/a.twig', 'before');

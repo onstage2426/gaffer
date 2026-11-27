@@ -14,8 +14,6 @@ final class Gaffer\Config
   static get(string $key): mixed
 final class Gaffer\Console\Console
   static boot(string $dir): int
-class Gaffer\Forms\FormAction extends Gaffer\AjaxAction
-  const METHOD = 'POST'
 final class Gaffer\Forms\FormState
   readonly string $name
   readonly bool $sent

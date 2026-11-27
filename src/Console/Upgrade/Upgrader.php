@@ -32,6 +32,7 @@ final class Upgrader
             new Rules\Notices(),
             new Rules\MenuChildren(),
             new Rules\ContentMarkup(),
+            new Rules\FormActionFinal(),
         ];
     }
 

@@ -34,7 +34,7 @@ final class AjaxTest extends TestCase
         // Forms post to Form: Gaffer's own unless the theme has the file.
         self::assertSame(\Gaffer\Forms\FormAction::class, Ajax::action_class('Form'));
         mkdir("{$theme}/app/Ajax/Form", 0755, true);
-        file_put_contents("{$theme}/app/Ajax/Form/Form.php", "<?php\nnamespace Theme\\Ajax\\Form;\nclass Form extends \\Gaffer\\Forms\\FormAction {}\n");
+        file_put_contents("{$theme}/app/Ajax/Form/Form.php", "<?php\nnamespace Theme\\Ajax\\Form;\nfinal class Form extends \\Gaffer\\AjaxAction { public function run(): void {} }\n");
         self::assertSame('Theme\\Ajax\\Form\\Form', Ajax::action_class('Form'));
 
         // doctor --wp calls the GET actions that need no argument

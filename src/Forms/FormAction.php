@@ -18,8 +18,13 @@ use Gaffer\View;
  * change together. Files come as `fields[field]` / `fields[field][]` (multipart) for File
  * Upload fields, like the other inputs (`files[…]` is still read until 2026-12-31); spam never reaches Gravity
  * Forms, so its files are never stored (PHP deletes a request's uploads).
+ *
+ * Gaffer's own: a theme with form logic of its own writes its own action (app/Ajax/Form/ replaces
+ * this one) with Forms\Spam::check(), not a subclass.
+ *
+ * @internal
  */
-class FormAction extends AjaxAction
+final class FormAction extends AjaxAction
 {
     public const string METHOD = 'POST';
 

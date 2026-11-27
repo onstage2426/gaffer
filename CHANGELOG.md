@@ -11,6 +11,19 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **WooCommerce's notices reach templates as `Gaffer\Types\Notice`** (`Notice::list($notices)`:
+  `notice.message`, `notice.attrs`). *Automated (`2026-11-27-notices`) for the starter's notice
+  overrides and actions that copied their `array_map()`; a theme's own notice data is by hand.* The
+  overrides each built the message (`wc_kses_notice()`) and the data attributes WooCommerce's
+  checkout script reads (`wc_get_notice_data_attr()`: which field an error is about) by hand, and
+  copies dropped the attributes. Both are Markup now: no `|raw` and no `trusted` comment in the
+  template. Find: `grep -rn "wc_kses_notice\|wc_get_notice_data_attr" woocommerce app inc`. Before:
+  `"notices" => array_map(fn(array $notice): array => ["text" => wc_kses_notice($notice["notice"]), "attrs" => wc_get_notice_data_attr($notice)], $notices)`
+  and `<li{{ notice.attrs|raw }}>{{ notice.text|raw }}</li>`; after: `"notices" => Notice::list($notices)`
+  (`use Gaffer\Types\Notice;`) and `<li{{ notice.attrs }}>{{ notice.message }}</li>`. Check: a
+  checkout with an empty required field (the error links to the field), and an add to the cart
+  (the success notice with its "View cart" link).
+
 - **New: Gaffer keeps a cart count cookie for the header badge (`gaffer_cart`) and ships the badge's
   JavaScript (`@gaffer/cart.js`).** *Automated (`2026-11-27-cart-badge`) for the starter's badge; a theme's own badge code is by hand.*
   **Purge the page cache after this one:** cached pages carry the old badge, whose cookie and count

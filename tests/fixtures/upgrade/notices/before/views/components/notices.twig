@@ -1,0 +1,12 @@
+{% set styles = { success: 'border-success bg-success/10', notice: 'border-notice bg-notice/15' } %}
+{% if type == 'error' %}
+    <ul class="border-danger bg-danger/15 list-disc rounded-[3px] border-s-4 p-4 pl-10" role="alert">
+        {% for notice in notices %}
+            <li{{ notice.attrs|raw }}>{# trusted: wc_get_notice_data_attr() #}{{ notice.text|raw }}{# trusted: WooCommerce notice, wc_kses_notice() #}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    {% for notice in notices %}
+        <div class="{{ styles[type] }} rounded-[3px] border-s-4 p-4 pl-6"{{ notice.attrs|raw }} role="{{ type == 'notice' ? 'status' : 'alert' }}">{# trusted: wc_get_notice_data_attr() #}{{ notice.text|raw }}{# trusted: WooCommerce notice, wc_kses_notice() #}</div>
+    {% endfor %}
+{% endif %}

@@ -204,6 +204,48 @@ final class UpgradeTest extends BaseTestCase
         self::assertNull($this->read('app/Ajax/CartCount/CartCount.php'), 'the starter\'s count action goes');
     }
 
+    public function test_notices_turns_the_starter_into_its_converted_self(): void
+    {
+        $fixtures = dirname(__DIR__) . '/tests/fixtures/upgrade/notices';
+        exec('cp -r ' . escapeshellarg("{$fixtures}/before") . '/. ' . escapeshellarg($this->root));
+        $this->upgrade();
+
+        foreach (['woocommerce/notices/error.php', 'woocommerce/notices/notice.php', 'woocommerce/notices/success.php', 'views/components/notices.twig'] as $path) {
+            self::assertSame((string) file_get_contents("{$fixtures}/after/{$path}"), $this->read($path), $path);
+        }
+        self::assertArrayNotHasKey('2026-11-27-notices', Upgrader::plan(new Theme($this->root)), 'nothing left by hand');
+    }
+
+    public function test_notices_in_an_action_and_the_guard(): void
+    {
+        $fixtures = dirname(__DIR__) . '/tests/fixtures/upgrade/notices';
+        exec('cp -r ' . escapeshellarg("{$fixtures}/before") . '/. ' . escapeshellarg($this->root));
+        $map = 'array_map(fn(array $notice): array => ["text" => wc_kses_notice($notice["notice"]), "attrs" => wc_get_notice_data_attr($notice)], wc_get_notices("error"))';
+        $action = "<?php\n\nnamespace Theme\\Ajax\\Drive;\n\nuse Gaffer\\AjaxAction;\nuse Gaffer\\View;\n\nfinal class Drive extends AjaxAction\n{\n    public function run(): void\n    {\n        View::render(\"components/notices.twig\", [\n            \"type\" => \"error\",\n            \"notices\" => {$map},\n        ]);\n    }\n}\n";
+        $this->write('app/Ajax/Drive/Drive.php', $action);
+        $this->upgrade();
+        self::assertSame(str_replace([$map, "use Gaffer\\AjaxAction;\n"], ['Notice::list(wc_get_notices("error"))', "use Gaffer\\AjaxAction;\nuse Gaffer\\Types\\Notice;\n"], $action), $this->read('app/Ajax/Drive/Drive.php'));
+        self::assertStringContainsString('{{ notice.message }}', (string) $this->read('views/components/notices.twig'));
+
+        // Code of the theme's own filling the same template: nothing changes, it's all by hand.
+        exec('rm -rf ' . escapeshellarg($this->root) . '/* && cp -r ' . escapeshellarg("{$fixtures}/before") . '/. ' . escapeshellarg($this->root));
+        $this->write('app/Own.php', "<?php\nView::render('components/notices.twig', ['type' => 'error', 'notices' => array_map(fn(\$n) => ['text' => wc_kses_notice(\$n['notice'])], wc_get_notices('error'))]);\n");
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame([], $plan['2026-11-27-notices']['changes']);
+        self::assertContains('app/Own.php', array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-notices']['by_hand']));
+    }
+
+    public function test_notices_written_otherwise_are_by_hand(): void
+    {
+        // An older copy without the data attributes, and a theme's own helper.
+        $this->write('woocommerce/notices/error.php', "<?php\nuse Gaffer\\View;\nView::render(\"components/notices.twig\", [\"type\" => \"error\", \"notices\" => array_map(fn(array \$notice): string => wc_kses_notice(\$notice[\"notice\"]), \$notices)]);\n");
+        $this->write('app/Notices.php', "<?php\nfinal class Notices { public static function for_view(array \$n): array { return array_map(fn(\$x) => wc_kses_notice(\$x['notice']), \$n); } }\n");
+
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame([], $plan['2026-11-27-notices']['changes']);
+        self::assertSame(['app/Notices.php', 'woocommerce/notices/error.php'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-notices']['by_hand']));
+    }
+
     public function test_restore_puts_everything_back(): void
     {
         $this->write('views/a.twig', 'before');

@@ -15,7 +15,7 @@ captchas aren't used. To add or change a form, follow the `gaffer-form` skill.
   `FormState::blank('name')`), and its action calls `Forms\Spam::check('name')` (the reason or
   null) instead of reading those fields.
 - **Spam** (honeypot, Turnstile) gets the normal confirmation and a line in
-  `uploads/gaffer/logs/spam.log`; outside production its answer has an
+  `uploads/gaffer/gaffer/logs/spam.log`; outside production its answer has an
   `X-Gaffer-Spam` header (the reason), so a confirmation is no proof a test went through.
 - Single-value fields, checkboxes, consent and File Upload fields (`fields[x]`
   like the rest, multipart); no Name/Address fields, no multi-page forms.

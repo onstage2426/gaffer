@@ -63,7 +63,7 @@ final class ContractsCheck implements Check
         }
         // A file in a private folder (visitors' uploads, logs), without a leading dot: many servers
         // deny dotfiles on their own, which would hide a folder that's open otherwise.
-        $probe = Storage::private_dir('logs') . '/doctor-probe.txt';
+        $probe = Storage::gaffer_dir('logs') . '/doctor-probe.txt';
         $uploads = \wp_upload_dir(null, false);
         $probe_url = match (true) {
             str_starts_with($probe, $theme . '/') => $uri . substr($probe, strlen($theme)),
@@ -282,7 +282,7 @@ final class ContractsCheck implements Check
      */
     private function turnstile(Report $report): void
     {
-        $file = Storage::private_dir('logs') . '/spam.log';
+        $file = Storage::gaffer_dir('logs') . '/spam.log';
         if (!Turnstile::enabled() || !is_file($file)) {
             return;
         }

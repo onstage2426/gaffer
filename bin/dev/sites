@@ -201,7 +201,7 @@ switch ($command) {
                     }
                 }
             }
-            if (class_exists('Gaffer\Storage')) { $out['log'] = Gaffer\Storage::private_dir('logs') . '/spam.log'; }
+            if (class_exists('Gaffer\Storage')) { $out['log'] = (method_exists('Gaffer\Storage', 'gaffer_dir') ? Gaffer\Storage::gaffer_dir('logs') : Gaffer\Storage::private_dir('logs')) . '/spam.log'; }
             echo json_encode($out);
             PHP;
         $wp = static function (array $site, ?int $deleteAbove = null) use ($state): ?array {

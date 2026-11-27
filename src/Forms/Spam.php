@@ -54,7 +54,7 @@ final class Spam
         $reason = (string) preg_replace('/\s+/', '-', trim($reason)); // one word: the line is "[time] form reason"
 
         file_put_contents(
-            Storage::private_dir('logs') . '/spam.log',
+            Storage::gaffer_dir('logs') . '/spam.log',
             sprintf("[%s] %s %s\n", \wp_date('Y-m-d H:i:s'), (string) preg_replace('/\s+/', '-', $form), $reason),
             FILE_APPEND | LOCK_EX,
         );

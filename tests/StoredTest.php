@@ -95,7 +95,7 @@ final class StoredTest extends BaseTestCase
 
         $lines[] = '';
         $lines[] = '# Files Gaffer reads back (a newer version is refused, older ones are read)';
-        $lines[] = 'uploads/gaffer/backups/migrate/*.json format ' . Backup::FORMAT;
+        $lines[] = 'uploads/gaffer/gaffer/backups/migrate/*.json (before 2026-11-27 uploads/gaffer/backups/migrate/, read) format ' . Backup::FORMAT;
         $lines[] = Baseline::FILE . ' version ' . Baseline::VERSION;
         $lines[] = 'health --json format ' . HealthReport::FORMAT;
 

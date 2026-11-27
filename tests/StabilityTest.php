@@ -122,7 +122,7 @@ final class StabilityTest extends TestCase
         Paths::set_base($this->theme);
         $log = Spam::check('offerte');
         self::assertSame('honeypot', $log);
-        self::assertStringContainsString('offerte honeypot', (string) file_get_contents("{$this->theme}/uploads/gaffer/logs/spam.log"));
+        self::assertStringContainsString('offerte honeypot', (string) file_get_contents("{$this->theme}/uploads/gaffer/gaffer/logs/spam.log"));
 
         $_POST = ['website' => '', 'turnstile' => ''];
         self::assertNull(Spam::check('offerte')); // Turnstile off: no site key and secret

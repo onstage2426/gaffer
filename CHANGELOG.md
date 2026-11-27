@@ -11,6 +11,14 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **Gaffer's own private files moved to `uploads/gaffer/gaffer/`** (`logs/spam.log`,
+  `logs/migrate.log`, `backups/migrate/`), and `Storage::private_dir()` refuses a first folder
+  starting with `gaffer`: so Gaffer can add folders in 1.x without meeting a theme's. A theme's own
+  folders (`offers/`, a `logs/` of its own) stay where they are. Gaffer writes the new place at
+  once; migrate backups and the migrate log are read from both, so `migrate:rollback` keeps
+  working. `doctor --wp` warns while files are in the old place and gives the `mv`. Find:
+  `grep -rn "private_dir(['\"]gaffer" app inc`. Check: `php gaffer doctor --wp`, then run its `mv`.
+
 - **Search's `endpoint` and `token` are Gaffer's; `attrs()` writes them, now on a counter too.**
   `Archive`, `Searchbar` and `Counter` keep `available` (and their other values), but `endpoint` and
   `token` are internal: they may change with Gaffer's JavaScript. New: `counter.attrs()` for the

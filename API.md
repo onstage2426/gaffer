@@ -131,15 +131,15 @@ written in the new one for the rest of the major, so stored data needs no migrat
   `kept_files[...][]`. The rest of what a form sends (its name, the honeypot,
   Turnstile's token) is Gaffer's own, written by `@gaffer/forms/meta.twig` and
   read by `FormAction`: it may change in any release, both ends together.
-  Gaffer loads Turnstile's script. `uploads/gaffer/logs/spam.log` is Gaffer's too
+  Gaffer loads Turnstile's script. `uploads/gaffer/gaffer/logs/spam.log` is Gaffer's too
   (`Spam::check()` writes it, `doctor` reads it).
 - **The build:** `vite.config.js` uses Gaffer's plugin (`resources/vite.js`,
   `gaffer()`): it owns the settings Gaffer reads (`public/`, the manifest,
   `public/.vite/gaffer.json`) and the `@gaffer` alias. Gaffer's PHP and the
   bundled JavaScript of one release work with the previous release's other half
   (a composer update changes the PHP at once, the JavaScript with the next build).
-- **Storage formats:** `uploads/gaffer/backups/migrate/*.json` (rollback reads old
-  backups) and `uploads/gaffer/logs/migrate.log`.
+- **Storage formats:** `uploads/gaffer/gaffer/backups/migrate/*.json` (rollback reads old
+  backups) and `uploads/gaffer/gaffer/logs/migrate.log`.
 - **Carts and orders** (with a `Product::confirm_purchase()` override): the cart item key
   `gaffer_price` and the order item meta `_gaffer_price`, the price the customer saw.
 

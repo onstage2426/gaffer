@@ -23,21 +23,59 @@ final class Storage
 
     private const string MARKER = "# Never commit: private files of this site.\n";
 
+    /** Gaffer's own folder in uploads/gaffer/, and the prefix private_dir() refuses. */
+    private const string OWN = 'gaffer';
+
     /** theme_dir()'s folders say so in their .gitignore, so any Gaffer version tells them from private ones. */
     private const string TOOLING_MARKER = "# Never commit: Gaffer's tooling, made again on demand.\n";
 
     /**
      * The private folder {relative} in uploads/gaffer/, created with its deny-all .htaccess and
-     * .gitignore when missing; its path. Needs WordPress loaded (not SHORTINIT). Gaffer keeps its
-     * own logs in `logs` and migrate backups in `backups/migrate`.
+     * .gitignore when missing; its path. Needs WordPress loaded (not SHORTINIT). A first folder
+     * whose name starts with `gaffer` is Gaffer's own (its logs, migrate backups): refused.
+     *
+     * @throws InvalidArgumentException for a path outside uploads/gaffer/ or in Gaffer's folders
      */
     public static function private_dir(string $relative): string
     {
         $relative = self::relative($relative);
-        $dir = Paths::data() . '/' . $relative;
+        if (str_starts_with(strtolower($relative), self::OWN)) {
+            throw new InvalidArgumentException("Storage::private_dir('{$relative}'): folders starting with \"gaffer\" are Gaffer's own; name it otherwise.");
+        }
         self::deny(Paths::data());
 
-        return self::deny($dir);
+        return self::deny(Paths::data() . '/' . $relative);
+    }
+
+    /**
+     * Gaffer's own private folder {relative} (logs, backups/migrate) in uploads/gaffer/gaffer/.
+     *
+     * @internal
+     */
+    public static function gaffer_dir(string $relative): string
+    {
+        $relative = self::relative($relative);
+        self::deny(Paths::data());
+        self::deny(Paths::data() . '/' . self::OWN);
+
+        return self::deny(Paths::data() . '/' . self::OWN . '/' . $relative);
+    }
+
+    /**
+     * Gaffer's files where it kept them before 2026-11-27 (uploads/gaffer/logs/spam.log,
+     * migrate.log, backups/migrate/*.json): still read (migrate backups), doctor gives the mv.
+     *
+     * @internal
+     * @return list<string> paths
+     */
+    public static function gaffer_before(): array
+    {
+        $data = Paths::data();
+
+        return [
+            ...array_values(array_filter(["{$data}/logs/spam.log", "{$data}/logs/migrate.log"], 'is_file')),
+            ...(glob("{$data}/backups/migrate/*.json") ?: []),
+        ];
     }
 
     /**

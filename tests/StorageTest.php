@@ -28,6 +28,33 @@ final class StorageTest extends TestCase
         exec('rm -rf ' . escapeshellarg($theme));
     }
 
+    public function test_gaffers_own_folders_are_reserved(): void
+    {
+        $theme = sys_get_temp_dir() . '/gaffer-own-' . bin2hex(random_bytes(4));
+        mkdir("{$theme}/uploads/gaffer/logs", 0775, true);
+        mkdir("{$theme}/uploads/gaffer/backups/migrate", 0775, true);
+        file_put_contents("{$theme}/uploads/gaffer/logs/spam.log", "x\n");
+        file_put_contents("{$theme}/uploads/gaffer/logs/theirs.log", "x\n");
+        file_put_contents("{$theme}/uploads/gaffer/backups/migrate/20261101-120000-migrate-set.json", '{}');
+        Paths::set_base($theme);
+
+        self::assertSame("{$theme}/uploads/gaffer/gaffer/logs", Storage::gaffer_dir('logs'));
+        self::assertSame("Require all denied\n", file_get_contents("{$theme}/uploads/gaffer/gaffer/.htaccess"));
+        self::assertSame(["{$theme}/uploads/gaffer/logs/spam.log", "{$theme}/uploads/gaffer/backups/migrate/20261101-120000-migrate-set.json"], Storage::gaffer_before(), 'only Gaffer\'s own files');
+        self::assertSame("{$theme}/uploads/gaffer/logs", Storage::private_dir('logs'), 'a theme may still name its own folder logs');
+        foreach (['gaffer', 'gaffer/logs', 'Gaffer-x'] as $name) {
+            try {
+                Storage::private_dir($name);
+                self::fail("{$name} is Gaffer's");
+            } catch (\InvalidArgumentException) {
+            }
+        }
+        file_put_contents(Storage::gaffer_dir('backups/migrate') . '/20261127-090000-migrate-set.json', '{}');
+        self::assertSame(['20261127-090000-migrate-set.json', '20261101-120000-migrate-set.json'], array_map('basename', \Gaffer\Console\Migrate\Backup::all()), 'rollback finds both, newest first');
+
+        exec('rm -rf ' . escapeshellarg($theme));
+    }
+
     public function test_a_folder_from_before_is_listed_but_no_longer_used(): void
     {
         $theme = sys_get_temp_dir() . '/gaffer-storage-' . bin2hex(random_bytes(4));

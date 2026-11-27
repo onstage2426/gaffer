@@ -56,7 +56,7 @@ final class LastErrors implements Tool
             : ['file' => $file ?: null, 'entries' => [], 'note' => 'No readable PHP error log. Set PHP_ERROR_LOG in the theme\'s .env to the file the web server\'s PHP logs to, or turn on WP_DEBUG_LOG in wp-config.php (wp-content/debug.log).'];
 
         $logs = [];
-        foreach (glob(\Gaffer\Storage::private_dir('logs') . '/*.log') ?: [] as $log) {
+        foreach (glob(\Gaffer\Storage::gaffer_dir('logs') . '/*.log') ?: [] as $log) {
             [$text] = self::tail($log);
             $lines = array_slice(array_values(array_filter(explode("\n", $text), static fn(string $line): bool => trim($line) !== '')), -$limit);
             // migrate.log lines are whole JSON records of several KB.

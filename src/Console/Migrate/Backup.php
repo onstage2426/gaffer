@@ -11,8 +11,9 @@ use JsonException;
 use RuntimeException;
 
 /**
- * The content of every location before a migration, in uploads/gaffer/backups/migrate/
- * (never committed: it's site content). migrate:rollback restores from it.
+ * The content of every location before a migration, in uploads/gaffer/gaffer/backups/migrate/
+ * (never committed: it's site content; before 2026-11-27 in uploads/gaffer/backups/migrate/, still
+ * read). migrate:rollback restores from it.
  */
 final class Backup
 {
@@ -21,7 +22,13 @@ final class Backup
 
     public static function dir(): string
     {
-        return Storage::private_dir('backups/migrate');
+        return Storage::gaffer_dir('backups/migrate');
+    }
+
+    /** Where backups were written before 2026-11-27: read too, never written. */
+    private static function dir_before(): string
+    {
+        return Paths::data() . '/backups/migrate';
     }
 
     /**
@@ -31,7 +38,7 @@ final class Backup
      */
     public static function save(string $command, array $plan): string
     {
-        Storage::private_dir('backups/migrate');
+        Storage::gaffer_dir('backups/migrate');
 
         try {
             $json = json_encode([
@@ -70,7 +77,8 @@ final class Backup
      */
     public static function load(string $file): array
     {
-        $path = is_file($file) ? $file : self::dir() . '/' . basename($file, '.json') . '.json';
+        $name = basename($file, '.json') . '.json';
+        $path = is_file($file) ? $file : (is_file(self::dir() . "/{$name}") ? self::dir() . "/{$name}" : self::dir_before() . "/{$name}");
         $data = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
 
         if (!is_array($data) || !is_string($data['command'] ?? null) || !is_string($data['created'] ?? null) || !is_array($data['locations'] ?? null)) {
@@ -98,8 +106,8 @@ final class Backup
     /** @return list<string> backup files, newest first */
     public static function all(): array
     {
-        $files = glob(self::dir() . '/*.json') ?: [];
-        rsort($files);
+        $files = [...glob(self::dir() . '/*.json') ?: [], ...glob(self::dir_before() . '/*.json') ?: []];
+        usort($files, static fn(string $a, string $b): int => strcmp(basename($b), basename($a))); // names start with the time
 
         return $files;
     }

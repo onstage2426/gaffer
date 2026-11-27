@@ -43,6 +43,7 @@ final class WordPressCheck implements Check
         $this->acf_orphans($report);
         $this->acf_database_only($report);
         $this->storage_before($report);
+        $this->gaffer_before($report);
         $this->field_types($report);
         $this->field_groups($report);
         $this->woocommerce_templates($report);
@@ -401,6 +402,31 @@ final class WordPressCheck implements Check
         $report->error('wp', 'Private folders are still in the theme\'s storage/, where Gaffer no longer reads them: ' . implode(', ', array_keys($before)) . ' (they moved to uploads/gaffer/)', null, null,
             'Their files (visitors\' uploads, migrate backups, logs) are missing from the site until they\'re moved. Move them once '
             . (\is_multisite() ? '(on a network: into the main site\'s folder, run with its SITE_URL) ' : '') . 'with: mkdir -p ' . escapeshellarg($data) . ' && ' . implode(' && ', $moves));
+    }
+
+    /**
+     * Gaffer's own files where it kept them before 2026-11-27 (uploads/gaffer/logs, backups/migrate):
+     * Gaffer writes them to uploads/gaffer/gaffer/ now (migrate backups are still read from both).
+     */
+    private function gaffer_before(Report $report): void
+    {
+        $before = \Gaffer\Storage::gaffer_before();
+        if ($before === []) {
+            return;
+        }
+        $data = Paths::data();
+        $dirs = [];
+        $moves = [];
+        foreach ($before as $file) {
+            $from = dirname($file);
+            $to = "{$data}/gaffer/" . substr($from, strlen($data) + 1);
+            $dirs[$to] = escapeshellarg($to);
+            // Backups as one glob; a log by name (the folder may hold the theme's own logs too).
+            $moves[str_ends_with($file, '.json') ? $from : $file] = 'mv -n ' . (str_ends_with($file, '.json') ? escapeshellarg($from) . '/*.json' : escapeshellarg($file)) . ' ' . escapeshellarg($to) . '/';
+        }
+        $report->warning('wp', count($before) . ' of Gaffer\'s own files are in uploads/gaffer/logs or backups/migrate: they moved to uploads/gaffer/gaffer/', null, null,
+            'Gaffer writes there now, so the logs would continue in two places (migrate backups are still read from both). Move them once: mkdir -p '
+            . implode(' ', $dirs) . ' && ' . implode(' && ', $moves));
     }
 
     /**

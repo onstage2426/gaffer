@@ -9,7 +9,7 @@ use Gaffer\Paths;
 use Gaffer\Storage;
 
 /**
- * storage/logs/migrate.log: one JSON line per migrate:* --run, with its outcome,
+ * uploads/gaffer/gaffer/logs/migrate.log: one JSON line per migrate:* --run, with its outcome,
  * so people and agents can trace what happened to the content (the backups hold
  * the content itself, and may be deleted; the log stays).
  */
@@ -17,7 +17,7 @@ final class Log
 {
     public static function file(): string
     {
-        return Storage::private_dir('logs') . '/migrate.log';
+        return Storage::gaffer_dir('logs') . '/migrate.log';
     }
 
     /**
@@ -37,20 +37,25 @@ final class Log
             'site' => home_url(),
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-        Storage::private_dir('logs');
+        Storage::gaffer_dir('logs');
 
         return is_string($line) && file_put_contents(self::file(), $line . "\n", FILE_APPEND | LOCK_EX) !== false;
     }
 
     /**
-     * Every entry, oldest first (lines that don't parse are skipped).
+     * Every entry, oldest first (lines that don't parse are skipped); the log where it was before
+     * 2026-11-27 (uploads/gaffer/logs/) first, while it's there.
      *
      * @return list<array<string, mixed>>
      */
     public static function entries(): array
     {
         $entries = [];
-        foreach (is_file(self::file()) ? file(self::file(), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] : [] as $line) {
+        $lines = [];
+        foreach ([Paths::data() . '/logs/migrate.log', self::file()] as $file) {
+            $lines = [...$lines, ...(is_file($file) ? file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] : [])];
+        }
+        foreach ($lines as $line) {
             $entry = json_decode($line, true);
             if (is_array($entry)) {
                 $entries[] = $entry;

@@ -60,9 +60,11 @@ site-specific code.
 
 ### Updating Gaffer
 
-After `composer update onstage2426/gaffer`, read the entries in
-`vendor/onstage2426/gaffer/CHANGELOG.md` since the previous version and do
-what they say (each has a grep and what to check). `composer update` runs
+After `composer update -W onstage2426/gaffer`, run `php gaffer upgrade` (the diff of the
+mechanical changes; `--write` applies them with a backup and puts them back if they cause new
+errors), then read the entries in `vendor/onstage2426/gaffer/CHANGELOG.md` since the previous
+version and do what's left: entries marked *Automated* are done by `upgrade`, the rest has a grep
+and what to check. `doctor` lists what `upgrade` still would change. `composer update` runs
 `php gaffer ai:update`, so these guidelines are already the new version's.
 
 ### Check your work

@@ -22,19 +22,24 @@ description: Ship a Gaffer change end to end - implement, test, migration book e
    - WordPress-dependent code: try it against the integration site with this clone's
      autoloader loaded first (snippet in `AGENTS.md`).
 
-4. **Migration book.** If a site has to change anything (renamed/removed
+4. **Upgrade rule.** If the site's change is mechanical (a rename, a moved file, a removed
+   key), write it as a rule (`src/Console/Upgrade/Rules/`, `Upgrader::rules()`, a test in
+   `tests/UpgradeTest.php`) and run `bin/dev/doctor-copy <copy> upgrade` over every theme copy:
+   read each diff. Mark the changelog entry *Automated (`<rule id>`)*.
+
+5. **Migration book.** If a site has to change anything (renamed/removed
    API, new required config, behavior change), append an entry to
    `CHANGELOG.md` (newest first, under today's date): what changed, a `grep` to
    find affected code, before/after, what to check. It's committed and ships
    with the package: sites read it after updating.
 
-5. **Commit** (one change, a short imperative subject, see "Commits" in
+6. **Commit** (one change, a short imperative subject, see "Commits" in
    `AGENTS.md`; no attribution lines). Tell the
    user what's unpushed and what the integration site and the starter will need.
    If the change breaks them, say that they're broken between their `composer update`
    and your follow-up.
 
-6. **After the user pushes:** `bin/dev/sites update` (every local site in `local/sites.json`:
+7. **After the user pushes:** `bin/dev/sites update` (every local site in `local/sites.json`:
    `composer update` until the lock has the pushed commit, build, `ai:update`, `twig:lint`,
    commit `composer.lock` where allowed), apply the migration entry where it asks for a change,
    then:

@@ -16,6 +16,7 @@ use Gaffer\Console\Checks\ConfigCheck;
 use Gaffer\Console\Checks\DeprecationsCheck;
 use Gaffer\Console\Checks\InternalApiCheck;
 use Gaffer\Console\Checks\ReservedCheck;
+use Gaffer\Console\Checks\UpgradeCheck;
 use Gaffer\Console\Checks\FieldGroupsCheck;
 use Gaffer\Console\Checks\GuidelinesCheck;
 use Gaffer\Console\Checks\IncCheck;
@@ -64,7 +65,7 @@ final class Doctor extends Command
         }
         $report = new Report();
 
-        foreach ([new BlocksCheck(), new FieldGroupsCheck(), new AcfJsonCheck(), new AjaxCheck(), new FormsCheck(), new HtmxCheck(), new ConfigCheck(), new SourceCheck(), new TemplatesCheck(), new TagsCheck(), new TexturizeCheck(), new MarkupCheck(), new TemplateGlobalsCheck(), new IncCheck(), new AssetsCheck(), new AppCheck(), new GuidelinesCheck(), new DeprecationsCheck(), new InternalApiCheck(), new ReservedCheck(), new ScreenshotCheck(), new SearchCheck()] as $check) {
+        foreach ([new BlocksCheck(), new FieldGroupsCheck(), new AcfJsonCheck(), new AjaxCheck(), new FormsCheck(), new HtmxCheck(), new ConfigCheck(), new SourceCheck(), new TemplatesCheck(), new TagsCheck(), new TexturizeCheck(), new MarkupCheck(), new TemplateGlobalsCheck(), new IncCheck(), new AssetsCheck(), new AppCheck(), new GuidelinesCheck(), new DeprecationsCheck(), new InternalApiCheck(), new ReservedCheck(), new UpgradeCheck(), new ScreenshotCheck(), new SearchCheck()] as $check) {
             $check->run($report);
         }
 

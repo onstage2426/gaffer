@@ -61,6 +61,12 @@ code. The repository was started fresh on 2026-11-20; it is public.
 - **Breaking changes are fine** (the user prefers breaking now over carrying
   a messy design). When a design needs a workaround, look for the root cause
   and propose fixing that instead, even if it breaks things.
+- **Every mechanical change a theme must make ships as an `upgrade` rule**
+  (`src/Console/Upgrade/Rules/`, listed in `Upgrader::rules()`, a test in `tests/UpgradeTest.php`):
+  it only computes, is idempotent, and leaves to `by_hand()` what it can't be sure of. Before
+  pushing, run it over every theme copy (`bin/dev/doctor-copy <copy> upgrade`) and look at each
+  diff: a rule that touched a theme's own code there (a `files[]` its own action reads) is a bug.
+  The changelog entry says *Automated (`<rule id>`)*.
 - **Every change a site must react to goes in the changelog** (`CHANGELOG.md`,
   committed and shipped with the package; newest first, by date; the guideline
   tells site agents to read it after updating): what changed, a `grep` to find affected

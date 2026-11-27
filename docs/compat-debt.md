@@ -266,6 +266,10 @@ Pairs where a site writes by hand what Gaffer reads; each breaks when either sid
 
 ## Rules that follow from this
 
+- A site updates with `php gaffer update` (2026-11-27): composer in a staging copy, `vendor/`
+  swapped in by rename, `upgrade --write`, the build, `doctor --wp`, rolled back by itself on new
+  errors. A mechanical change a theme must make is an `upgrade` rule, never only a changelog line.
+
 - What Gaffer stores (post content, meta, files a site keeps) is read in its old and new form and
   written in the new one for the rest of the major (2026-11-27, `tests/stored.txt`): an update
   never needs a data migration step, and a rollback still reads what the newer version wrote

@@ -19,7 +19,7 @@ use RuntimeException;
 final class Storage
 {
     /** The theme's storage/ folders tooling writes (theme_dir()): what can be made again, never the site's data. */
-    private const array TOOLING = ['screenshots', 'sessions', 'snapshots', 'upgrades'];
+    private const array TOOLING = ['screenshots', 'sessions', 'snapshots', 'updates', 'upgrades'];
 
     private const string MARKER = "# Never commit: private files of this site.\n";
 

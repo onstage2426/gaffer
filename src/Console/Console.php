@@ -33,6 +33,7 @@ use Gaffer\Console\Commands\RenderStyles;
 use Gaffer\Console\Commands\TwigClear;
 use Gaffer\Console\Commands\TwigTrace;
 use Gaffer\Console\Commands\TwigLint;
+use Gaffer\Console\Commands\Update;
 use Gaffer\Console\Commands\Upgrade;
 use Gaffer\Gaffer;
 use Symfony\Component\Console\Application;
@@ -86,6 +87,7 @@ final class Console
             new RenderStyles(),
             new TwigClear(),
             new TwigLint(),
+            new Update(),
             new Upgrade(),
             new TwigTrace(),
         ]);

@@ -157,6 +157,8 @@ Start the next round here; remove an item when it's done or decided.
   `.codex/` and `public/`.
 - **Dates:**
   - remove `FormAction`'s old `form` key after 2026-12-31;
+  - stop reading uploads sent as `files[x]` after 2026-12-31 (the themes send `fields[x]` since
+    the `2026-11-23-file-inputs` rule; a cached page may still post `files[x]` until then).
 
 ## Kept for compatibility (2.x candidates)
 
@@ -241,13 +243,13 @@ Start the next round here; remove an item when it's done or decided.
 
 Pairs where a site writes by hand what Gaffer reads; each breaks when either side changes.
 
-- **`fields[x]`, `files[x]` and `kept_files[x][]`** (2026-11-20). Request keys the form template
-  writes. They're a documented convention (`API.md`), and doctor checks the names against
-  Gravity Forms statically. A partial for kept files would cost little, but the listing and
-  remove buttons are the theme's design. Revisit when a second site lists kept files.
-- **`data-gaffer-resize`** (2026-11-20). The attribute is written in the template and read by
-  Gaffer's `forms.js`, which is bundled into the theme. If it's renamed, the JavaScript keeps
-  accepting the old name for at least one release.
+- **`fields[x]` and `kept_files[x][]`** (2026-11-20; frozen for 1.x on 2026-11-27). Request keys
+  the form template writes, a documented convention (`API.md`); doctor checks the names against
+  Gravity Forms statically. No partial for kept files: the listing and remove buttons are the
+  theme's design. `files[x]` is read until 2026-12-31 (see "Dates").
+- **`data-gaffer-resize`** (2026-11-20; frozen for 1.x on 2026-11-27). The attribute is written in
+  the template (which inputs shrink is the theme's choice) and read by Gaffer's `forms.js`. If it
+  were ever renamed, the JavaScript would keep accepting the old name for a whole major.
 - **Search's `offset` input and history attributes** (2026-11-21). `{{ search.attrs() }}` now
   writes the endpoint and token. The `offset` hidden input (Alpine-bound) and
   `data-gaffer-search-history`/`-default` stay the theme's: they're choices (push or replace,

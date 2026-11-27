@@ -66,8 +66,7 @@ Start the next round here; remove an item when it's done or decided.
     runs by hand only (a CI job cloning the plugin); no recorded format-1 migrate backup is
     restored in a test; stored cards after a Gaffer code change are caught only by `RENDERING`
     (doctor could compare its first rendered card with the stored one: deterministic).
-  - **Kept as they are (freeze review):** `MenuItem::has_children()` (7 themes; an alias, but a
-    migration costs more), `Post::modified_date()`/`Attachment::mime()` (unused; adding back
+  - **Kept as they are (freeze review):** `Post::modified_date()`/`Attachment::mime()` (unused; adding back
     needs a major), `theme.types`/`theme.terms` naming, the whole answer in `Archive::$results`
     (frozen contract keys).
   - **At the 1.0 tag:** themes require `^1.0` instead of `0.x-dev`; `FormAction`'s old `form`

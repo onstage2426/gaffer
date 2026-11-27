@@ -246,6 +246,27 @@ final class UpgradeTest extends BaseTestCase
         self::assertSame(['app/Notices.php', 'woocommerce/notices/error.php'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-notices']['by_hand']));
     }
 
+    public function test_menu_children(): void
+    {
+        $this->write('views/header.twig', "{% if item.has_children %}a{% endif %}{% if item.has_children() %}b{% endif %}\n{% set show = linked and item.has_children ? item.id : 'null' %}{% if child.has_children and x %}{% endif %}\n");
+        $this->write('app/Menu.php', "<?php\nif (\$item->has_children()) {}\n");
+
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame(['app/Menu.php'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-menu-children']['by_hand']));
+        $this->upgrade();
+        self::assertSame("{% if item.children %}a{% endif %}{% if item.children %}b{% endif %}\n{% set show = linked and item.children ? item.id : 'null' %}{% if child.children and x %}{% endif %}\n", $this->read('views/header.twig'));
+    }
+
+    public function test_menu_children_leaves_a_theme_with_its_own_method(): void
+    {
+        $this->write('views/header.twig', "{% if term.has_children %}a{% endif %}\n");
+        $this->write('app/Types/Category.php', "<?php\nfinal class Category { public function has_children(): bool { return true; } }\n");
+
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame([], $plan['2026-11-27-menu-children']['changes']);
+        self::assertSame(['views/header.twig'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-menu-children']['by_hand']));
+    }
+
     public function test_restore_puts_everything_back(): void
     {
         $this->write('views/a.twig', 'before');

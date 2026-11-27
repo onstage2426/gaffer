@@ -118,18 +118,13 @@ final class MenuItem
     }
 
     /**
-     * The items below this one, in menu order.
+     * The items below this one, in menu order; empty when it has none (`{% if item.children %}`).
      *
      * @return list<MenuItem>
      */
     public function children(): array
     {
         return $this->children;
-    }
-
-    public function has_children(): bool
-    {
-        return $this->children !== [];
     }
 
     /**

@@ -11,6 +11,12 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **`MenuItem::has_children()` is removed: `item.children` is empty when there are none.**
+  *Automated (`2026-11-27-menu-children`) for templates; PHP calls are by hand.* One way to ask
+  (Phase 7 of the road to 1.0). Find: `grep -rn "has_children" views blocks app inc`. Before:
+  `{% if item.has_children %}` or `{% if item.has_children() %}`; after: `{% if item.children %}`.
+  In PHP: `$item->children() !== []`. Check: the menus with submenus open as before.
+
 - **WooCommerce's notices reach templates as `Gaffer\Types\Notice`** (`Notice::list($notices)`:
   `notice.message`, `notice.attrs`). *Automated (`2026-11-27-notices`) for the starter's notice
   overrides and actions that copied their `array_map()`; a theme's own notice data is by hand.* The

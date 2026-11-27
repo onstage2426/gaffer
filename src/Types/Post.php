@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Types;
 
 use Gaffer\Config;
+use Twig\Markup;
 use WP_Post;
 
 /**
@@ -97,16 +98,17 @@ class Post
     }
 
     /**
-     * The content through the_content filters; WordPress's password form instead
-     * while the post is password protected and the visitor hasn't entered it.
+     * The content as HTML, through the_content filters (`{{ post.content() }}`, no |raw); WordPress's
+     * password form instead while the post is password protected and the visitor hasn't entered it.
+     * Empty content is falsy in Twig; in PHP it's an object: `(string) $post->content()` for a string.
      */
-    final public function content(): string
+    final public function content(): Markup
     {
         if (\post_password_required($this->wp)) {
-            return \get_the_password_form($this->wp);
+            return new Markup(\get_the_password_form($this->wp), 'UTF-8'); // trusted: WordPress's own form
         }
 
-        return \apply_filters('the_content', $this->wp->post_content);
+        return new Markup((string) \apply_filters('the_content', $this->wp->post_content), 'UTF-8'); // trusted: the editors' content, as WordPress prints it
     }
 
     /**

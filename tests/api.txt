@@ -125,7 +125,7 @@ class Gaffer\Types\Post
   final ancestors(): array
   final blocks(): array
   final children(): array
-  final content(): string
+  final content(): Twig\Markup
   final static current(): ?static
   final date(?string $format = NULL): string
   final excerpt(): string
@@ -160,7 +160,7 @@ class Gaffer\Types\Term
   final ancestors(): array
   final children(): array
   final static current(): ?static
-  final description(): string
+  final description(): Twig\Markup
   final static from(int $id): ?static
   final id(): int
   final link(): string

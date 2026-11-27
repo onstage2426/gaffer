@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Types;
 
 use Gaffer\Config;
+use Twig\Markup;
 use WP_Term;
 
 /**
@@ -75,10 +76,13 @@ class Term
         return $this->link;
     }
 
-    /** The description through term_description()'s filters (HTML). */
-    final public function description(): string
+    /**
+     * The description as HTML, through term_description()'s filters (`{{ term.description() }}`, no
+     * |raw). Empty is falsy in Twig; in PHP it's an object: `(string) $term->description()` for a string.
+     */
+    final public function description(): Markup
     {
-        return \term_description($this->wp->term_id);
+        return new Markup((string) \term_description($this->wp->term_id), 'UTF-8'); // trusted: the editors' description, as WordPress prints it
     }
 
     /** The parent term, null for a top-level term. */

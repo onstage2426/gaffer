@@ -61,7 +61,7 @@ final class SourceCheck implements Check
 
         foreach ($raw as [$file, $line, $what]) {
             $report->warning('raw', "{$what} without a trust comment", $file, $line, $what === '|raw'
-                ? 'Say why this HTML is trusted, on the line or alone on the line above: {{ post.content()|raw }}{# trusted: WordPress content #}. Untrusted values are printed escaped.'
+                ? 'Say why this HTML is trusted, on the line or alone on the line above: {{ fields.text|raw }}{# trusted: ACF wysiwyg #}. Untrusted values are printed escaped.'
                 : 'Say why this HTML is trusted, on the line or alone on the line above: // trusted: rendered by Theme\\Search. Or pass the string to a template and use |raw there.');
         }
     }

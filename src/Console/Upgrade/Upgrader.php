@@ -31,6 +31,7 @@ final class Upgrader
             new Rules\CartBadge(),
             new Rules\Notices(),
             new Rules\MenuChildren(),
+            new Rules\ContentMarkup(),
         ];
     }
 

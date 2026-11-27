@@ -267,6 +267,32 @@ final class UpgradeTest extends BaseTestCase
         self::assertSame(['views/header.twig'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-menu-children']['by_hand']));
     }
 
+    public function test_content_markup(): void
+    {
+        $this->write('views/page.twig', "{{ post.content()|raw }}{# trusted: WordPress content #}\n<p>{{ term.description()|raw }}</p>{{ fields.text|raw }}{# trusted: ACF #}\n");
+        $this->write('archive.php', "<?php\n\$a = wp_strip_all_tags(\$term->description()) ?: null;\n\$b = \$current?->description() ?: null;\n\$c = (string) \$page?->content();\n\$d = Post::current()?->content();\n");
+        $this->write('inc/x.php', "<?php\n\$e = \$term->description() ?? 'none';\n");
+        $this->write('app/BeforeFooter.php', "<?php\nfinal class BeforeFooter { public static function content(): ?array { return null; } }\n");
+
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame(['inc/x.php'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-content-markup']['by_hand']));
+        $this->upgrade();
+        self::assertSame("{{ post.content() }}\n<p>{{ term.description() }}</p>{{ fields.text|raw }}{# trusted: ACF #}\n", $this->read('views/page.twig'));
+        self::assertSame("<?php\n\$a = wp_strip_all_tags((string) \$term->description()) ?: null;\n\$b = (string) \$current?->description() ?: null;\n\$c = (string) \$page?->content();\n\$d = (string) Post::current()?->content();\n", $this->read('archive.php'));
+        self::assertSame("<?php\n\$e = \$term->description() ?? 'none';\n", $this->read('inc/x.php'));
+    }
+
+    public function test_content_markup_leaves_a_theme_method_of_that_name(): void
+    {
+        $this->write('app/Types/Menu.php', "<?php\nfinal class Menu { public function description(): array { return []; } }\n");
+        $this->write('views/menu.twig', "{{ item.description()|raw }}{# trusted: x #}{{ post.content()|raw }}\n");
+        $this->write('app/Show.php', "<?php\n\$x = \$item->description();\n\$y = \$post->content();\n");
+        $this->upgrade();
+
+        self::assertSame("{{ item.description()|raw }}{# trusted: x #}{{ post.content() }}\n", $this->read('views/menu.twig'));
+        self::assertSame("<?php\n\$x = \$item->description();\n\$y = (string) \$post->content();\n", $this->read('app/Show.php'));
+    }
+
     public function test_restore_puts_everything_back(): void
     {
         $this->write('views/a.twig', 'before');

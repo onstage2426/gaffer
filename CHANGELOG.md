@@ -11,6 +11,16 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **`Post::content()` and `Term::description()` return safe HTML (`Twig\Markup`)**, like
+  `image.attrs()` and `notice.message`: print them without `|raw`. *Automated
+  (`2026-11-27-content-markup`): `|raw` and its trusted comment go after `x.content()` /
+  `x.description()` in templates, and PHP calls get `(string)`; a call followed by `??` is by hand.*
+  Empty content is still falsy in Twig (`{% if post.content() %}`), but in PHP it's an object: `?:`
+  never falls through and `wp_strip_all_tags()` refuses it, so PHP casts. Find: `grep -rn
+  "content()\|description()" views blocks app inc woocommerce *.php`. Before: `{{ post.content()|raw }}{# trusted: WordPress content #}`,
+  `$term->description() ?: null`; after: `{{ post.content() }}`, `(string) $term->description() ?: null`.
+  Check: pages and category descriptions show as before (`update` compares every page).
+
 - **Gaffer's search JavaScript reads the endpoint and token only from `{{ search.attrs() }}`.** The
   fallbacks for forms written by hand are gone with the theme's next build: the form's `action` as
   the endpoint (a form without `data-gaffer-search-endpoint` now rejects with an error instead of

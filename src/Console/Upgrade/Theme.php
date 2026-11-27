@@ -45,6 +45,32 @@ final readonly class Theme
     }
 
     /**
+     * The theme's top-level files with the given extensions (WordPress's templates: page.php,
+     * single.php, …), sorted.
+     *
+     * @param list<string> $extensions
+     * @return list<string>
+     */
+    public function root_files(array $extensions): array
+    {
+        $found = [];
+        foreach (glob("{$this->root}/*") ?: [] as $file) {
+            if (is_file($file) && in_array(pathinfo($file, PATHINFO_EXTENSION), $extensions, true)) {
+                $found[] = basename($file);
+            }
+        }
+        foreach (array_keys($this->overlay) as $path) {
+            if (!str_contains($path, '/') && in_array(pathinfo($path, PATHINFO_EXTENSION), $extensions, true)) {
+                $found[] = $path;
+            }
+        }
+        $found = array_values(array_filter(array_unique($found), fn(string $path): bool => $this->read($path) !== null));
+        sort($found);
+
+        return $found;
+    }
+
+    /**
      * Files under the given folders with the given extensions, relative and sorted.
      *
      * @param list<string> $dirs

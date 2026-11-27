@@ -16,8 +16,9 @@ theme's own types and their methods are in `gaffer-reference`.
   filters on (WPML/Polylang give the current language); `Post::main_query()`
   the main query's posts; `Pagination::current()` its pagination.
 - **Text methods** (`title()`, `excerpt()`) return plain text: print them
-  escaped, never `|raw`. HTML methods (`content()`, `Term::description()`) are
-  printed with `|raw`. `title()` runs `the_title` filters (wptexturize: curly
+  escaped, never `|raw`. HTML methods (`content()`, `Term::description()`,
+  `image.attrs()`) return safe HTML: printed as they are, no `|raw`; in PHP cast
+  them (`(string) $post->content()`) where a string is needed. `title()` runs `the_title` filters (wptexturize: curly
   quotes, `60x60` → `60×60`): where the exact stored text matters (SKUs,
   sizes, values sent elsewhere), use `post.wp.post_title` or a type method.
 - **`meta($key)` is for PHP**: `null` when the key isn't stored. A type method

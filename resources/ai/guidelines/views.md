@@ -63,9 +63,9 @@ Write template names literally in PHP, so `doctor` can follow them.
   attachment IDs for theme graphics.
 - **Menus** are registered locations: `Menu::location('primary')`, never menu
   IDs; loop with `{% for item in nav_primary.items ?? [] %}`.
-- **`|raw` only for trusted HTML** (WordPress content, plugin output), with
-  where it comes from on the line or the line above:
-  `{{ post.content()|raw }}{# trusted: WordPress content #}`. The same for
+- **`|raw` only for trusted HTML** (an ACF wysiwyg field, plugin output; Gaffer's
+  HTML methods need none), with where it comes from on the line or the line above:
+  `{{ fields.text|raw }}{# trusted: ACF wysiwyg #}`. The same for
   `new Markup()` in PHP (`// trusted: …`); prefer `|raw` in the template.
 
 ### Pitfalls (`doctor` reports most of them)

@@ -11,6 +11,10 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **`Types\Term`'s constructor is final, like `Post`'s** (API.md: the constructor is Gaffer's). A
+  theme's term class adds methods, never a constructor. Find: `grep -rn "__construct" app/Types`.
+  No known theme has one.
+
 - **Gaffer's own private files moved to `uploads/gaffer/gaffer/`** (`logs/spam.log`,
   `logs/migrate.log`, `backups/migrate/`), and `Storage::private_dir()` refuses a first folder
   starting with `gaffer`: so Gaffer can add folders in 1.x without meeting a theme's. A theme's own

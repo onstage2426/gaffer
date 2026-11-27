@@ -70,7 +70,7 @@ final class Update extends Command
             return self::SUCCESS;
         }
 
-        $report = ['format' => 1, 'result' => null, 'from' => self::reference($theme), 'to' => null, 'errors_before' => null, 'errors_after' => null, 'pages_changed' => null, 'upgrade' => null, 'build' => null, 'id' => null];
+        $report = ['format' => 1, 'result' => null, 'from' => self::reference($theme), 'to' => null, 'errors_before' => null, 'errors_after' => null, 'pages_changed' => null, 'changed_pages' => [], 'upgrade' => null, 'build' => null, 'id' => null];
         $finish = static function (string $result, int $code) use (&$report, $output, $json): int {
             $report['result'] = $result;
             if ($json) {
@@ -156,6 +156,13 @@ final class Update extends Command
             $diff = self::gaffer($theme, ['render:diff', "gaffer-update-{$id}", '--json', '--hide-reorders'], 1800);
             $data = json_decode($diff['stdout'] ?? '', true);
             $report['pages_changed'] = is_array($data) && is_int($data['different'] ?? null) ? $data['different'] : null;
+            $pages = [];
+            foreach (is_array($data) ? (array) ($data['changes'] ?? []) : [] as $change) {
+                if (is_array($change) && !($change['reorder_only'] ?? false)) {
+                    array_push($pages, ...array_map('strval', (array) ($change['pages'] ?? [])));
+                }
+            }
+            $report['changed_pages'] = array_values(array_unique($pages));
         }
 
         if ($report['errors_after'] === null || $report['errors_after'] > $report['errors_before']) {
@@ -172,6 +179,11 @@ final class Update extends Command
         }
 
         self::prune($base);
+        if ($report['changed_pages'] !== []) {
+            // Cached pages still work after any update (old HTML with new code, old builds kept a
+            // week); these show something new, which a page cache keeps showing until it expires.
+            $say('These pages render differently now: ' . implode(', ', array_slice($report['changed_pages'], 0, 10)) . (count($report['changed_pages']) > 10 ? ', …' : '') . '. A page cache shows the old ones until it expires: purge it to show them now.');
+        }
         $say('Done: doctor --wp ' . $report['errors_after'] . ' errors' . ($report['pages_changed'] !== null ? ", {$report['pages_changed']} pages render differently (php gaffer render:diff gaffer-update-{$id})" : '') . ". Undo: php gaffer update --rollback={$id}");
 
         return $finish('updated', self::SUCCESS);

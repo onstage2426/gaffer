@@ -25,6 +25,9 @@ see on your theme it lists as by hand.
   `composer update -W onstage2426/gaffer` + `upgrade` from now on. Check: `php gaffer update` on
   the site, then `php gaffer update --rollback` and again `php gaffer update` once, to see both
   work there. The rollback copies live in `storage/updates/` (the last three updates).
+  It purges no page cache: cached pages keep working after any update (old HTML is read by the
+  new code, and a build keeps a week of older files); when pages render differently, it names
+  them, so you can purge the cache to show them now.
 
 - **New: `php gaffer upgrade` applies the mechanical part of these entries.** Without arguments
   it shows the diff of what it would change; `--write` applies it, after a backup of every file it

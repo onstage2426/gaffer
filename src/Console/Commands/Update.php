@@ -166,6 +166,7 @@ final class Update extends Command
             }
             try {
                 $how = Swap::swap($theme, $dir, $root);
+                $swapped = $steps->time();
             } catch (Throwable $e) {
                 $backup !== null && Upgrader::restore(new Theme($theme), $backup);
                 throw $e;
@@ -177,6 +178,7 @@ final class Update extends Command
             $steps->detail($how === 'link'
                 ? "the staged vendor/ → vendor.{$id}/, vendor → vendor.{$id} (a link, switched in one rename; running requests finish on the old one); composer.lock copied"
                 : "vendor/ → {$dir}/vendor.old; the staged vendor/ → vendor/ (two renames: links don't work here); composer.lock copied");
+            $steps->detail("Switched at {$swapped}");
             if ($planned !== null && array_filter($planned, static fn(Change $c): bool => str_starts_with($c->path, 'app/') && ($c->before === null || $c->after === null)) !== []) {
                 // A classmap lists the files: renew it (with the new vendor/ in place).
                 $dump = $steps->run([$composer, 'dump-autoload', '-q', '--no-interaction'], $theme, 120);
@@ -303,7 +305,8 @@ final class Update extends Command
             }
         }
         Swap::back($theme, $dir);
-        $steps->detail(($restored ? "upgrade's changes put back ({$backup}), then at once: " : '') . "vendor/ back as before the update (" . (is_link("{$theme}/vendor") ? 'vendor → ' . readlink("{$theme}/vendor") . ', one rename' : "{$dir}/vendor.old renamed back") . "); composer files and the Vite manifest and stamp ← {$dir}/before/");
+        $switched = $steps->time();
+        $steps->detail(($restored ? "upgrade's changes put back ({$backup}), then at once: " : '') . "vendor/ back as before the update (" . (is_link("{$theme}/vendor") ? 'vendor → ' . readlink("{$theme}/vendor") . ', one rename' : "{$dir}/vendor.old renamed back") . ") at {$switched}; composer files and the Vite manifest and stamp ← {$dir}/before/");
         if ($backup !== '' && !$restored) {
             $restore = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'upgrade', "--restore={$backup}"], $theme, 300);
             $restore !== null && $restore['code'] === 0 ? $steps->detail('upgrade\'s changes put back') : $steps->failed('upgrade --restore', $restore);

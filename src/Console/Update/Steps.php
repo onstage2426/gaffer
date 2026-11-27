@@ -31,7 +31,7 @@ final class Steps
         if (!is_dir(dirname($log))) {
             mkdir(dirname($log), 0700, true);
         }
-        file_put_contents($log, '# php gaffer update, ' . date('c') . "\n");
+        file_put_contents($log, '# php gaffer update, ' . date('c') . ' (step times below are UTC)' . "\n");
     }
 
     /** A new numbered step. */
@@ -39,7 +39,8 @@ final class Steps
     {
         $this->number++;
         $this->line("<info>[{$this->number}]</info> {$title}");
-        $this->append("\n## [{$this->number}] {$title}\n");
+        // The time of day too, to line a step up with a server's logs or a monitor.
+        $this->append("\n## [{$this->number}] {$title}  ({$this->time()}, +{$this->elapsed()} s)\n");
     }
 
     /** An indented detail of the current step. */
@@ -76,6 +77,14 @@ final class Steps
         $this->append("exit {$run['code']}" . ($run['timed_out'] ? ' (timed out)' : '') . ", {$seconds} s\n--- stdout\n{$run['stdout']}\n--- stderr\n{$run['stderr']}\n");
 
         return [...$run, 'seconds' => $seconds];
+    }
+
+    /** Now, in UTC to the millisecond (21:53:37.123Z). */
+    public function time(): string
+    {
+        $now = microtime(true);
+
+        return gmdate('H:i:s', (int) $now) . sprintf('.%03dZ', (int) (($now - floor($now)) * 1000));
     }
 
     /** Seconds since the update started. */

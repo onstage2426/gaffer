@@ -80,7 +80,9 @@ final class Upgrade extends Command
         $backup = Storage::theme_dir('upgrades') . '/' . date('Ymd-His');
         Upgrader::apply($theme, $changes, $backup);
         if (array_filter($changes, static fn(Change $c): bool => str_starts_with($c->path, 'app/') && ($c->before === null || $c->after === null)) !== []) {
-            ChildProcess::run(['composer', 'dump-autoload', '-q'], $theme->root, 120); // a classmap lists the files
+            // A classmap lists the files: renew it (composer isn't everywhere: a container may lack it).
+            $composer = array_filter(explode(PATH_SEPARATOR, (string) getenv('PATH')), static fn(string $dir): bool => $dir !== '' && is_executable("{$dir}/composer"));
+            $composer !== [] ? ChildProcess::run(['composer', 'dump-autoload', '-q'], $theme->root, 120) : $output->writeln('A file in app/ was added or removed: run composer dump-autoload where composer is (only matters with a classmap).');
         }
         $after = $check ? self::errors($theme) : 0;
         if ($after === null || $after > $before) {

@@ -179,7 +179,7 @@ class Product extends Post
      */
     public function price_changed_notice(string $was, string $now): string
     {
-        return sprintf('The price of %s changed from %s to %s. Check the new total and try again.', $this->title(), $was, $now);
+        return sprintf('The price of %s changed from %s to %s. Check the new total and try again.', \esc_html($this->title()), $was, $now);
     }
 
     /**
@@ -192,7 +192,7 @@ class Product extends Post
      */
     public function order_price_changed_notice(string $was, string $now): string
     {
-        return sprintf('The price of %s changed from %s to %s since this order was placed, so it can\'t be paid. Please place a new order.', $this->title(), $was, $now);
+        return sprintf('The price of %s changed from %s to %s since this order was placed, so it can\'t be paid. Please place a new order.', \esc_html($this->title()), $was, $now);
     }
 
     /**

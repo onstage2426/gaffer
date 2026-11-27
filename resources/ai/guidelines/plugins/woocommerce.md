@@ -15,7 +15,7 @@
   `woocommerce_get_sidebar` from `woocommerce_sidebar` (`doctor --wp` warns).
 - **Products:** map `product` to `app/Types/Product.php` extending `Gaffer\Types\Product`
   (`product()`, `is_variable()`, `with_variation()`/`variation()`/`selected()`,
-  `can_add_to_cart()`, `is_on_sale()`, `thumbnail()`, `gallery()`); the theme adds its own
+  `can_add_to_cart()`, `add_to_cart($quantity)` (WooCommerce's own add-to-cart steps, the cart item key or null), `is_on_sale()`, `thumbnail()`, `gallery()`); the theme adds its own
   (prices, labels, attribute tables) and keeps `WC_Product` behind them. A selection is a copy:
   `{% set product = product.with_variation(attributes) %}`. Who may buy what is WooCommerce's
   `woocommerce_is_purchasable` filter, not a second method. A price per customer is WooCommerce's

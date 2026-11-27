@@ -139,6 +139,7 @@ class Gaffer\Types\Post
   thumbnail(): ?Gaffer\Types\Image
   final title(): string
 class Gaffer\Types\Product extends Gaffer\Types\Post
+  final add_to_cart(float $quantity = 1.0): ?string
   final can_add_to_cart(): bool
   confirm_purchase(): ?string
   final gallery(): array

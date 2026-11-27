@@ -1,0 +1,60 @@
+#!/usr/bin/env php
+<?php
+// Product::add_to_cart() against a local site's WooCommerce in the CLI, with this clone's code:
+// a simple product, the publish check, a variable product without and with a variation, the
+// ajax-added action. Restores what it changes (the cart, the products it makes).
+// Usage: bin/dev/cart-test <WordPress dir> <theme dir> <host>
+[$_, $site, $theme, $host] = $argv + [null, null, null, null];
+if ($host === null) { fwrite(STDERR, "usage: bin/dev/cart-test <WordPress dir> <theme dir> <host>\n"); exit(2); }
+$gaffer = dirname(__DIR__, 2);
+require "$gaffer/vendor/autoload.php";
+spl_autoload_register(function (string $c) use ($theme) {
+    if (str_starts_with($c, 'Theme\\')) { $f = "$theme/app/" . str_replace('\\', '/', substr($c, 6)) . '.php'; if (is_file($f)) require $f; }
+});
+$src = "$gaffer/src";
+foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS)) as $file) {
+    $class = 'Gaffer\\' . str_replace(['/', '.php'], ['\\', ''], substr($file->getPathname(), strlen($src) + 1));
+    class_exists($class) || interface_exists($class) || trait_exists($class);
+}
+define('WP_USE_THEMES', false);
+$_SERVER['HTTP_HOST'] = $host; $_SERVER['REQUEST_URI'] = '/'; $_SERVER['HTTPS'] = 'on';
+require "$site/wp-load.php";
+
+$fail = 0;
+function ok($cond, $what) { global $fail; echo ($cond ? "ok   " : "FAIL ") . $what . "\n"; $fail += $cond ? 0 : 1; }
+function notices() { $n = wc_get_notices(); wc_clear_notices(); return array_map(fn($x) => strip_tags($x['notice']), $n['error'] ?? []); }
+
+wc_load_cart();
+$cart = WC()->cart;
+$made = [];
+$added_actions = 0;
+add_action('woocommerce_ajax_added_to_cart', function () use (&$added_actions) { $added_actions++; });
+try {
+    $simple = new WC_Product_Simple(); $simple->set_name('Gaffer cart test'); $simple->set_regular_price('10'); $simple->set_status('publish'); $simple->set_catalog_visibility('hidden'); $simple->save(); $made[] = $simple->get_id();
+    $draft = new WC_Product_Simple(); $draft->set_name('Gaffer cart test draft'); $draft->set_regular_price('10'); $draft->set_status('draft'); $draft->save(); $made[] = $draft->get_id();
+    $attribute = new WC_Product_Attribute(); $attribute->set_name('Maat'); $attribute->set_options(['S', 'M']); $attribute->set_variation(true); $attribute->set_visible(true);
+    $variable = new WC_Product_Variable(); $variable->set_name('Gaffer cart test variable'); $variable->set_status('publish'); $variable->set_catalog_visibility('hidden'); $variable->set_attributes([$attribute]); $variable->save(); $made[] = $variable->get_id();
+    $v = new WC_Product_Variation(); $v->set_parent_id($variable->get_id()); $v->set_attributes(['maat' => 'M']); $v->set_regular_price('12'); $v->save(); $made[] = $v->get_id();
+    WC_Product_Variable::sync($variable->get_id());
+    $cart->empty_cart();
+
+    $key = Gaffer\Types\Product::from($simple->get_id())->add_to_cart(2);
+    ok(is_string($key) && $cart->get_cart_item($key)['quantity'] === 2 && $added_actions === 1, 'a simple product: added twice, the ajax-added action fired');
+    notices();
+
+    ok(Gaffer\Types\Product::from($draft->get_id())->add_to_cart() === null && $added_actions === 1, 'an unpublished product is refused');
+
+    $none = Gaffer\Types\Product::from($variable->get_id())->add_to_cart();
+    ok($none === null && notices() !== [], 'a variable product without a variation: refused, with WooCommerce\'s notice');
+
+    $chosen = Gaffer\Types\Product::from($variable->get_id())->with_variation(['attribute_maat' => 'M']);
+    $key = $chosen->add_to_cart();
+    $item = is_string($key) ? $cart->get_cart_item($key) : [];
+    ok(($item['variation_id'] ?? null) === $v->get_id() && ($item['variation'] ?? null) === ['attribute_maat' => 'M'], 'the selected variation with its attributes');
+} finally {
+    $cart->empty_cart();
+    WC()->session?->destroy_session();
+    foreach (array_reverse($made) as $id) { wc_get_product($id)?->delete(true); }
+    echo 'removed ' . count($made) . " test products\n";
+}
+exit($fail ? 1 : 0);

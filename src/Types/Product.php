@@ -79,6 +79,40 @@ class Product extends Post
     }
 
     /**
+     * Puts this in the visitor's cart the way WooCommerce's own add-to-cart does (its ajax one):
+     * the `woocommerce_add_to_cart_product_id` filter, the quantity through `wc_stock_amount()`,
+     * only a published product, the `woocommerce_add_to_cart_validation` filter, `add_to_cart()`
+     * with the selected variation and attributes (`with_variation()`), and the
+     * `woocommerce_ajax_added_to_cart` action that tracking plugins listen to. Returns the cart
+     * item key, or null when it was refused: WooCommerce's notices say why (show them in the
+     * answer). Call it in an ajax action before output (WooCommerce sets its cookies itself).
+     *
+     * @throws LogicException without a WooCommerce cart (outside a front-end request)
+     */
+    final public function add_to_cart(float $quantity = 1): ?string
+    {
+        $cart = \function_exists('WC') ? \WC()->cart : null;
+        if ($cart === null) {
+            throw new LogicException('Product::add_to_cart() needs WooCommerce\'s cart: call it in a front-end request or an ajax action.');
+        }
+        $product_id = (int) \apply_filters('woocommerce_add_to_cart_product_id', $this->wp->ID);
+        $quantity = \wc_stock_amount($quantity);
+        $variation_id = $this->variation?->get_id() ?? 0;
+        $attributes = $variation_id > 0 ? $this->selected : [];
+        if (\get_post_status($product_id) !== 'publish'
+            || !\apply_filters('woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $attributes)) {
+            return null;
+        }
+        $key = $cart->add_to_cart($product_id, $quantity, $variation_id, $attributes);
+        if (!is_string($key)) {
+            return null;
+        }
+        \do_action('woocommerce_ajax_added_to_cart', $product_id);
+
+        return $key;
+    }
+
+    /**
      * Whether this can go in the cart as it is: a product that isn't variable, or the selected
      * variation, that WooCommerce calls purchasable and in stock. A site's own rule (who may buy
      * what) belongs in WooCommerce's `woocommerce_is_purchasable` filter, so the cart agrees.

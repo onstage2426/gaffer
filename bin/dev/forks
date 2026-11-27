@@ -1,0 +1,73 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Starter code copied into themes: for each file of the starter's app/, inc/ and views/, the
+ * themes that have a file at the same path, and how far each copy drifted (lines changed against
+ * the starter's). A file most themes copy is behavior a fix must reach every site through: a
+ * candidate for Gaffer (when it has a platform contract) or a sign the starter changed under them.
+ *
+ *   bin/dev/forks <starter theme dir> [<theme dir>…]   default: every theme in themes/
+ *   --min=N   only files at least N themes copied (default 2)
+ */
+
+$args = array_slice($argv, 1);
+$min = 2;
+foreach ($args as $i => $arg) {
+    if (str_starts_with($arg, '--min=')) {
+        $min = (int) substr($arg, 6);
+        unset($args[$i]);
+    }
+}
+$args = array_values($args);
+$starter = rtrim((string) ($args[0] ?? ''), '/');
+if ($starter === '' || !is_dir($starter)) {
+    fwrite(STDERR, "usage: bin/dev/forks <starter theme dir> [<theme dir>…] [--min=N]\n");
+    exit(2);
+}
+$themes = array_slice($args, 1) ?: array_filter(glob(dirname(__DIR__, 2) . '/themes/*', GLOB_ONLYDIR) ?: [], static fn(string $d): bool => is_file("{$d}/composer.json"));
+
+$files = [];
+foreach (['app', 'inc', 'views'] as $dir) {
+    if (!is_dir("{$starter}/{$dir}")) {
+        continue;
+    }
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$starter}/{$dir}", FilesystemIterator::SKIP_DOTS)) as $file) {
+        if (in_array($file->getExtension(), ['php', 'twig'], true)) {
+            $files[] = substr($file->getPathname(), strlen($starter) + 1);
+        }
+    }
+}
+sort($files);
+
+/** Lines added and removed between two files (diff's count, whitespace ignored). */
+$drift = static function (string $a, string $b): array {
+    exec('diff -w ' . escapeshellarg($a) . ' ' . escapeshellarg($b), $out);
+    $plus = count(array_filter($out, static fn(string $l): bool => str_starts_with($l, '> ')));
+    $minus = count(array_filter($out, static fn(string $l): bool => str_starts_with($l, '< ')));
+
+    return [$plus, $minus];
+};
+
+$rows = [];
+foreach ($files as $path) {
+    $lines = count(file("{$starter}/{$path}") ?: []);
+    $copies = [];
+    foreach ($themes as $theme) {
+        if (is_file("{$theme}/{$path}")) {
+            [$plus, $minus] = $drift("{$starter}/{$path}", "{$theme}/{$path}");
+            $copies[basename($theme)] = $plus + $minus === 0 ? 'same' : "+{$plus}/-{$minus}";
+        }
+    }
+    if (count($copies) >= $min) {
+        $rows[] = [$path, $lines, $copies];
+    }
+}
+usort($rows, static fn(array $a, array $b): int => count($b[2]) <=> count($a[2]) ?: strcmp($a[0], $b[0]));
+
+printf("%d themes, starter %s; files copied by at least %d:\n\n", count($themes), basename(dirname($starter, 3)) . '/' . basename($starter), $min);
+foreach ($rows as [$path, $lines, $copies]) {
+    printf("%-48s %4d lines  %d×  %s\n", $path, $lines, count($copies), implode('  ', array_map(static fn(string $t, string $d): string => "{$t} {$d}", array_keys($copies), $copies)));
+}

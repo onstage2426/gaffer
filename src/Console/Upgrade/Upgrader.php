@@ -27,6 +27,7 @@ final class Upgrader
             new Rules\FileInputs(),
             new Rules\ProductType(),
             new Rules\EditorStylesheet(),
+            new Rules\CartAdd(),
         ];
     }
 

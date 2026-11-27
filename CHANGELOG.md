@@ -11,6 +11,17 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **`Product::add_to_cart($quantity)` adds to the cart the way WooCommerce does** *Automated
+  (`2026-11-27-cart-add`) for the starter's `CartAdd`; other hand-written sequences are by hand.*
+  The starter's cart action ran WooCommerce's steps itself and skipped one: it added unpublished
+  products by ID. `$product->with_variation($attributes)->add_to_cart($quantity)` runs them all
+  (the product-ID filter, the quantity, the publish check, the validation filter, `add_to_cart()`
+  with the selected variation, `woocommerce_ajax_added_to_cart` for tracking plugins) and returns the
+  cart item key, or null with WooCommerce's notice. Find: `grep -rln "woocommerce_add_to_cart_validation"
+  app inc`. Before: `apply_filters("woocommerce_add_to_cart_validation", …) && $cart->add_to_cart(…)`;
+  after: `$added = $product->add_to_cart($quantity) !== null;`. Check: add a simple and a variable
+  product to the cart (the drawer opens with them), and a variable one without a choice (the notice).
+
 - **`render:diff` ignores Gravity Forms' per-request tokens and honeypot label and WPML's cookie
   timestamp by itself**, so a page with a form counts as unchanged when nothing changed. A theme's
   `console.render_ignore` and `--ignore` patterns for them can go. Nothing else to do.

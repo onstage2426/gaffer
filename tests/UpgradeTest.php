@@ -153,6 +153,40 @@ final class UpgradeTest extends BaseTestCase
         self::assertStringContainsString('declares gallery(), which Gaffer\\Types\\Product has (final)', $plan['2026-11-23-product-type']['by_hand'][0]);
     }
 
+    public function test_cart_add(): void
+    {
+        $starter = <<<'PHP'
+            <?php
+            class CartAdd extends AjaxAction
+            {
+                public function run(Product $product, int $quantity = 1, array $attributes = []): void
+                {
+                    $cart = WC()->cart;
+                    $product = $product->with_variation($attributes);
+                    $product_id = (int) apply_filters("woocommerce_add_to_cart_product_id", $product->id());
+                    $variation_id = $product->variation()?->get_id() ?? 0;
+                    $quantity = wc_stock_amount($quantity);
+
+                    // WooCommerce's validation adds a notice (shown in the drawer) when, say, no variation is chosen
+                    $added = apply_filters("woocommerce_add_to_cart_validation", true, $product_id, $quantity, $variation_id, $attributes)
+                        && $cart->add_to_cart($product_id, $quantity, $variation_id, $variation_id ? $attributes : []) !== false;
+
+                    $this->render_drawer(added: $added);
+                }
+            }
+            PHP;
+        $this->write('app/Ajax/CartAdd/CartAdd.php', $starter);
+        $this->write('app/Ajax/Own/Own.php', "<?php\nif (apply_filters('woocommerce_add_to_cart_validation', true, 1, 1)) { WC()->cart->add_to_cart(1, 1); }\n");
+
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame(['app/Ajax/Own/Own.php'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-cart-add']['by_hand']));
+        $this->upgrade();
+
+        $after = (string) $this->read('app/Ajax/CartAdd/CartAdd.php');
+        self::assertStringContainsString("        \$product = \$product->with_variation(\$attributes);\n        // WooCommerce's own add-to-cart steps; a refusal leaves its notice for the answer\n        \$added = \$product->add_to_cart(\$quantity) !== null;\n\n        \$this->render_drawer(added: \$added);", $after);
+        self::assertStringNotContainsString('woocommerce_add_to_cart_validation', $after);
+    }
+
     public function test_restore_puts_everything_back(): void
     {
         $this->write('views/a.twig', 'before');

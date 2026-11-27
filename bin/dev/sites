@@ -9,7 +9,7 @@
  *   bin/dev/sites run [--summary] -- <args>  `php gaffer <args>` on every site at once (in its
  *                                            container where it has one); --summary: only
  *                                            errors, warnings and the last line
- *   bin/dev/sites update [--no-commit]       composer update onstage2426/gaffer until the lock has
+ *   bin/dev/sites update [--no-commit]       composer update -W onstage2426/gaffer (Gaffer and its dependencies) until the lock has
  *                                            this clone's origin/0.x, build with the theme's
  *                                            package manager, ai:update, twig:lint; commits
  *                                            composer.lock where "commit" is true
@@ -125,7 +125,7 @@ switch ($command) {
                 if ($try > 1) {
                     sleep(10);
                 }
-                LocalSites::run(['composer', 'update', '-q', 'onstage2426/gaffer'], $theme);
+                LocalSites::run(['composer', 'update', '-q', '-W', 'onstage2426/gaffer'], $theme);
             }
             if (gaffer_reference($site) !== $head) {
                 echo "composer.lock doesn't have {$short} yet: run update again\n";

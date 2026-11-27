@@ -1,0 +1,322 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Maintainer tool (not for themes): what this clone does to every theme copy on this host, as a
+ * release gate before a push that touches src/ or an upgrade rule (CI can't see the copies).
+ *
+ *   bin/dev/corpus            the summary and what changed since the accepted baseline
+ *   bin/dev/corpus --full     also every finding, rule change and by-hand item per copy
+ *   bin/dev/corpus --accept   record this run as the baseline (after reading its diff)
+ *   bin/dev/corpus <dir>...   only these copies (no baseline written for a partial run)
+ *
+ * Per copy, with this clone and without WordPress: static `doctor --json` and `twig:lint --json`
+ * (bin/dev/doctor-copy), every upgrade rule's plan (files it would change, by-hand items), and
+ * bin/dev/usage's internal or missing API; then doctor and twig:lint again on a slim copy with
+ * the rules applied (what `upgrade --write` leaves). Copies: themes/*, the local sites' themes
+ * (local/sites.json) and local/corpus-paths ("<label prefix> <glob>" per line, e.g. older copies
+ * kept as a test corpus); only folders whose composer.json requires Gaffer.
+ *
+ * Exits 1 when, against the baseline, a copy has a new doctor or twig:lint error, a tool no longer
+ * runs on it, or a rule changes a file it didn't change before (or changes it differently): that
+ * is how a rule reaching into a theme's own code shows. The baseline is local/corpus-baseline.json
+ * (untracked: it names sites).
+ */
+
+declare(strict_types=1);
+
+use Gaffer\Console\Upgrade\Theme;
+use Gaffer\Console\Upgrade\Upgrader;
+
+$gaffer = dirname(__DIR__, 2);
+require "{$gaffer}/vendor/autoload.php";
+
+$full = false;
+$accept = false;
+$dirs = [];
+foreach (array_slice($argv, 1) as $arg) {
+    match ($arg) {
+        '--full' => $full = true,
+        '--accept' => $accept = true,
+        default => $dirs[] = rtrim($arg, '/'),
+    };
+}
+$home = (string) getenv('HOME');
+$baseline_file = "{$gaffer}/local/corpus-baseline.json";
+
+/** Every copy, by label: themes/<x>, site/<name> (local/sites.json), <prefix>/<x> (local/corpus-paths). */
+$copies = [];
+$add = static function (string $label, string $dir) use (&$copies): void {
+    $composer = "{$dir}/composer.json";
+    if (is_file($composer) && str_contains((string) file_get_contents($composer), 'onstage2426/gaffer')) {
+        $copies[$label] = realpath($dir) ?: rtrim($dir, '/');
+    }
+};
+foreach (glob("{$gaffer}/themes/*", GLOB_ONLYDIR) ?: [] as $dir) {
+    $add('themes/' . basename($dir), $dir);
+}
+// The local sites: local/sites.json (it leaves out stale installs on purpose).
+$sites = is_file("{$gaffer}/local/sites.json") ? json_decode((string) file_get_contents("{$gaffer}/local/sites.json"), true) : null;
+foreach (is_array($sites) ? $sites['sites'] ?? [] : [] as $name => $site) {
+    $add("site/{$name}", (string) preg_replace('/^~/', $home, (string) $site['theme']));
+}
+// More copies on this host (old ones kept as a test corpus): local/corpus-paths, "<label prefix> <glob>" per line.
+foreach (is_file("{$gaffer}/local/corpus-paths") ? file("{$gaffer}/local/corpus-paths", FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] : [] as $line) {
+    [$prefix, $glob] = array_pad(preg_split('/\s+/', trim($line), 2) ?: [], 2, '');
+    if ($prefix === '' || $glob === '' || str_starts_with($prefix, '#')) {
+        continue;
+    }
+    foreach (glob((string) preg_replace('/^~/', $home, $glob), GLOB_ONLYDIR) ?: [] as $dir) {
+        $add("{$prefix}/" . basename($dir), $dir);
+    }
+}
+if ($dirs !== []) {
+    $wanted = array_map(static fn(string $d): string => realpath($d) ?: $d, $dirs);
+    $known = array_intersect($copies, $wanted);
+    foreach (array_diff($wanted, $copies) as $dir) {
+        $add('arg/' . basename($dir), $dir);
+        isset($copies['arg/' . basename($dir)]) && $known['arg/' . basename($dir)] = $copies['arg/' . basename($dir)];
+    }
+    $copies = $known;
+}
+ksort($copies);
+
+/** @return array{ok: bool, errors: list<string>, warnings: list<string>} */
+$json_findings = static function (string $dir, string $command) use ($gaffer): array {
+    $cmd = [PHP_BINARY, "{$gaffer}/bin/dev/doctor-copy", $dir, $command, '--json'];
+    $proc = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $dir);
+    $out = is_resource($proc) ? (string) stream_get_contents($pipes[1]) : '';
+    if (is_resource($proc)) {
+        stream_get_contents($pipes[2]);
+        proc_close($proc);
+    }
+    $json = json_decode($out, true);
+    if (!is_array($json) || !is_array($json['findings'] ?? null)) {
+        return ['ok' => false, 'errors' => [], 'warnings' => []];
+    }
+    $found = ['ok' => true, 'errors' => [], 'warnings' => []];
+    foreach ($json['findings'] as $f) {
+        $key = ($f['check'] ?? '?') . ': ' . ($f['message'] ?? '') . (isset($f['file']) ? " ({$f['file']}" . (isset($f['line']) ? ":{$f['line']}" : '') . ')' : '');
+        match ($f['level'] ?? '') {
+            'error' => $found['errors'][] = $key,
+            'warning' => $found['warnings'][] = $key,
+            default => null,
+        };
+    }
+    sort($found['errors']);
+    sort($found['warnings']);
+
+    return $found;
+};
+
+/** @return list<string>|null the "Internal or missing in use" symbols, null when usage didn't run */
+$internal = static function (string $dir) use ($gaffer): ?array {
+    $out = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg("{$gaffer}/bin/dev/usage") . ' ' . escapeshellarg($dir) . ' 2>/dev/null');
+    if (!is_string($out) || !str_contains($out, 'Internal or missing in use')) {
+        return null;
+    }
+    $section = explode("\nPublic API in use", explode("Internal or missing in use (break without notice):\n", $out, 2)[1])[0];
+    $symbols = [];
+    foreach (explode("\n", $section) as $line) {
+        if (preg_match('/^  (\S+(?: \(\w+\))?): /', $line, $m)) {
+            $symbols[] = $m[1];
+        }
+    }
+
+    return $symbols;
+};
+
+/** A slim copy to upgrade and check: what doctor reads, node_modules/ and vendor/ linked. */
+$slim = static function (string $dir, string $to): void {
+    $run = proc_open(['rsync', '-a', '--exclude=/node_modules', '--exclude=/vendor', '--exclude=.git', '--include=/storage/', '--include=/storage/acf-json/***', '--exclude=/storage/*', '--include=/public/', '--include=/public/.vite/***', '--exclude=/public/*', "{$dir}/", "{$to}/"], [], $pipes);
+    if (!is_resource($run) || proc_close($run) !== 0) {
+        throw new RuntimeException("rsync of {$dir} failed");
+    }
+    foreach (['node_modules', 'vendor'] as $linked) {
+        is_dir("{$dir}/{$linked}") && symlink("{$dir}/{$linked}", "{$to}/{$linked}");
+    }
+};
+$tmp = sys_get_temp_dir() . '/gaffer-corpus-' . bin2hex(random_bytes(4));
+mkdir($tmp, 0700);
+register_shutdown_function(static fn() => shell_exec('rm -rf ' . escapeshellarg($tmp)));
+
+$run = [];
+foreach ($copies as $label => $dir) {
+    fwrite(STDERR, "\r\033[K{$label}");
+    $copy = "{$tmp}/" . count($run);
+    $slim($dir, $copy);
+    $r = ['dir' => $dir, 'doctor' => $json_findings($copy, 'doctor'), 'lint' => $json_findings($copy, 'twig:lint'), 'rules_ok' => true, 'rules' => [], 'internal' => $internal($dir)];
+    $changes = [];
+    try {
+        foreach (Upgrader::plan(new Theme($copy)) as $id => $item) {
+            $files = [];
+            foreach ($item['changes'] as $change) {
+                $files[$change->path] = substr(sha1(($change->before ?? "\0new") . "\0\0" . ($change->after ?? "\0deleted")), 0, 12);
+                $changes[] = $change;
+            }
+            ksort($files);
+            $r['rules'][$id] = ['files' => $files, 'by_hand' => $item['by_hand']];
+        }
+        // As the theme is after `upgrade --write`: what an update leaves for its agent.
+        $changes !== [] && Upgrader::apply(new Theme($copy), $changes, "{$copy}.backup");
+    } catch (Throwable $e) {
+        $r['rules_ok'] = false;
+        $r['rules'] = ['(crashed)' => ['files' => [], 'by_hand' => [get_class($e) . ': ' . $e->getMessage()]]];
+    }
+    $r['doctor after'] = $changes === [] ? $r['doctor'] : $json_findings($copy, 'doctor');
+    $r['lint after'] = $changes === [] ? $r['lint'] : $json_findings($copy, 'twig:lint');
+    $run[$label] = $r;
+}
+fwrite(STDERR, "\r\033[K");
+
+$head = trim((string) shell_exec('git -C ' . escapeshellarg($gaffer) . ' rev-parse --short HEAD 2>/dev/null'));
+$dirty = trim((string) shell_exec('git -C ' . escapeshellarg($gaffer) . ' status --porcelain -- src resources config 2>/dev/null')) !== '' ? ' + uncommitted' : '';
+echo "Corpus: " . count($run) . " copies, Gaffer {$head}{$dirty}\n\n";
+echo "doctor and lint: as the copy is → after the upgrade rules; errors (e) and warnings (w)\n";
+printf("%-34s %-20s %-10s %-8s %s\n", 'copy', 'doctor', 'lint', 'internal', 'rules (files changed / by hand)');
+foreach ($run as $label => $r) {
+    $count = static fn(array $f, bool $w = true): string => $f['ok'] ? count($f['errors']) . 'e' . ($w ? ' ' . count($f['warnings']) . 'w' : '') : 'FAIL';
+    $doctor = $count($r['doctor']) . ' → ' . $count($r['doctor after']);
+    $lint = $count($r['lint'], false) . ' → ' . $count($r['lint after'], false);
+    $int = $r['internal'] === null ? 'FAIL' : (string) count($r['internal']);
+    $rules = [];
+    foreach ($r['rules'] as $id => $rule) {
+        $rules[] = preg_replace('/^\d{4}-\d\d-\d\d-/', '', $id) . ' ' . count($rule['files']) . '/' . count($rule['by_hand']);
+    }
+    printf("%-34s %-20s %-10s %-8s %s\n", $label, $doctor, $lint, $int, $rules === [] ? '-' : implode(', ', $rules));
+}
+
+if ($full) {
+    foreach ($run as $label => $r) {
+        echo "\n== {$label} ({$r['dir']})\n";
+        foreach (['doctor', 'lint'] as $tool) {
+            foreach (['errors' => 'error', 'warnings' => 'warning'] as $key => $level) {
+                foreach ($r[$tool][$key] as $f) {
+                    echo "  {$tool} {$level}: {$f}\n";
+                }
+                // After the rules: only what they changed.
+                foreach (array_diff($r[$tool][$key], $r["{$tool} after"][$key]) as $f) {
+                    echo "  {$tool} {$level} fixed by the rules: {$f}\n";
+                }
+                foreach (array_diff($r["{$tool} after"][$key], $r[$tool][$key]) as $f) {
+                    echo "  {$tool} {$level} after the rules: {$f}\n";
+                }
+            }
+            $r[$tool]['ok'] || print("  {$tool}: didn't run\n");
+            $r["{$tool} after"]['ok'] || print("  {$tool} after the rules: didn't run\n");
+        }
+        foreach ($r['internal'] ?? [] as $s) {
+            echo "  internal: {$s}\n";
+        }
+        foreach ($r['rules'] as $id => $rule) {
+            foreach ($rule['files'] as $path => $_) {
+                echo "  {$id}: {$path}\n";
+            }
+            foreach ($rule['by_hand'] as $todo) {
+                echo "  {$id} by hand: {$todo}\n";
+            }
+        }
+    }
+}
+
+// Against the baseline.
+$baseline = is_file($baseline_file) ? json_decode((string) file_get_contents($baseline_file), true) : null;
+$fail = [];
+$note = [];
+$show = []; // the commands that print a failing rule's diffs
+if (!is_array($baseline)) {
+    echo "\nNo baseline yet ({$baseline_file}): read the run (--full), then --accept.\n";
+} else {
+    echo "\nAgainst the baseline (Gaffer {$baseline['gaffer']}, {$baseline['date']}):\n";
+    foreach ($run as $label => $r) {
+        $b = $baseline['copies'][$label] ?? null;
+        if ($b === null) {
+            $note[] = "{$label}: new copy, not in the baseline";
+            continue;
+        }
+        foreach (['doctor', 'lint', 'doctor after', 'lint after'] as $tool) {
+            $b[$tool] ??= ['ok' => false, 'errors' => [], 'warnings' => []];
+            if (!$r[$tool]['ok']) {
+                $b[$tool]['ok'] && $fail[] = "{$label}: {$tool} no longer runs";
+                continue;
+            }
+            foreach (array_diff($r[$tool]['errors'], $b[$tool]['errors']) as $e) {
+                $fail[] = "{$label}: new {$tool} error: {$e}";
+            }
+            foreach (array_diff($b[$tool]['errors'], $r[$tool]['errors']) as $e) {
+                $note[] = "{$label}: {$tool} error gone: {$e}";
+            }
+            foreach (array_diff($r[$tool]['warnings'], $b[$tool]['warnings']) as $w) {
+                $note[] = "{$label}: new {$tool} warning: {$w}";
+            }
+            foreach (array_diff($b[$tool]['warnings'], $r[$tool]['warnings']) as $w) {
+                $note[] = "{$label}: {$tool} warning gone: {$w}";
+            }
+        }
+        if (!$r['rules_ok'] && ($b['rules_ok'] ?? true)) {
+            $fail[] = "{$label}: upgrade crashed: " . $r['rules']['(crashed)']['by_hand'][0];
+        }
+        foreach ($r['rules'] as $id => $rule) {
+            $before = $b['rules'][$id] ?? ['files' => [], 'by_hand' => []];
+            foreach ($rule['files'] as $path => $hash) {
+                if (!isset($before['files'][$path])) {
+                    $fail[] = "{$label}: {$id} now changes {$path}";
+                } elseif ($before['files'][$path] !== $hash) {
+                    $fail[] = "{$label}: {$id} changes {$path} differently";
+                } else {
+                    continue;
+                }
+                $show["bin/dev/doctor-copy {$r['dir']} upgrade --rule={$id}"] = true;
+            }
+            foreach (array_diff($rule['by_hand'], $before['by_hand']) as $todo) {
+                $note[] = "{$label}: {$id} new by hand: {$todo}";
+            }
+        }
+        foreach ($b['rules'] as $id => $rule) {
+            foreach (array_diff_key($rule['files'], $r['rules'][$id]['files'] ?? []) as $path => $_) {
+                $note[] = "{$label}: {$id} no longer changes {$path}";
+            }
+        }
+        if ($r['internal'] === null) {
+            $note[] = "{$label}: usage didn't run";
+        } else {
+            foreach (array_diff($r['internal'], $b['internal'] ?? []) as $s) {
+                $note[] = "{$label}: new internal/missing use: {$s}";
+            }
+            foreach (array_diff($b['internal'] ?? [], $r['internal']) as $s) {
+                $note[] = "{$label}: internal/missing use gone: {$s}";
+            }
+        }
+    }
+    foreach (array_diff_key($baseline['copies'], $run) as $label => $_) {
+        $dirs === [] && $note[] = "{$label}: in the baseline, not found now";
+    }
+    foreach ($fail as $line) {
+        echo "  FAIL {$line}\n";
+    }
+    foreach ($note as $line) {
+        echo "  {$line}\n";
+    }
+    if ($fail === [] && $note === []) {
+        echo "  no difference\n";
+    }
+}
+
+if ($accept) {
+    if ($dirs !== []) {
+        fwrite(STDERR, "\n--accept needs a full run (no copies given).\n");
+        exit(2);
+    }
+    $copies_out = array_map(static fn(array $r): array => array_diff_key($r, ['dir' => true]), $run);
+    file_put_contents($baseline_file, json_encode(['gaffer' => $head . $dirty, 'date' => date('Y-m-d H:i'), 'copies' => $copies_out], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    echo "\nBaseline written: {$baseline_file}\n";
+    exit(0);
+}
+if ($fail !== []) {
+    echo "\nCorpus gate failed: read each FAIL line; when it is intended, --accept.\n";
+    foreach (array_keys($show) as $command) {
+        echo "  {$command}\n";
+    }
+    exit(1);
+}
+exit(0);

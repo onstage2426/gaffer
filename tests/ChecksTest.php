@@ -758,6 +758,11 @@ final class ChecksTest extends TestCase
             self::assertStringContainsString($expected, $messages);
         }
         self::assertStringNotContainsString('max_docs', $messages);
+
+        // An empty map is a map: config that builds it from WordPress is empty without it (static doctor).
+        file_put_contents("{$this->theme}/config/search.php", "<?php return ['indexes' => ['products' => ['type' => 'products']], 'archive' => ['index' => 'products', 'facet_values' => []]];");
+        Config::load("{$this->theme}/config");
+        self::assertStringNotContainsString('facet_values must map', $this->messages(new SearchCheck()));
     }
 
     public function test_archive_sorts_on_fields_the_index_sorts_on(): void

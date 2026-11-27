@@ -261,7 +261,7 @@ final class SearchCheck implements Check
         if (isset($archive['sorts']) && (!is_array($archive['sorts']) || !array_is_list($archive['sorts']) || array_filter($archive['sorts'], is_string(...)) !== $archive['sorts'])) {
             $problems[] = 'sorts must be a list of sort values, e.g. [\'\', \'price:asc\'] (\'\' = the default); the template labels them';
         }
-        if (isset($archive['facet_values']) && (!is_array($archive['facet_values']) || array_filter($archive['facet_values'], is_int(...)) !== $archive['facet_values'] || array_is_list($archive['facet_values']))) {
+        if (isset($archive['facet_values']) && (!is_array($archive['facet_values']) || array_filter($archive['facet_values'], is_int(...)) !== $archive['facet_values'] || ($archive['facet_values'] !== [] && array_is_list($archive['facet_values'])))) {
             $problems[] = 'facet_values must map a field to a number of values';
         }
         $eager = $archive['eager'] ?? 0;

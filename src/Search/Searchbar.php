@@ -15,19 +15,18 @@ use Twig\Markup;
 final readonly class Searchbar
 {
     /**
-     * @param bool $available false without the search plugin (nothing to search)
-     * @param string $endpoint the URL the browser searches
-     * @param string $token signs what the browser may ask for
-     * @param string $results_url the archive's URL for "all results" (the browser adds ?q=)
+     * Gaffer makes it.
      *
      * @internal
      */
     public function __construct(
+        /** false without the search plugin (nothing to search) */
         public bool $available,
         /** @internal written by attrs(), which may change with Gaffer's JavaScript */
         public string $endpoint,
         /** @internal written by attrs(), which may change with Gaffer's JavaScript */
         public string $token,
+        /** the archive's URL for "all results" (the browser adds ?q=); '' when the theme has no archive */
         public string $results_url,
     ) {}
 

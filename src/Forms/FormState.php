@@ -15,10 +15,8 @@ use Gaffer\Turnstile;
 final readonly class FormState
 {
     /**
-     * @param string $name the form's name (its template's, views/forms/{name}.twig)
-     * @param bool $sent submitted, Gravity Forms' confirmation in `message`
-     * @param ?string $message the confirmation when sent (HTML), the reason when failed (plain text), or null
-     * @param bool $failed the whole form failed (not one field)
+     * Gaffer makes it.
+     *
      * @param array<string, mixed> $values by field name
      * @param array<string, string> $errors by field name
      * @param array<string, list<KeptFile>> $files by field name
@@ -26,11 +24,18 @@ final readonly class FormState
      * @internal
      */
     public function __construct(
+        /** the form's name (its template's, views/forms/{name}.twig) */
         public string $name,
         private array $values = [],
         private array $errors = [],
+        /** submitted, Gravity Forms' confirmation in `message` */
         public bool $sent = false,
+        /**
+         * The confirmation when sent (Gravity Forms' HTML: print it with |raw), the reason when
+         * failed (plain text: print it escaped), or null.
+         */
         public ?string $message = null,
+        /** the whole form failed (not one field) */
         public bool $failed = false,
         private array $files = [],
     ) {}

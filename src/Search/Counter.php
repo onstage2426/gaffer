@@ -16,13 +16,12 @@ use Twig\Markup;
 final readonly class Counter
 {
     /**
-     * @param bool $available false without the search plugin (nothing to search)
-     * @param string $endpoint the URL the browser searches
-     * @param string $token signs what the browser may ask for
+     * Gaffer makes it.
      *
      * @internal
      */
     public function __construct(
+        /** false without the search plugin (nothing to search) */
         public bool $available,
         /** @internal written by attrs(), which may change with Gaffer's JavaScript */
         public string $endpoint,

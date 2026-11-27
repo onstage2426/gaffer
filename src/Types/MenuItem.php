@@ -93,7 +93,8 @@ final class MenuItem
 
     /**
      * The link points at the current page (paths compared, so query strings
-     * like ?per_page=24 don't matter; links to other hosts never match).
+     * like ?per_page=24 don't matter; links to other hosts never match). By URL, unlike
+     * Post::is_current() (the queried post): a custom link or an archive in a menu matches too.
      */
     public function is_current(): bool
     {

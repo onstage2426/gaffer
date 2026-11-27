@@ -16,40 +16,64 @@ use Twig\Markup;
 final readonly class Archive
 {
     /**
-     * @param bool $available false without the search plugin (nothing to search)
-     * @param string $endpoint the URL the browser searches
-     * @param string $token signs what the browser may ask for
-     * @param string $query the visitor's search (?q=), '' without one
-     * @param int $total documents found for this URL's search
-     * @param list<Markup> $cards the first page, rendered at index time
-     * @param array<string, mixed> $results the search response for this URL
-     * @param list<string> $sorts the sort values the visitor picks from ('' = the default), labelled by the template
-     * @param list<array{name: string, value: string, url: string, current: bool}> $views the layouts to
-     *        switch to (the index's `cards`; `value` is the ?view= param, '' for the default), each
-     *        this page's search in it; empty with one layout
-     * @param string $sort the sort in use ('' = the default)
-     * @param string $card_field the document field with this visitor's card in this layout ("card", "card_list")
-     * @param string $view the layout in use (?view=), '' for the default
-     * @param array<string, mixed> $bounds field => {min, max} over the whole archive (`bounds`)
-     * @param array<mixed> $url_query this page's URL query, for page_url()
+     * Gaffer makes it.
+     *
+     * @param list<Markup> $cards
+     * @param array<string, mixed> $results
+     * @param list<string> $sorts
+     * @param list<array{name: string, value: string, url: string, current: bool}> $views
+     * @param array<string, mixed> $bounds
+     * @param array<mixed> $url_query
      *
      * @internal
      */
     public function __construct(
+        /** false without the search plugin (nothing to search) */
         public bool $available,
         /** @internal written by attrs(), which may change with Gaffer's JavaScript */
         public string $endpoint,
         /** @internal written by attrs(), which may change with Gaffer's JavaScript */
         public string $token,
+        /** the visitor's search (?q=), '' without one */
         public string $query,
+        /** documents found for this URL's search */
         public int $total,
+        /**
+         * the first page, rendered at index time
+         *
+         * @var list<Markup>
+         */
         public array $cards,
+        /**
+         * the search response for this URL
+         *
+         * @var array<string, mixed>
+         */
         public array $results,
+        /**
+         * the sort values the visitor picks from ('' = the default), labelled by the template
+         *
+         * @var list<string>
+         */
         public array $sorts,
+        /** the sort in use ('' = the default) */
         public string $sort,
+        /** the document field with this visitor's card in this layout ("card", "card_list") */
         public string $card_field,
+        /** the layout in use (?view=), '' for the default */
         public string $view = '',
+        /**
+         * the layouts to switch to (the index's `cards`; `value` is the ?view= param, '' for the
+         * default), each this page's search in it; empty with one layout
+         *
+         * @var list<array{name: string, value: string, url: string, current: bool}>
+         */
         public array $views = [],
+        /**
+         * field => {min, max} over the whole archive (`bounds`)
+         *
+         * @var array<string, mixed>
+         */
         public array $bounds = [],
         private string $base = '',
         private array $url_query = [],

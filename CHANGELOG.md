@@ -9,6 +9,13 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-27
 
+- **Gaffer requires Twig 3.31.1** (security fixes): Twig 3.30 and older have nine advisories,
+  eight for Twig's sandbox (Gaffer doesn't use it) and one for autoescaping
+  (CVE-2026-133771: a variable named like a macro import alias of another scope wasn't escaped),
+  which reaches templates that `{% import %}` or `{% from %}` macros. Update Twig with Gaffer:
+  `composer update onstage2426/gaffer twig/twig twig/string-extra`. Find: `grep -rln "{% import\|{% from" views blocks`.
+  Check: `php gaffer twig:lint` and `php gaffer doctor --wp`.
+
 - **New: the `gaffer:search` event and `php gaffer health --json`.** After every search answer the
   search form dispatches `gaffer:search` (`query`, `request` without the token, `total`) for
   analytics or a tag manager to listen to; `health --json` prints the site's state as flat dotted

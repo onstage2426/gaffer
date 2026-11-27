@@ -20,7 +20,6 @@ use Twig\Node\Expression\FunctionExpression;
 use Twig\Node\Expression\GetAttrExpression;
 use Twig\Node\Expression\TestExpression;
 use Twig\Node\Expression\Variable\AssignContextVariable;
-use Twig\Node\Expression\Variable\AssignTemplateVariable;
 use Twig\Node\Expression\Variable\ContextVariable;
 use Twig\Node\ImportNode;
 use Twig\Node\IncludeNode;
@@ -223,9 +222,10 @@ final class Templates
         } elseif ($node instanceof IncludeNode) {
             $found[] = self::reference($node->getNode('expr'), $node->getTemplateLine(), '{% include %}', (bool) $node->getAttribute('only'));
         } elseif ($node instanceof ImportNode) {
-            // {% from %} imports into a template variable without a name.
+            // {% from %} imports into a variable without a name (an AssignTemplateVariable before
+            // Twig 3.31, an AssignMacroVariable since).
             $var = $node->getNode('var');
-            $from = $var instanceof AssignTemplateVariable && $var->getNode('var')->getAttribute('name') === null;
+            $from = $var->hasNode('var') && $var->getNode('var')->hasAttribute('name') && $var->getNode('var')->getAttribute('name') === null;
             $found[] = self::reference($node->getNode('expr'), $node->getTemplateLine(), $from ? '{% from %}' : '{% import %}', true);
         }
 

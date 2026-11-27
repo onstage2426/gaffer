@@ -9,6 +9,14 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-27
 
+- **Names starting with `gaffer` are Gaffer's, and so is `config/gaffer/`.** So that Gaffer can
+  add things in 1.x without colliding with a theme (`API.md`, "Reserved names"), `doctor` errors
+  on: an ajax action named `Gaffer*`, a `run()` parameter named `action` or `gaffer_*`, a Twig
+  function or filter named `gaffer_*` or like Gaffer's (`config`, `ajax_url`, `t`), a
+  `data-gaffer-*` attribute Gaffer doesn't define, an input named `gaffer_*`, a theme dispatching
+  a `gaffer:*` event or setting a `window.gaffer*` global, and a theme's `config/gaffer.php` or file
+  in `config/gaffer/`. No known theme has any of them. Check: `php gaffer doctor`.
+
 - **Experimental API is marked, and `doctor` names its use.** Classes and members marked
   `@experimental` are public but may still change in a minor (today: `Gaffer\Search\*`, until
   gaffer-search 1.0). `doctor` lists where a theme uses them, as info. Nothing changes at runtime;

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Gaffer;
 
 /**
- * The theme's config/*.php files, read once per request.
+ * The theme's config/*.php files, read once per request. config/gaffer/ is Gaffer's: config
+ * files Gaffer adds later go there (config/gaffer/{name}.php, read as gaffer.{name}.*), so they
+ * never collide with a theme's own config/{name}.php.
  */
 final class Config
 {
@@ -23,6 +25,12 @@ final class Config
                 continue;
             }
             $config[basename($file, '.php')] = $data;
+        }
+        foreach (glob("{$dir}/gaffer/*.php") ?: [] as $file) {
+            $data = include $file;
+            if (is_array($data)) {
+                $config['gaffer'][basename($file, '.php')] = $data;
+            }
         }
 
         self::$config = $config;

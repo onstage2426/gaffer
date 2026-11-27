@@ -32,6 +32,10 @@ final class AjaxCheck implements Check
 
         foreach (Ajax::actions() as $action) {
             $file = Paths::ajax() . "/{$action}/{$action}.php";
+            if (str_starts_with($action, 'Gaffer')) {
+                $report->error('ajax', "The action name {$action} starts with Gaffer, which is Gaffer's", $file, null,
+                    'Actions named Gaffer* are reserved for Gaffer\'s own (API.md, "Reserved names"): rename the folder and class.');
+            }
             try {
                 $class = Ajax::action_class($action);
             } catch (Throwable $e) {
@@ -54,6 +58,13 @@ final class AjaxCheck implements Check
             if ($problem !== null) {
                 $report->error('ajax', $problem, $file, null,
                     'run() parameters are the request keys: typed string, int, float, bool, array or a Gaffer type (from an ID); no default = required.');
+            }
+
+            foreach ($run?->getParameters() ?? [] as $parameter) {
+                if ($parameter->getName() === 'action' || str_starts_with($parameter->getName(), 'gaffer_')) {
+                    $report->error('ajax', "run()'s parameter \${$parameter->getName()} is a request key Gaffer reads itself", $file, null,
+                        '`action` is the dispatcher\'s and gaffer_* is reserved for Gaffer\'s request keys (API.md, "Reserved names"): rename the parameter and what sends it.');
+                }
             }
 
             if ($run !== null) {

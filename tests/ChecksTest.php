@@ -15,6 +15,7 @@ use Gaffer\Console\Checks\AcfJsonCheck;
 use Gaffer\Console\Checks\Check;
 use Gaffer\Console\Checks\FieldGroupsCheck;
 use Gaffer\Console\Checks\ConfigCheck;
+use Gaffer\Console\Checks\ReservedCheck;
 use Gaffer\Console\Checks\GuidelinesCheck;
 use Gaffer\Console\Checks\IncCheck;
 use Gaffer\Console\Checks\MarkupCheck;
@@ -985,6 +986,58 @@ final class ChecksTest extends TestCase
         require_once "{$this->theme}/app/Ajax/Boom/Boom.php";
 
         self::assertStringContainsString('$what', $this->messages(new AjaxCheck()), 'run() is still checked');
+    }
+
+    public function test_names_reserved_for_gaffer(): void
+    {
+        // Ajax: an action named Gaffer*, run() parameters named action or gaffer_*.
+        mkdir("{$this->theme}/app/Ajax/GafferThing", 0755, true);
+        file_put_contents("{$this->theme}/app/Ajax/GafferThing/GafferThing.php", "<?php\nnamespace Theme\\Ajax\\GafferThing;\nfinal class GafferThing extends \\Gaffer\\AjaxAction\n{\n    public function run(string \$action = '', int \$gaffer_page = 0, int \$page = 0): void {}\n}\n");
+        require_once "{$this->theme}/app/Ajax/GafferThing/GafferThing.php";
+        $ajax = $this->messages(new AjaxCheck());
+        self::assertStringContainsString('The action name GafferThing starts with Gaffer', $ajax);
+        self::assertStringContainsString('parameter $action is a request key Gaffer reads itself', $ajax);
+        self::assertStringContainsString('parameter $gaffer_page is a request key', $ajax);
+        self::assertStringNotContainsString('$page is', $ajax);
+
+        // Config: config/gaffer.php and files in config/gaffer/ that aren't Gaffer's.
+        file_put_contents("{$this->theme}/config/gaffer.php", '<?php return [];');
+        mkdir("{$this->theme}/config/gaffer");
+        file_put_contents("{$this->theme}/config/gaffer/mine.php", "<?php return ['a' => 1];");
+        Config::load("{$this->theme}/config");
+        self::assertSame(1, Config::get('gaffer.mine.a'));
+        $config = $this->messages(new ConfigCheck());
+        self::assertStringContainsString('config/gaffer.php: the name gaffer is Gaffer\'s', $config);
+        self::assertStringContainsString('config/gaffer/mine.php isn\'t one of Gaffer\'s config files', $config);
+
+        // Templates and scripts.
+        $known = ReservedCheck::gaffer_attributes();
+        $twig = "<input data-gaffer-resize name=\"gaffer_mode\"><div data-gaffer-tabs></div>\n<a x-on:click=\"\$dispatch('gaffer:search')\">x</a>";
+        self::assertSame([
+            ['data-gaffer-tabs isn\'t one of Gaffer\'s attributes', 1],
+            ['The input name gaffer_mode is a request key reserved for Gaffer', 1],
+            ['Dispatches gaffer:search, an event name reserved for Gaffer', 2],
+        ], ReservedCheck::findings($twig, $known, 'twig'));
+        $js = "document.addEventListener('gaffer:search', track);\nwindow.gafferTrack = 1;\nif (window.gafferX === 1) {}\ndocument.dispatchEvent(new CustomEvent('gaffer:x'));";
+        self::assertSame([
+            ['Dispatches gaffer:x, an event name reserved for Gaffer', 4],
+            ['Sets window.gafferTrack, a global reserved for Gaffer', 2],
+        ], ReservedCheck::findings($js, $known, 'js'));
+    }
+
+    public function test_theme_twig_names_that_are_gaffers(): void
+    {
+        mkdir("{$this->theme}/app", 0755, true);
+        file_put_contents("{$this->theme}/app/ReservedTwig.php", "<?php\nnamespace Theme;\nuse Twig\\Attribute\\AsTwigFilter;\nuse Twig\\Attribute\\AsTwigFunction;\nfinal class ReservedTwig\n{\n    #[AsTwigFilter('t')] public static function t(string \$s): string { return \$s; }\n    #[AsTwigFunction('gaffer_thing')] public static function g(): string { return ''; }\n    #[AsTwigFilter('price')] public static function p(string \$s): string { return \$s; }\n}\n");
+        require_once "{$this->theme}/app/ReservedTwig.php";
+        file_put_contents("{$this->theme}/config/theme.php", "<?php return ['twig_extensions' => [Theme\\ReservedTwig::class]];");
+        Config::load("{$this->theme}/config");
+
+        $messages = $this->messages(new ConfigCheck());
+
+        self::assertStringContainsString('registers the Twig filter t, a name that is Gaffer\'s', $messages);
+        self::assertStringContainsString('registers the Twig function gaffer_thing', $messages);
+        self::assertStringNotContainsString('filter price', $messages);
     }
 
     public function test_theme_files_skips_only_the_theme_roots_directories(): void

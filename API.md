@@ -137,6 +137,25 @@ without a code change:
 - **Storage formats:** `uploads/gaffer/backups/migrate/*.json` (rollback reads old
   backups) and `uploads/gaffer/logs/migrate.log`.
 
+## Reserved names
+
+So that Gaffer can add something in a 1.x minor without colliding with a theme, these are
+Gaffer's; `doctor` errors when a theme takes one:
+
+- **`gaffer`, in every namespace:** request keys `gaffer_*` (and `action`, the dispatcher's),
+  ajax actions `Gaffer*` (plus the built-in `Form`, which a theme may replace), Twig functions,
+  filters and tests named `gaffer_*` or like one of Gaffer's (`config`, `ajax_url`, `t`),
+  `data-gaffer-*` attributes Gaffer doesn't define, `gaffer:*` events (a theme listens to them,
+  it doesn't dispatch them), `window.gaffer*` globals, options, hooks and transients `gaffer_*`,
+  CSS classes `gaffer-*`.
+- **Config:** `config/gaffer.php` and `config/gaffer/`. A config file Gaffer adds later goes in
+  `config/gaffer/{name}.php` (read as `gaffer.{name}.*`); new keys of Gaffer's existing files go
+  in those files. A theme's own config files (`config/customer.php`) are never in the way.
+- **Folders:** Gaffer adds no top-level folder to the theme in 1.x; new conventions go inside
+  its folders (`views/`, `app/`, `config/gaffer/`, …). A theme's other folders are its own.
+- **Methods on the types:** see "Theme subclasses" above (a new method on `Post`, `Product`,
+  `Term`, `Attachment` or `Image` only after a minor in which `doctor` warned about it).
+
 ## Tooling
 
 Not part of the promise above: commands, their options, output and exit codes,

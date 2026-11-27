@@ -11,7 +11,11 @@ use Gaffer\Config;
 use Gaffer\Paths;
 use Gaffer\Types\Post;
 use Gaffer\Types\Product;
+use Gaffer\Twig\Extension;
 use Gaffer\Types\Term;
+use Twig\Attribute\AsTwigFilter;
+use Twig\Attribute\AsTwigFunction;
+use Twig\Attribute\AsTwigTest;
 
 /**
  * Unknown config keys, literal keys the theme reads that config/ doesn't have, classes in
@@ -25,6 +29,7 @@ final class ConfigCheck implements Check
     public function run(Report $report): void
     {
         $this->autoload($report);
+        $this->reserved($report);
         $stubs = ConfigStubs::keys();
 
         foreach (Config::all() as $file => $values) {
@@ -54,13 +59,58 @@ final class ConfigCheck implements Check
             }
         }
 
+        $gaffers = self::twig_names(Extension::class);
         foreach ((array) (Config::get('theme.twig_extensions') ?? []) as $class) {
             if (!class_exists($class)) {
                 $report->error('config', "theme.twig_extensions: class {$class} doesn't exist", Paths::base('config/theme.php'));
+                continue;
+            }
+            foreach (self::twig_names($class) as $name) {
+                if (in_array($name, $gaffers, true) || preg_match('/^(?:function|filter|test) gaffer_/', $name) === 1) {
+                    $report->error('config', "{$class} registers the Twig {$name}, a name that is Gaffer's", (string) new \ReflectionClass($class)->getFileName(), null,
+                        'Gaffer\'s Twig names and gaffer_* are reserved (API.md, "Reserved names"): a theme\'s would replace Gaffer\'s, also in Gaffer\'s own partials. Rename it.');
+                }
             }
         }
 
         $this->reads($report, $stubs);
+    }
+
+    /**
+     * The Twig names an attribute extension registers: "function x", "filter y", "test z".
+     *
+     * @param class-string $class
+     * @return list<string>
+     */
+    public static function twig_names(string $class): array
+    {
+        $names = [];
+        foreach (new \ReflectionClass($class)->getMethods() as $method) {
+            foreach ([AsTwigFunction::class => 'function', AsTwigFilter::class => 'filter', AsTwigTest::class => 'test'] as $attribute => $kind) {
+                foreach ($method->getAttributes($attribute) as $found) {
+                    $names[] = "{$kind} " . $found->newInstance()->name;
+                }
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * config/gaffer.php and config/gaffer/ are Gaffer's (API.md, "Reserved names"): config files
+     * Gaffer adds in a minor go there, so a theme's file of that name would collide with them.
+     */
+    private function reserved(Report $report): void
+    {
+        $hint = 'config/gaffer/ is where Gaffer adds config files in later releases: give the theme\'s own file another name in config/.';
+        if (is_file(Paths::base('config/gaffer.php'))) {
+            $report->error('config', 'config/gaffer.php: the name gaffer is Gaffer\'s', Paths::base('config/gaffer.php'), null, $hint);
+        }
+        foreach (glob(Paths::base('config/gaffer') . '/*.php') ?: [] as $file) {
+            if (!is_file(dirname(__DIR__, 3) . '/config/gaffer/' . basename($file))) {
+                $report->error('config', 'config/gaffer/' . basename($file) . ' isn\'t one of Gaffer\'s config files', $file, null, $hint);
+            }
+        }
     }
 
     /**

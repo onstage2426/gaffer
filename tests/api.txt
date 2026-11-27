@@ -144,12 +144,12 @@ class Gaffer\Types\Post
 class Gaffer\Types\Product extends Gaffer\Types\Post
   final add_to_cart(float $quantity = 1.0): ?string
   final can_add_to_cart(): bool
-  confirm_purchase(): ?string
+  confirm_purchase(): ?string @experimental
   final gallery(): array
   final is_on_sale(): bool
   final is_variable(): bool
-  order_price_changed_notice(string $was, string $now): string
-  price_changed_notice(string $was, string $now): string
+  order_price_changed_notice(string $was, string $now): string @experimental
+  price_changed_notice(string $was, string $now): string @experimental
   final product(): WC_Product
   final selected(): array
   thumbnail(): ?Gaffer\Types\Image

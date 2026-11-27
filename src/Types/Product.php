@@ -157,6 +157,8 @@ class Product extends Post
      * It runs again at each step (once per request): make it safe to repeat. Two customers
      * buying the last one at once is the source's to settle (a reservation it refuses twice).
      * Without an override (the default), Gaffer asks nothing and checks no prices.
+     *
+     * @experimental until a site overrides it (API.md, "Experimental").
      */
     public function confirm_purchase(): ?string
     {
@@ -167,6 +169,8 @@ class Product extends Post
      * The notice when the price changed since the customer last saw it in the cart (prices as
      * wc_price() HTML). The checkout stops once; with the new price shown, it goes through.
      * Override it for the site's language.
+     *
+     * @experimental with confirm_purchase().
      */
     public function price_changed_notice(string $was, string $now): string
     {
@@ -178,6 +182,8 @@ class Product extends Post
      * made in the admin) was placed at another price than the product has now. The order keeps
      * the price it was placed at, so it can't be paid: the customer places a new order. Override
      * it for the site's language.
+     *
+     * @experimental with confirm_purchase().
      */
     public function order_price_changed_notice(string $was, string $now): string
     {

@@ -28,7 +28,8 @@ change in a minor release, always with a changelog entry.
 `@experimental` in its docblock (and in `tests/api.txt`) may still change in the next minor, with
 a changelog entry and, where it's mechanical, an automatic migration; from the minor after, it's
 promised like the rest. `doctor` lists the experimental API a theme uses (as info). Search's
-classes carry the marker until gaffer-search 1.0.
+classes carry the marker until gaffer-search 1.0, and `Product::confirm_purchase()` with its two
+notices until a site overrides them.
 
 ## Supported versions
 

@@ -1,9 +1,10 @@
 import { buildSearchUrl, createSearcher } from "./helpers.js";
 
 /**
- * createCounter({ endpoint, token }) — a count that follows the visitor's choices, from the
- * endpoint and token of Search::counter(). The returned function takes a filter (the shape
- * buildSearchUrl() takes) and resolves to:
+ * createCounter(element) — a count that follows the visitor's choices, from the attributes
+ * `{{ counter.attrs() }}` (Search::counter()) wrote on the element. (An object `{ endpoint, token }`,
+ * as templates passed before Counter::attrs(), still works.) The returned function takes a filter
+ * (the shape buildSearchUrl() takes) and resolves to:
  *
  *   a number    the total for that filter
  *   null        no count: the token is stale, the index isn't built, the network failed
@@ -13,7 +14,11 @@ import { buildSearchUrl, createSearcher } from "./helpers.js";
  * A filter the engine ignored (a field not in `facets`) gives a total that's too high: it's
  * in the console, as doctor can't see a filter built here.
  */
-export function createCounter({ endpoint, token }) {
+export function createCounter(source) {
+    const { endpoint, token } = source instanceof Element
+        ? { endpoint: source.dataset.gafferSearchEndpoint, token: source.dataset.gafferSearchToken }
+        : (source ?? {});
+    if (!endpoint || !token) return async () => null; // without the plugin: nothing to count
     const search = createSearcher();
 
     return async function count(filters = {}) {

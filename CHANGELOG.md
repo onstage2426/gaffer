@@ -11,6 +11,16 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **Search's `endpoint` and `token` are Gaffer's; `attrs()` writes them, now on a counter too.**
+  `Archive`, `Searchbar` and `Counter` keep `available` (and their other values), but `endpoint` and
+  `token` are internal: they may change with Gaffer's JavaScript. New: `counter.attrs()` for the
+  element whose script counts, and `createCounter(element)` reads them (`createCounter({ endpoint,
+  token })` still works for pages already cached). *By hand (`2026-11-27-search-values` lists
+  templates that read them).* Find: `grep -rn "\.endpoint\|\.token" views blocks`. Before:
+  `<div x-data="finder({{ {endpoint: counter.endpoint, token: counter.token}|json_encode }})">` and
+  `createCounter(counter)`; after: `<div x-data="finder($el)" {{ counter.attrs() }}>` and
+  `createCounter(el)` (without the plugin it answers null). Check: the count follows the choices.
+
 - **`Forms\FormAction` is Gaffer's own: final and internal.** A theme with form logic of its own
   writes its own action in `app/Ajax/Form/` (or under another name) on `Gaffer\AjaxAction` and calls
   `Forms\Spam::check()` first, instead of extending Gaffer's. An empty subclass was removed by the

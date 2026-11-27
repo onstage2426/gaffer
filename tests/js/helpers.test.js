@@ -182,6 +182,20 @@ describe("createCounter", () => {
         expect(await old).toBeUndefined();
     });
 
+    test("reads the endpoint and token from {{ counter.attrs() }} on an element", async () => {
+        const calls = mockFetch(() => response({ total: 3 }));
+        document.body.innerHTML = '<div data-gaffer-search-endpoint="https://shop.test/search.php" data-gaffer-search-token="t.k"></div>';
+        expect(await F.createCounter(document.querySelector("div"))({ brand: ["volvo"] })).toBe(3);
+        expect(calls).toEqual(["https://shop.test/search.php?q=&token=t.k&filter[brand][]=volvo"]);
+    });
+
+    test("an element without the attributes (no plugin) counts nothing: null, no request", async () => {
+        const calls = mockFetch(() => response({ total: 3 }));
+        document.body.innerHTML = "<div></div>";
+        expect(await F.createCounter(document.querySelector("div"))()).toBeNull();
+        expect(calls).toEqual([]);
+    });
+
     test("the engine's warnings reach the console", async () => {
         mockFetch(() => response({ total: 14, warnings: ["filter on fuel ignored"] }));
         const warn = console.warn;

@@ -301,6 +301,15 @@ final class UpgradeTest extends BaseTestCase
         self::assertSame(['app/Ajax/Quote/Quote.php'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-form-action-final']['by_hand']));
     }
 
+    public function test_search_values_read_by_a_template_are_by_hand(): void
+    {
+        $this->write('blocks/hero/hero.twig', "<div x-data=\"finder({{ {endpoint: counter.endpoint, token: counter.token}|json_encode }})\"></div>\n");
+        $this->write('views/bar.twig', "<form method=\"get\" {{ search.attrs() }}></form>\n");
+
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame(['blocks/hero/hero.twig'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-search-values']['by_hand']));
+    }
+
     public function test_restore_puts_everything_back(): void
     {
         $this->write('views/a.twig', 'before');

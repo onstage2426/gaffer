@@ -33,6 +33,7 @@ final class Upgrader
             new Rules\MenuChildren(),
             new Rules\ContentMarkup(),
             new Rules\FormActionFinal(),
+            new Rules\SearchValues(),
         ];
     }
 

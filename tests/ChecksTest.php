@@ -814,6 +814,8 @@ final class ChecksTest extends TestCase
         $bar = new \Gaffer\Search\Searchbar(true, 'https://s.test/search.php?a=1&b=2', 'T"1', '/winkel/');
         self::assertSame('data-gaffer-search-endpoint="https://s.test/search.php?a=1&amp;b=2" data-gaffer-search-token="T&quot;1"', (string) $bar->attrs());
         self::assertSame('', (string) \Gaffer\Search\Archive::unavailable()->attrs());
+        self::assertSame('data-gaffer-search-endpoint="https://s.test/search.php" data-gaffer-search-token="C"', (string) new \Gaffer\Search\Counter(true, 'https://s.test/search.php', 'C')->attrs());
+        self::assertSame('', (string) new \Gaffer\Search\Counter(false, '', '')->attrs());
     }
 
     public function test_card_templates_of_the_search_config_are_used(): void

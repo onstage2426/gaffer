@@ -24,7 +24,9 @@ final readonly class Searchbar
      */
     public function __construct(
         public bool $available,
+        /** @internal written by attrs(), which may change with Gaffer's JavaScript */
         public string $endpoint,
+        /** @internal written by attrs(), which may change with Gaffer's JavaScript */
         public string $token,
         public string $results_url,
     ) {}

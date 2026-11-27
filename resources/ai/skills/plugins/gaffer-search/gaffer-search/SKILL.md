@@ -225,38 +225,35 @@ $search = Search::archive();   // Gaffer\Search\Search; null on other pages
   in `facets`; a field's own filter is left out of its counts. Not one
   `count()` per brand.
 - A count that changes in the browser or sits on a cached page (a finder's
-  "Toon 9 auto's"): `Search::counter('products', $category)` gives `available`,
-  `endpoint`, `token`, with `count()`'s scope; the visitor's filter comes from
-  the browser. Signing it searches nothing, and the token doesn't expire, so
+  "Toon 9 auto's"): `Search::counter('products', $category)` gives `available`
+  and `attrs()`, with `count()`'s scope; the visitor's filter comes from the
+  browser. Signing it searches nothing, and the token doesn't expire, so
   the page stays cacheable. No ajax action around `Search::count()`: that boots
   WordPress per count (and can't be SHORTINIT: the engine comes from the
   plugin), the endpoint answers in a few ms without it.
   ```twig
-  {% if counter.available %}
-    <div x-data="finder({{ {endpoint: counter.endpoint, token: counter.token}|json_encode }})">
+  <div x-data="finder($el)" {{ counter.attrs() }}>
   ```
   ```js
   import { createCounter } from "@gaffer/search.js";
 
-  const count = createCounter({ endpoint, token });
+  const count = createCounter(el); // reads what counter.attrs() wrote
   const total = await count({ brand: ["volvo"], fuel: "electric" });
   if (total !== undefined) this.total = total; // undefined: a newer choice replaced this one
   ```
-  It's one GET, reading `total`:
-  `{endpoint}?token={token}&filter[brand][]=volvo&filter[fuel]=electric`. Plain
-  `fetch` works, but fast clicks can then answer out of order; `createCounter()`
-  cancels the older request and remembers answers.
+  `createCounter()` cancels the older request when choices come fast and
+  remembers answers; the endpoint and token are Gaffer's (they may change).
   **Show no number when there is no count** (`null`: `invalid_token` after a
   rotated secret on a cached page, `index_not_built`, a failed request): the
   plain button text ("Toon auto's"). Not "refresh the page": the button still
-  works. Without the plugin `available` is false: leave the count out. Filter
+  works. Without the plugin `available` is false and the counter answers null: leave the count out. Filter
   on fields the index filters on: another filter is ignored, so the total is
   too high; `createCounter()` logs the engine's warning to the console, and
   `doctor` can't see filters built in JavaScript. A CDN may keep an answer up
   to 5 minutes, so a count can briefly differ from the archive.
 - A searchbar: `Search::searchbar('products', ['id', 'url', 'thumbnail', 'price', 'category'],
-  8, facets: ['price', 'category'])` gives `endpoint`, `token`, `results_url` (the shop: append
-  `?q=`). The attributes (required) are the fields the template shows: without them each hit
+  8, facets: ['price', 'category'])` gives `attrs()` for its form and `results_url` (the shop:
+  append `?q=`). The attributes (required) are the fields the template shows: without them each hit
   would carry every stored field, its cards too (150 KB instead of 7 KB per keystroke). Start the
   search at 2 letters (`createAlpineSearch({ minQueryLength: 2 })`): one letter matches nearly
   the whole catalog and is the bar's slowest request.

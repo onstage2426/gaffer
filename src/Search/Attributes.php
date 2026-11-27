@@ -7,8 +7,8 @@ namespace Gaffer\Search;
 use Twig\Markup;
 
 /**
- * The search form's attributes Gaffer's search JavaScript reads (resources/js/search/form-search.js):
- * both ends Gaffer's, so they change together.
+ * The attributes Gaffer's search JavaScript reads from a search form (resources/js/search/form-search.js)
+ * or a counter's element (counter.js): both ends Gaffer's, so they change together.
  *
  * @internal
  */

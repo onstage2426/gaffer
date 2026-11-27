@@ -63,10 +63,15 @@ code. The repository was started fresh on 2026-11-20; it is public.
   and propose fixing that instead, even if it breaks things.
 - **Every mechanical change a theme must make ships as an `upgrade` rule**
   (`src/Console/Upgrade/Rules/`, listed in `Upgrader::rules()`, a test in `tests/UpgradeTest.php`):
-  it only computes, is idempotent, and leaves to `by_hand()` what it can't be sure of. Before
-  pushing, run it over every theme copy (`bin/dev/doctor-copy <copy> upgrade`) and look at each
-  diff: a rule that touched a theme's own code there (a `files[]` its own action reads) is a bug.
+  it only computes, is idempotent, and leaves to `by_hand()` what it can't be sure of. A rule that
+  touches a theme's own code (a `files[]` its own action reads) is a bug: the corpus gate shows it.
   The changelog entry says *Automated (`<rule id>`)*.
+- **Corpus gate before every push that touches `src/` or a rule** (CI can't see the theme
+  copies): `bin/dev/corpus` runs this clone's static doctor, twig:lint, every rule and the internal
+  API check over every copy on the host (`themes/`, the local sites, `local/corpus-paths`), before
+  and after the rules, and exits 1 on a new error or a rule changing a file it didn't change before.
+  Read each FAIL (`--full`, and the `doctor-copy … upgrade --rule=` commands it prints); when the
+  difference is intended, `bin/dev/corpus --accept` records the new baseline (untracked).
 - **Every change a site must react to goes in the changelog** (`CHANGELOG.md`,
   committed and shipped with the package; newest first, by date; the guideline
   tells site agents to read it after updating): what changed, a `grep` to find affected

@@ -24,22 +24,29 @@ description: Ship a Gaffer change end to end - implement, test, migration book e
 
 4. **Upgrade rule.** If the site's change is mechanical (a rename, a moved file, a removed
    key), write it as a rule (`src/Console/Upgrade/Rules/`, `Upgrader::rules()`, a test in
-   `tests/UpgradeTest.php`) and run `bin/dev/doctor-copy <copy> upgrade` over every theme copy:
-   read each diff. Mark the changelog entry *Automated (`<rule id>`)*.
+   `tests/UpgradeTest.php`). Mark the changelog entry *Automated (`<rule id>`)*.
 
-5. **Migration book.** If a site has to change anything (renamed/removed
+5. **Corpus gate** (every change to `src/`, `resources/` or a rule, before it's pushed):
+   `bin/dev/corpus`. It runs static doctor, twig:lint, every rule and the internal-API check over
+   every theme copy on this host, before and after the rules, against the accepted baseline.
+   Exit 1 is a new doctor/lint error or a rule changing a file it didn't change before: read each
+   FAIL (`bin/dev/corpus --full`; the printed `bin/dev/doctor-copy … upgrade --rule=<id>` shows
+   the diff). A rule touching a theme's own code is a bug in the rule. When every difference is
+   intended (a new rule's changes, an error the change means to raise), `bin/dev/corpus --accept`.
+
+6. **Migration book.** If a site has to change anything (renamed/removed
    API, new required config, behavior change), append an entry to
    `CHANGELOG.md` (newest first, under today's date): what changed, a `grep` to
    find affected code, before/after, what to check. It's committed and ships
    with the package: sites read it after updating.
 
-6. **Commit** (one change, a short imperative subject, see "Commits" in
+7. **Commit** (one change, a short imperative subject, see "Commits" in
    `AGENTS.md`; no attribution lines). Tell the
    user what's unpushed and what the integration site and the starter will need.
    If the change breaks them, say that they're broken between their `composer update`
    and your follow-up.
 
-7. **After the user pushes:** `bin/dev/sites update` (every local site in `local/sites.json`:
+8. **After the user pushes:** `bin/dev/sites update` (every local site in `local/sites.json`:
    `composer update` until the lock has the pushed commit, build, `ai:update`, `twig:lint`,
    commit `composer.lock` where allowed), apply the migration entry where it asks for a change,
    then:

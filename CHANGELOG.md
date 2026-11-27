@@ -3,11 +3,22 @@
 What a theme has to do after updating Gaffer, newest first. Each entry: what
 changed, how to find the code it affects, and what to check afterwards. Read
 the entries since the version in your `composer.lock` after every
-`composer update onstage2426/gaffer` (this file is in
+`composer update -W onstage2426/gaffer` (this file is in
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
-1.0 they're deprecations first (see `API.md`).
+1.0 they're deprecations first (see `API.md`). Run `php gaffer upgrade` first: an
+entry marked *Automated (`<rule>`)* is applied by it (`--write`), and what it can't
+see on your theme it lists as by hand.
 
 ## 2026-11-27
+
+- **New: `php gaffer upgrade` applies the mechanical part of these entries.** Without arguments
+  it shows the diff of what it would change; `--write` applies it, after a backup of every file it
+  touches (`storage/upgrades/`; `--restore=<folder>` undoes it) and with `twig:lint` and `doctor`
+  before and after: new errors put everything back. What an entry still asks by hand on your theme
+  it lists, and `doctor` warns while `upgrade` has something left. Entries marked *Automated* are
+  its; from now on every mechanical change comes with its rule. It reads and writes the theme's
+  files only (no WordPress). Check: `php gaffer upgrade` says "Nothing to upgrade." on an
+  up-to-date theme.
 
 - **Gaffer requires Twig 3.31.1** (security fixes): Twig 3.30 and older have nine advisories,
   eight for Twig's sandbox (Gaffer doesn't use it) and one for autoescaping
@@ -59,7 +70,7 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-25
 
-- **Theme blocks get a Preview button in the editor; the canvas shows a placeholder.** The
+- **Theme blocks get a Preview button in the editor; the canvas shows a placeholder.** *Automated (`2026-11-25-editor-stylesheet`)* for the config key and the Vite entry; deleting `editor.css` is by hand. The
   canvas never runs a block's `functions.php`: it shows a placeholder with the block's title and
   the first text in its fields. The Preview button in the block's toolbar opens the block on the
   site itself in a modal: the post's preview page with the theme's header, CSS, fonts and
@@ -98,7 +109,7 @@ the entries since the version in your `composer.lock` after every
   whatever the templates hide). Nothing changes at runtime. Check: `php gaffer doctor --wp`; a
   product that must stay private isn't published.
 
-- **`Gaffer\Types\Product`: what every shop's product type had, in Gaffer.** A theme's `product`
+- **`Gaffer\Types\Product`: what every shop's product type had, in Gaffer.** *Automated (`2026-11-23-product-type`)* for the `extends`; the methods are by hand. A theme's `product`
   type now extends it instead of `Post` (`doctor` errors otherwise). It has `product()` (the
   `WC_Product`, a LogicException without one), `is_variable()`, `with_variation($attributes)`
   (returns a **copy** with the matching variation; `variation()`, `selected()`),
@@ -136,13 +147,13 @@ the entries since the version in your `composer.lock` after every
   ignored). Nothing changes at runtime. Check: `php gaffer doctor`; a key that may be unset gets
   `=> null` in its config file.
 
-- **File inputs are named `fields[x]` like every other input** (`fields[x][]` with `multiple`).
+- **File inputs are named `fields[x]` like every other input** (`fields[x][]` with `multiple`). *Automated (`2026-11-23-file-inputs`), in Gaffer's forms.*
   `files[x]` keeps working, so nothing breaks; doctor no longer asks for the two names. Find:
   `grep -rn 'files\[' views`. Before: `<input type="file" name="files[fotos][]" multiple>`; after:
   `<input type="file" name="fields[fotos][]" multiple>` (`kept_files[...]` stays). Check: submit the
   form with a file for real and see it in the entry.
 
-- **Gaffer answers forms itself: `app/Ajax/Form/` can go.** Every theme had the same
+- **Gaffer answers forms itself: `app/Ajax/Form/` can go.** *Automated (`2026-11-23-form-action`)*. Every theme had the same
   `class Form extends \Gaffer\Forms\FormAction {}`; the dispatcher now uses `FormAction` (no
   longer abstract) when the theme has no `app/Ajax/Form/Form.php`. A theme that keeps the file keeps
   working. Find: `php gaffer doctor` ("app/Ajax/Form/ only repeats Gaffer's form action"). Before:
@@ -150,7 +161,7 @@ the entries since the version in your `composer.lock` after every
   dump-autoload` when the theme uses a classmap. Check: submit a form for real (an entry, one with
   errors) and `php gaffer doctor --wp`.
 
-- **Gaffer writes each block's boilerplate.** A block is named `acf/` + its folder in kebab case,
+- **Gaffer writes each block's boilerplate.** *Automated (`2026-11-23-block-boilerplate`)*. A block is named `acf/` + its folder in kebab case,
   registered as ACF Blocks V3, and its `functions.php` runs only outside the editor (previews were
   already empty on purpose). `block.json` keeps title, description, category and icon; the `name`,
   the `acf` key and the `if (is_admin()) { return; }` guard at the top of `functions.php` can go.
@@ -187,7 +198,7 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-22 (full audit)
 
-- **`vite.config.js`: `build.rollupOptions` is `build.rolldownOptions`** (Vite 8 deprecates the
+- **`vite.config.js`: `build.rollupOptions` is `build.rolldownOptions`** *Automated (`2026-11-22-vite-rolldown`).* (Vite 8 deprecates the
   old name; a later Vite may drop it). `doctor` warns on Vite 8 and later. Find:
   `grep -n rollupOptions vite.config.js`. Before: `build: { rollupOptions: { input: entryFiles } }`;
   after: `build: { rolldownOptions: { input: entryFiles } }`. Check: `npm run build` (or `bun run
@@ -202,7 +213,7 @@ the entries since the version in your `composer.lock` after every
   `HX-Reswap: none`, `no-store`), that `|t` needs the `Text Domain` header, and that only the
   listed JavaScript exports are public.
 
-- **ACF's JSON moved from `storage/acf-json/` to `acf-json/` in the theme.** It's code (post types,
+- **ACF's JSON moved from `storage/acf-json/` to `acf-json/` in the theme.** *Automated (`2026-11-22-acf-json`).* It's code (post types,
   taxonomies, options pages and field groups made in the ACF UI, committed), but `storage/` holds
   runtime files and moves with `GAFFER_STORAGE`: a site that defined it would have lost them.
   Gaffer still reads `storage/acf-json/` (and ACF saves a file there in place) until the theme

@@ -9,9 +9,12 @@
  *   bin/dev/sites run [--summary] -- <args>  `php gaffer <args>` on every site at once (in its
  *                                            container where it has one); --summary: only
  *                                            errors, warnings and the last line
- *   bin/dev/sites update [--no-commit]       composer update -W onstage2426/gaffer (Gaffer and its dependencies) until the lock has
- *                                            this clone's origin/0.x, build with the theme's
- *                                            package manager, ai:update, twig:lint; commits
+ *   bin/dev/sites update [--no-commit] [--composer]
+ *                                            each site's own `php gaffer update` (staged, swapped,
+ *                                            upgrade --write, build, doctor --wp) until the lock has
+ *                                            this clone's origin/0.x, then twig:lint; with --composer,
+ *                                            in a container or on a Gaffer without `update`: composer
+ *                                            update -W, build, ai:update, twig:lint. Commits
  *                                            composer.lock where "commit" is true
  *   bin/dev/sites check [--allow-entries] [<script> <args>…]
  *                                            browser checks (site-checks/), each site's "checks"
@@ -120,6 +123,31 @@ switch ($command) {
         foreach (LocalSites::selected($rest) as $name => $site) {
             $theme = $site['theme'];
             echo "== {$name}\n";
+            // The site's own `php gaffer update` when its Gaffer has one and PHP runs on this host:
+            // the same path a live site takes (staged, swapped, upgrade --write, build, doctor --wp).
+            if (!isset($site['container']) && is_file("{$theme}/vendor/onstage2426/gaffer/src/Console/Commands/Update.php") && !$flag('--composer')) {
+                for ($try = 1; $try <= 6 && gaffer_reference($site) !== $head; $try++) {
+                    if ($try > 1) {
+                        sleep(10);
+                    }
+                    [, $out] = LocalSites::capture(LocalSites::gaffer($site, ['update', '--json', '--no-render']), $theme);
+                    $report = json_decode((string) substr($out, (int) strpos($out, '{')), true);
+                    echo 'update: ' . (is_array($report) ? "{$report['result']} ({$report['from']} → " . ($report['to'] ?? '-') . ', doctor --wp ' . ($report['errors_after'] ?? '-') . ' errors, build ' . ($report['build'] ?? '-') . ')' : trim($out)) . "\n";
+                    if (is_array($report) && !in_array($report['result'], ['updated', 'up to date'], true)) {
+                        break;
+                    }
+                }
+                if (gaffer_reference($site) !== $head) {
+                    echo "composer.lock doesn't have {$short}: see the update's output above\n";
+                    $failed = true;
+                    continue;
+                }
+                [$code, $output] = LocalSites::capture(LocalSites::gaffer($site, ['twig:lint']), $theme);
+                $lines = array_values(array_filter(explode("\n", trim($output))));
+                echo 'twig:lint: ' . ($code === 0 ? 'ok' : "FAILED (exit {$code})") . ' - ' . end($lines) . "\n";
+                commit_lock($site, $theme, $short, $flag('--no-commit'));
+                continue;
+            }
             // GitHub can serve the previous commit for a moment after a push: try again.
             for ($try = 1; $try <= 6 && gaffer_reference($site) !== $head; $try++) {
                 if ($try > 1) {
@@ -148,13 +176,7 @@ switch ($command) {
                     continue 2;
                 }
             }
-            if (($site['commit'] ?? false) === true && !$flag('--no-commit')) {
-                [$dirty] = LocalSites::capture(['git', 'diff', '--quiet', '--', 'composer.lock'], $theme);
-                if ($dirty === 1) {
-                    LocalSites::capture(['git', 'commit', '-q', '-m', "Update Gaffer to {$short}", '--', 'composer.lock'], $theme);
-                    echo 'committed: ' . trim(LocalSites::capture(['git', 'log', '--oneline', '-1'], $theme)[1]) . "\n";
-                }
-            }
+            commit_lock($site, $theme, $short, $flag('--no-commit'));
         }
         echo "\nNext: bin/dev/sites run --summary -- doctor --wp\n";
         exit($failed ? 1 : 0);
@@ -231,4 +253,21 @@ switch ($command) {
         preg_match('#/\*\*(.*?)\*/#s', $source, $m);
         echo preg_replace('/^\s*\* ?/m', '', trim($m[1] ?? '')) . "\n";
         exit($command === 'help' ? 0 : 2);
+}
+
+/** @param array<string, mixed> $site */
+function commit_lock(array $site, string $theme, string $short, bool $skip): void
+{
+    if (($site['commit'] ?? false) !== true || $skip) {
+        return;
+    }
+    [$dirty] = LocalSites::capture(['git', 'diff', '--quiet', '--', 'composer.lock'], $theme);
+    if ($dirty === 1) {
+        LocalSites::capture(['git', 'commit', '-q', '-m', "Update Gaffer to {$short}", '--', 'composer.lock'], $theme);
+        echo 'committed: ' . trim(LocalSites::capture(['git', 'log', '--oneline', '-1'], $theme)[1]) . "\n";
+    }
+    [, $changed] = LocalSites::capture(['git', 'status', '--short'], $theme);
+    if (trim($changed) !== '') {
+        echo "uncommitted after the update (upgrade's changes?):\n{$changed}";
+    }
 }

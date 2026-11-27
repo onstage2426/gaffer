@@ -61,7 +61,7 @@ final class Update extends Command
 
                 return 2;
             }
-            $steps = new Steps($output, $json, "{$base}/{$id}/rollback.log");
+            $steps = new Steps($output, $json, "{$base}/{$id}/rollback.log", $theme);
             self::rollback($theme, "{$base}/{$id}", $steps);
             $output->writeln($json ? (string) json_encode(['format' => 1, 'result' => 'rolled back', 'id' => $id, 'reference' => self::reference($theme), 'log' => $steps->log]) : "Rolled back {$id}: Gaffer is at " . self::reference($theme) . ". Log: {$steps->log}");
 
@@ -70,7 +70,7 @@ final class Update extends Command
 
         $id = date('Ymd-His');
         $dir = "{$base}/{$id}";
-        $steps = new Steps($output, $json, "{$dir}/update.log");
+        $steps = new Steps($output, $json, "{$dir}/update.log", $theme);
         $report = ['format' => 1, 'result' => null, 'id' => $id, 'log' => $steps->log, 'from' => self::reference($theme), 'to' => null, 'packages' => [], 'errors_before' => null, 'errors_after' => null, 'pages_changed' => null, 'changed_pages' => [], 'upgrade' => null, 'build' => null];
         $finish = static function (string $result, int $code) use (&$report, $output, $json): int {
             $report['result'] = $result;
@@ -214,7 +214,7 @@ final class Update extends Command
         }
 
         self::prune($base);
-        $steps->step("Done: Gaffer {$report['from']} → {$report['to']}");
+        $steps->step("Done: Gaffer {$report['from']} → {$report['to']} in {$steps->elapsed()} s");
         $steps->detail("Undo: php gaffer update --rollback={$id}  (vendor.old and the rest in {$dir}; the last " . self::KEEP . ' updates are kept)');
         $steps->detail("Log: {$steps->log}");
 
@@ -237,7 +237,7 @@ final class Update extends Command
 
             return "{$composer} doesn't run here (--composer=<path>).";
         }
-        $steps->detail(self::last_line($version));
+        $steps->detail(strtok(trim($version['stdout']), "\n") ?: '(no version)');
         $size = ChildProcess::run(['du', '-sk', "{$theme}/vendor"], null, 120);
         $kb = (int) ($size['stdout'] ?? 0);
         $free = (int) (disk_free_space($base) ?: 0);
@@ -329,7 +329,8 @@ final class Update extends Command
             foreach ((array) ($lock['packages'] ?? []) as $p) {
                 if (is_array($p) && is_string($p['name'] ?? null)) {
                     $ref = $p['source']['reference'] ?? $p['dist']['reference'] ?? null;
-                    $out[$p['name']] = (string) ($p['version'] ?? '?') . (is_string($ref) && str_starts_with((string) ($p['version'] ?? ''), 'dev-') ? '@' . substr($ref, 0, 7) : '');
+                    $version = (string) ($p['version'] ?? '?');
+                    $out[$p['name']] = $version . (is_string($ref) && str_contains($version, 'dev') ? '@' . substr($ref, 0, 7) : '');
                 }
             }
 

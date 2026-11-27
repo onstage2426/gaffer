@@ -18,11 +18,16 @@ final class Steps
 {
     private int $number = 0;
 
+    private readonly float $start;
+
+    /** @param string $theme shown as `.`, and its `php gaffer` as `php gaffer` (the log has full paths) */
     public function __construct(
         private readonly OutputInterface $output,
         private readonly bool $quiet,
         public readonly string $log,
+        private readonly string $theme = '',
     ) {
+        $this->start = microtime(true);
         if (!is_dir(dirname($log))) {
             mkdir(dirname($log), 0700, true);
         }
@@ -40,7 +45,7 @@ final class Steps
     /** An indented detail of the current step. */
     public function detail(string $line): void
     {
-        $this->line("    {$line}");
+        $this->line('    ' . ($this->theme !== '' ? str_replace("{$this->theme}/", '', $line) : $line));
         $this->append("{$line}\n");
     }
 
@@ -53,7 +58,13 @@ final class Steps
     public function run(array $command, ?string $cwd, int $timeout): ?array
     {
         $shown = implode(' ', array_map(static fn(string $a): string => preg_match('/^[\w.\/:=@,+-]+$/', $a) === 1 ? $a : escapeshellarg($a), $command));
-        $this->detail('$ ' . $shown . ($cwd !== null ? "  (in {$cwd})" : ''));
+        $short = $shown;
+        if ($this->theme !== '') {
+            $short = str_replace([PHP_BINARY . " {$this->theme}/gaffer", "{$this->theme}/"], ['php gaffer', ''], $short);
+        }
+        $where = $cwd === null || $cwd === $this->theme ? '' : '  (in ' . ($this->theme !== '' && str_starts_with($cwd, "{$this->theme}/") ? substr($cwd, strlen($this->theme) + 1) : $cwd) . ')';
+        $this->line("    \$ {$short}{$where}");
+        $this->append("\$ {$shown}" . ($cwd !== null ? "  (in {$cwd})" : '') . "\n");
         $start = microtime(true);
         $run = ChildProcess::run($command, $cwd, $timeout);
         $seconds = round(microtime(true) - $start, 1);
@@ -65,6 +76,12 @@ final class Steps
         $this->append("exit {$run['code']}" . ($run['timed_out'] ? ' (timed out)' : '') . ", {$seconds} s\n--- stdout\n{$run['stdout']}\n--- stderr\n{$run['stderr']}\n");
 
         return [...$run, 'seconds' => $seconds];
+    }
+
+    /** Seconds since the update started. */
+    public function elapsed(): float
+    {
+        return round(microtime(true) - $this->start, 1);
     }
 
     /** @param array{stdout: string, stderr: string, code: int, timed_out: bool, seconds: float}|null $run */

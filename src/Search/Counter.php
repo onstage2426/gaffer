@@ -7,6 +7,8 @@ namespace Gaffer\Search;
 /**
  * What the browser needs to count documents itself: the endpoint and a token that asks for no
  * more than the total. Search::counter() makes it. `@gaffer/search.js`'s createCounter() uses it.
+ *
+ * @experimental until gaffer-search 1.0 (API.md, "Experimental").
  */
 final readonly class Counter
 {

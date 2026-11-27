@@ -29,15 +29,19 @@ final class InternalApiCheck implements Check
     {
         foreach (ThemeFiles::find(['php']) as $file) {
             foreach (self::findings((string) file_get_contents($file)) as $finding) {
-                $report->warning('api', $finding['message'], $file, $finding['line'], $finding['hint']);
+                if ($finding['experimental']) {
+                    $report->info('api', $finding['message'], $file, $finding['line'], $finding['hint']);
+                } else {
+                    $report->warning('api', $finding['message'], $file, $finding['line'], $finding['hint']);
+                }
             }
         }
     }
 
     /**
-     * One finding per internal or missing symbol a file names (its first line).
+     * One finding per internal, missing or experimental symbol a file names (its first line).
      *
-     * @return list<array{message: string, line: int, hint: string}>
+     * @return list<array{message: string, line: int, hint: string, experimental: bool}>
      */
     public static function findings(string $code): array
     {
@@ -50,7 +54,17 @@ final class InternalApiCheck implements Check
                 $member = null; // an internal or missing class: report the class once
             }
             $symbol = $class . ($member !== null ? "::{$member}" : '');
-            if ($status === 'public' || isset($found[$symbol])) {
+            if (isset($found[$symbol])) {
+                continue;
+            }
+            if ($status === 'public') {
+                if (PublicApi::experimental($class)) {
+                    $symbol = $class; // a whole experimental class: report it once
+                }
+                if (!isset($found[$symbol]) && PublicApi::experimental($class, $member)) {
+                    $found[$symbol] = ['message' => "Uses {$symbol}, which is experimental", 'line' => $line,
+                        'hint' => 'Public, but it may still change in a minor release (API.md, "Experimental"): read the CHANGELOG after updating.', 'experimental' => true];
+                }
                 continue;
             }
             $found[$symbol] = [
@@ -59,6 +73,7 @@ final class InternalApiCheck implements Check
                 'hint' => $status === 'missing'
                     ? 'Removed or renamed: find it in vendor/onstage2426/gaffer/CHANGELOG.md.'
                     : (isset(self::REPLACEMENTS[$symbol]) ? 'Use ' . self::REPLACEMENTS[$symbol] . ' ' : '') . self::HINT,
+                'experimental' => false,
             ];
         }
 

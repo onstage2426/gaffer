@@ -86,4 +86,15 @@ final class InternalApiTest extends TestCase
         ], $findings);
         self::assertStringStartsWith('Use Gaffer\Storage::private_dir()', InternalApiCheck::findings("<?php \\Gaffer\\Paths::storage();")[0]['hint']);
     }
+
+    public function test_experimental_api_is_an_info_not_a_warning(): void
+    {
+        $findings = InternalApiCheck::findings("<?php\nuse Gaffer\\Search\\Search;\nSearch::archive();\n\\Gaffer\\Types\\Post::current();\n");
+
+        self::assertCount(1, $findings);
+        self::assertSame('Uses Gaffer\Search\Search, which is experimental', $findings[0]['message']);
+        self::assertTrue($findings[0]['experimental']);
+        self::assertTrue(PublicApi::experimental(\Gaffer\Search\Archive::class));
+        self::assertFalse(PublicApi::experimental(\Gaffer\Types\Post::class, 'current'));
+    }
 }

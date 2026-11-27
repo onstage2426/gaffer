@@ -35,7 +35,7 @@ final class Gaffer\Gaffer
   static boot(string $dir): void
 final class Gaffer\Paths
   static base(string $path = ''): string
-final class Gaffer\Search\Archive
+final class Gaffer\Search\Archive @experimental
   readonly bool $available
   readonly string $endpoint
   readonly string $token
@@ -52,11 +52,11 @@ final class Gaffer\Search\Archive
   attrs(): Twig\Markup
   initial(): Twig\Markup
   page_url(int $page): string
-final class Gaffer\Search\Counter
+final class Gaffer\Search\Counter @experimental
   readonly bool $available
   readonly string $endpoint
   readonly string $token
-final class Gaffer\Search\Search
+final class Gaffer\Search\Search @experimental
   static archive(): ?Gaffer\Search\Archive
   static archive_url(?Gaffer\Types\Term $term = NULL, array $query = []): ?string
   static cards(string $index, int $limit, array $sort = [], ?Gaffer\Types\Term $term = NULL, ?Gaffer\Types\Post $except = NULL, array $filter = []): array
@@ -64,7 +64,7 @@ final class Gaffer\Search\Search
   static counter(string $index, ?Gaffer\Types\Term $term = NULL): Gaffer\Search\Counter
   static facet_counts(string $index, array $fields, ?Gaffer\Types\Term $term = NULL, array $filter = []): ?array
   static searchbar(string $index, array $attributes, int $limit = 8, array $facets = []): Gaffer\Search\Searchbar
-final class Gaffer\Search\Searchbar
+final class Gaffer\Search\Searchbar @experimental
   readonly bool $available
   readonly string $endpoint
   readonly string $token

@@ -16,7 +16,8 @@ use ReflectionType;
  * public API fails here until the snapshot is updated on purpose (`UPDATE_API=1 composer test`),
  * so it shows up as a diff in review. Public = Console\PublicApi: classes outside Console\, Ai\
  * and Mcp\ (plus Console\Console, the CLI entry point), minus everything marked @internal.
- * Members marked #[\Deprecated] end in " #[Deprecated]".
+ * Members marked #[\Deprecated] end in " #[Deprecated]", classes and members marked as
+ * experimental (public, not promised yet) in " @experimental".
  */
 final class ApiTest extends TestCase
 {
@@ -50,11 +51,11 @@ final class ApiTest extends TestCase
                 default => ($r->isFinal() ? 'final ' : '') . ($r->isAbstract() ? 'abstract ' : '') . 'class',
             };
             $parent = $r->getParentClass();
-            $lines[] = "{$kind} {$class}" . ($parent ? " extends {$parent->getName()}" : '');
+            $lines[] = "{$kind} {$class}" . ($parent ? " extends {$parent->getName()}" : '') . self::experimental($r->getDocComment());
 
             foreach ($r->getReflectionConstants() as $constant) {
                 if ($constant->isPublic() && $constant->getDeclaringClass()->getName() === $class && !PublicApi::internal($constant->getDocComment())) {
-                    $lines[] = "  const {$constant->getName()} = " . var_export($constant->getValue(), true) . self::deprecated($constant);
+                    $lines[] = "  const {$constant->getName()} = " . var_export($constant->getValue(), true) . self::deprecated($constant) . self::experimental($constant->getDocComment());
                 }
             }
             foreach ($r->getProperties() as $property) {
@@ -71,11 +72,16 @@ final class ApiTest extends TestCase
                 $lines[] = '  ' . ($m->isFinal() ? 'final ' : '') . ($m->isStatic() ? 'static ' : '') . $m->getName()
                     . '(' . implode(', ', array_map(self::parameter(...), $m->getParameters())) . ')'
                     . ($m->hasReturnType() ? ': ' . self::type($m->getReturnType()) : '')
-                    . self::deprecated($m);
+                    . self::deprecated($m) . self::experimental($m->getDocComment());
             }
         }
 
         return implode("\n", $lines) . "\n";
+    }
+
+    private static function experimental(string|false $doc): string
+    {
+        return $doc !== false && preg_match('/^\s*\*\s*@experimental\b/m', $doc) === 1 ? ' @experimental' : '';
     }
 
     private static function deprecated(ReflectionMethod|ReflectionClassConstant $member): string

@@ -12,6 +12,8 @@ use Twig\Markup;
 /**
  * Search for templates, from the gaffer-search plugin's indexes as config/search.php defines
  * them. Without the plugin everything still renders: unavailable states, no cards.
+ *
+ * @experimental until gaffer-search 1.0 (API.md, "Experimental").
  */
 final class Search
 {

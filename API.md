@@ -24,6 +24,12 @@ under Search below: `Gaffer\Search\*`, `config/search.php`'s keys and the
 JavaScript in `resources/js/search.js`; gaffer-search). Experimental parts may
 change in a minor release, always with a changelog entry.
 
+**Experimental** is also how new runtime API arrives in a 1.x minor: a class or member marked
+`@experimental` in its docblock (and in `tests/api.txt`) may still change in the next minor, with
+a changelog entry and, where it's mechanical, an automatic migration; from the minor after, it's
+promised like the rest. `doctor` lists the experimental API a theme uses (as info). Search's
+classes carry the marker until gaffer-search 1.0.
+
 ## Supported versions
 
 Gaffer aims for the latest: PHP (`composer.json`), WordPress, ACF Pro,

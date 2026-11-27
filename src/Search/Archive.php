@@ -10,6 +10,8 @@ use Twig\Markup;
  * What an archive template shows (the shop, a product category, its search results): the first
  * page's cards and what the browser needs to continue the same search (endpoint, token, the
  * initial results). Search::archive() makes it.
+ *
+ * @experimental until gaffer-search 1.0 (API.md, "Experimental").
  */
 final readonly class Archive
 {

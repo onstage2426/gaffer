@@ -76,6 +76,35 @@ final class PublicApi
             ? 'public' : 'internal';
     }
 
+    /**
+     * Public but not promised yet (API.md, "Experimental"): `@experimental` on the class or
+     * member (a feature added in a 1.x minor, or what builds on a plugin before its 1.0).
+     */
+    public static function experimental(string $class, ?string $member = null): bool
+    {
+        if (!class_exists($class) && !interface_exists($class) && !trait_exists($class)) {
+            return false;
+        }
+        $r = new ReflectionClass($class);
+        if (self::marked($r->getDocComment(), '@experimental')) {
+            return true;
+        }
+        $found = match (true) {
+            $member === null => null,
+            $r->hasMethod($member) => $r->getMethod($member),
+            $r->hasConstant($member) => $r->getReflectionConstant($member) ?: null,
+            $r->hasProperty(ltrim($member, '$')) => $r->getProperty(ltrim($member, '$')),
+            default => null,
+        };
+
+        return $found !== null && self::marked($found->getDocComment(), '@experimental');
+    }
+
+    private static function marked(string|false $doc, string $tag): bool
+    {
+        return $doc !== false && preg_match('/^\s*\*\s*' . preg_quote($tag, '/') . '\b/m', $doc) === 1;
+    }
+
     public static function internal(string|false $doc): bool
     {
         return $doc !== false && str_contains($doc, '@internal');

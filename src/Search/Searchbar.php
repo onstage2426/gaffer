@@ -9,6 +9,8 @@ use Twig\Markup;
 /**
  * What a searchbar template needs: the endpoint and token its form searches with, and the
  * archive URL its "all results" link opens (with ?q=). Search::searchbar() makes it.
+ *
+ * @experimental until gaffer-search 1.0 (API.md, "Experimental").
  */
 final readonly class Searchbar
 {

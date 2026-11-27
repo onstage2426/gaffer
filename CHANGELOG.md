@@ -7,6 +7,13 @@ the entries since the version in your `composer.lock` after every
 `vendor/onstage2426/gaffer/CHANGELOG.md`). Until 1.0, changes may break; after
 1.0 they're deprecations first (see `API.md`).
 
+## 2026-11-27
+
+- **Experimental API is marked, and `doctor` names its use.** Classes and members marked
+  `@experimental` are public but may still change in a minor (today: `Gaffer\Search\*`, until
+  gaffer-search 1.0). `doctor` lists where a theme uses them, as info. Nothing changes at runtime;
+  nothing to do.
+
 ## 2026-11-26
 
 - **`doctor` errors on a block folder that doesn't make a clean block name.** The folder becomes

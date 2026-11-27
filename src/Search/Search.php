@@ -22,7 +22,9 @@ final class Search
 
     /**
      * The current page as an archive (config/search.php `archive`): the shop, a product category
-     * or the shop's search results (?q=). Null on any other page.
+     * or the shop's search results (?q=). Null on any other page. Without the plugin (while the
+     * config needs it) an archive with `available` false: the page answers 503 and stays out of
+     * page caches. Every method here does the same when the plugin is missing: no page cache.
      */
     public static function archive(): ?Archive
     {
@@ -37,7 +39,8 @@ final class Search
     /**
      * Cards from an index, for a slider: the most popular products of a category without the
      * product of the page, say, or only those on sale (`filter`). Products hidden from the
-     * catalog are left out.
+     * catalog are left out. [] without the plugin, when the search fails (an index not built
+     * yet), and for an index without `cards`.
      *
      * @param list<string> $sort e.g. ['total_sales:desc']
      * @param array<string, mixed> $filter e.g. ['on_sale' => 'yes'], ['brand' => ['a', 'b']], ['price' => ['min' => 10]],
@@ -67,7 +70,8 @@ final class Search
      * How many documents an index has in the archive's scope (products hidden from the catalog
      * left out, as on the archive and in cards()), in a category (`term`) or with a filter: a
      * finder's "14 cars", a count per brand. One lookup in the index, not a query over posts.
-     * Null when search is unavailable (the plugin inactive).
+     * Null when search is unavailable (the plugin inactive); 0 when the search itself fails (an
+     * index not built yet), which looks like an empty result (until gaffer-search 1.0).
      *
      * @param array<string, mixed> $filter as for cards()
      */
@@ -92,7 +96,7 @@ final class Search
      * => number of documents, most first). Values without documents aren't listed. The fields
      * must be in the index's facets. A field's own filter is left out of its counts (as for any
      * facet), so a brand overview filtered on `['brand' => [...]]` still counts every brand.
-     * Null without the engine.
+     * Null without the engine; empty counts when the search itself fails, as for count().
      *
      * @param list<string> $fields e.g. ['brand'], or ['on_sale', 'fuel'] for a menu's counts
      * @param array<string, mixed> $filter as for cards()

@@ -11,7 +11,9 @@ final class Pagination
 {
     /**
      * @param int $page the current page, 1 for the first
+     * @param int $total_pages pages in all (0 without posts)
      * @param int $total_items posts across all pages
+     * @param int $per_page posts per page (all of them when the query shows all: posts_per_page -1)
      * @param int $results_start the first post shown, counted from 1 (0 without posts): "showing 25–48 of 120"
      * @param int $results_end the last post shown (0 without posts)
      */

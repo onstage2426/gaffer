@@ -9,14 +9,14 @@ use Gaffer\View;
 
 /**
  * The one ajax action every form posts to: `Form` (the dispatcher's own when the theme has no
- * app/Ajax/Form/Form.php; before 2026-11-23 every theme extended it there). Checks the honeypot and Turnstile, submits to the Gravity Forms
+ * app/Ajax/Form/Form.php). Checks the honeypot and Turnstile, submits to the Gravity Forms
  * form named like the template, and answers with views/forms/{form}.twig
  * re-rendered (errors, or sent), or an HX-Redirect for a confirmation page.
  * Spam gets the same answer as a submission; outside production with an
  * X-Gaffer-Spam header with the reason (Spam::log()). The form key, the honeypot and
  * the Turnstile widget are written by Gaffer's @gaffer/forms/meta.twig, so both ends
  * change together. Files come as `fields[field]` / `fields[field][]` (multipart) for File
- * Upload fields, like the other inputs (`files[…]` before 2026-11-23 still works); spam never reaches Gravity
+ * Upload fields, like the other inputs (`files[…]` is still read until 2026-12-31); spam never reaches Gravity
  * Forms, so its files are never stored (PHP deletes a request's uploads).
  */
 class FormAction extends AjaxAction

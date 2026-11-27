@@ -7,8 +7,8 @@ namespace Gaffer;
 use Gaffer\Types\Post;
 
 /**
- * ACF fields that should be arrays (repeaters, galleries, relationships):
- * always returns an array, [] when ACF is missing or the field is empty.
+ * ACF fields that should be arrays (repeaters, galleries, relationships): an array, [] when
+ * ACF is missing or the field is empty (block_array() outside a block render: see there).
  */
 final class Acf
 {

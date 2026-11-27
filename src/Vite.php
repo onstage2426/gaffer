@@ -6,7 +6,7 @@ namespace Gaffer;
 
 /**
  * The theme's Vite assets: the build in public/ (via its manifest). There is no
- * dev server mode (removed 2026-11-21): a change shows after `npm run build`.
+ * dev server mode: a change shows after `npm run build`.
  * Every asset is a Vite entry ("assets/js/app.js", "assets/css/app.css"). Built
  * file names carry a content hash, so URLs need no version parameter.
  */
@@ -19,7 +19,7 @@ final class Vite
     private static array $printed = [];
 
     /**
-     * The URL of an entry (the editor style for `mce_css`, a script in JS), null
+     * The URL of an entry (a script passed to JavaScript, a stylesheet for an e-mail), null
      * when the build doesn't have it.
      */
     public static function url(string $asset): ?string
@@ -48,7 +48,9 @@ final class Vite
     /**
      * The tags for these entries: <link rel="stylesheet"> for CSS,
      * <script type="module"> for JS (plus, in the build, the CSS it imports and a
-     * modulepreload for each chunk it imports), a font preload for woff2.
+     * modulepreload for each chunk it imports), a font preload for woff2. A URL already output
+     * isn't repeated. An entry the build doesn't have prints nothing and keeps the page out of
+     * page caches; an entry of another kind throws InvalidArgumentException.
      *
      * @param list<string> $assets
      */

@@ -9,7 +9,7 @@ namespace Gaffer;
  * from the TURNSTILE_SECRET_KEY constant in wp-config.php (per server). Gaffer
  * owns both ends: @gaffer/forms/meta.twig writes the widget, register() loads
  * Cloudflare's script and renders widgets (also after htmx swaps), and
- * Forms\FormAction checks the token.
+ * Forms\Spam::check() checks the token (for Gaffer's Form action and a theme's own).
  */
 final class Turnstile
 {

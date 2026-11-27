@@ -45,8 +45,9 @@ class Product extends Post
     /**
      * A copy of this product with the variation these attribute_* values select (the add-to-cart
      * form's or the URL's `attribute_pa_kleur` => `rood`), as a new object of the same class:
-     * nothing the theme's subclass worked out for this one carries over. Attributes a variation
-     * leaves open ("Any …") match any value; every other attribute must be given. Only variations
+     * nothing the theme's subclass worked out for this one carries over. Every attribute of the
+     * variation must be given, as WooCommerce's own form does; one it leaves open ("Any …")
+     * matches any value given. Only variations
      * WooCommerce offers count (get_available_variations()). No match, or a
      * product that isn't variable: the copy has the values in selected() and no variation().
      *
@@ -83,9 +84,11 @@ class Product extends Post
      * the `woocommerce_add_to_cart_product_id` filter, the quantity through `wc_stock_amount()`,
      * only a published product, the `woocommerce_add_to_cart_validation` filter, `add_to_cart()`
      * with the selected variation and attributes (`with_variation()`), and the
-     * `woocommerce_ajax_added_to_cart` action that tracking plugins listen to. Returns the cart
-     * item key, or null when it was refused: WooCommerce's notices say why (show them in the
-     * answer). Call it in an ajax action before output (WooCommerce sets its cookies itself).
+     * `woocommerce_ajax_added_to_cart` action that tracking plugins listen to. The quantity is
+     * whole unless a `woocommerce_stock_amount` filter allows fractions (1.5 becomes 1). Returns
+     * the cart item key, or null when it was refused: WooCommerce's notices say why (show them in
+     * the answer); an unpublished product is refused without one, as in WooCommerce. Call it in an
+     * ajax action before output (WooCommerce sets its cookies itself).
      *
      * @throws LogicException without a WooCommerce cart (outside a front-end request)
      */
@@ -147,7 +150,8 @@ class Product extends Post
      * every step that sells: when it goes into a cart (any way: a form, `?add-to-cart=`, the
      * Store API, a theme's own `WC()->cart->add_to_cart()`), on the cart and checkout pages, when
      * the order is placed and before an existing order is paid. Return null when it can be
-     * bought, or the reason it can't (shown to the customer; the item leaves the cart).
+     * bought, or the reason it can't (shown to the customer as a WooCommerce notice, so HTML:
+     * escape names in it with esc_html(); the item leaves the cart).
      *
      * Bring WordPress's copy up to date here (the price, the stock): Gaffer reads the price
      * after this and refuses a checkout when it changed since the customer last saw it
@@ -167,7 +171,8 @@ class Product extends Post
 
     /**
      * The notice when the price changed since the customer last saw it in the cart (prices as
-     * wc_price() HTML). The checkout stops once; with the new price shown, it goes through.
+     * wc_price() HTML; the notice is HTML, escape names in it). The checkout stops once; with the
+     * new price shown, it goes through.
      * Override it for the site's language.
      *
      * @experimental with confirm_purchase().
@@ -180,8 +185,8 @@ class Product extends Post
     /**
      * The notice when an existing order (order-pay: a pending order, a failed payment, an order
      * made in the admin) was placed at another price than the product has now. The order keeps
-     * the price it was placed at, so it can't be paid: the customer places a new order. Override
-     * it for the site's language.
+     * the price it was placed at, so it can't be paid: the customer places a new order. HTML like
+     * price_changed_notice(). Override it for the site's language.
      *
      * @experimental with confirm_purchase().
      */

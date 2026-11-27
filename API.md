@@ -127,7 +127,7 @@ written in the new one for the rest of the major, so stored data needs no migrat
 - **Config keys** in `config/*.php` stubs (`theme.*`, `turnstile.*`,
   `console.*`, `ai.*`) and the theme's `.env` (`SITE_URL`).
 - **Forms:** template `views/forms/{title slug}.twig`; fields by Admin Field
-  Label; the request keys `fields[...]` (files too, multipart; `files[...]` still read) and
+  Label; the request keys `fields[...]` (files too, multipart; `files[...]` read until 2026-12-31) and
   `kept_files[...][]`. The rest of what a form sends (its name, the honeypot,
   Turnstile's token) is Gaffer's own, written by `@gaffer/forms/meta.twig` and
   read by `FormAction`: it may change in any release, both ends together.

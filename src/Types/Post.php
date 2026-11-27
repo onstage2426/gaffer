@@ -24,7 +24,8 @@ class Post
     final protected function __construct(public readonly WP_Post $wp) {}
 
     /**
-     * The post with this ID, as its mapped class. Null when it doesn't exist,
+     * The post with this ID, as its mapped class, whatever its status (a draft, a private or
+     * trashed post too: check before showing it to visitors). Null when it doesn't exist,
      * or when called on a subclass (Product::from()) and the post isn't one.
      */
     final public static function from(int $id): ?static
@@ -34,7 +35,8 @@ class Post
 
     /**
      * The queried post: the singular post (or page) the request is for, null on
-     * archives and the like. Like Term::current(), never the loop's post: that one
+     * archives and the like (but on the blog's posts page WordPress queries that page, so it's
+     * returned). Like Term::current(), never the loop's post: that one
      * is Post::from(get_the_ID()) (WooCommerce's loops move it).
      */
     final public static function current(): ?static
@@ -46,7 +48,8 @@ class Post
      * Posts from get_posts($args), with query filters on like any WP_Query (get_posts()
      * turns them off): WPML and Polylang return the current language, and other plugins'
      * pre_get_posts hooks apply. Pass 'suppress_filters' => true to turn them off. On a
-     * subclass, only posts of that class.
+     * subclass, only posts of that class: give its `post_type` too (get_posts() defaults to
+     * `post`, so Product::query() without it finds nothing). `fields` is ignored (always posts).
      *
      * @param array<string, mixed> $args
      * @return list<static>
@@ -59,7 +62,8 @@ class Post
     }
 
     /**
-     * The main query's posts (archives, search results).
+     * The main query's posts (WordPress's archives and search results). An archive gaffer-search
+     * answers has its results in Search::archive(), not here.
      *
      * @return list<static>
      */

@@ -32,6 +32,8 @@ final class Image extends Attachment
      * library's alt: for an image next to text that says the same (a logo beside the
      * brand's name, a thumbnail in a card with its title). Never add an alt attribute
      * to the tag yourself: it would be a second one, and browsers keep the first.
+     *
+     * Empty when WordPress has no file for the image (deleted, an unknown size).
      */
     public function attrs(string $size = 'full', ?string $sizes = null, bool $decorative = false): Markup
     {

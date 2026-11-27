@@ -28,7 +28,8 @@ final class Storage
 
     /**
      * The private folder {relative} in uploads/gaffer/, created with its deny-all .htaccess and
-     * .gitignore when missing; its path. Needs WordPress loaded (not SHORTINIT).
+     * .gitignore when missing; its path. Needs WordPress loaded (not SHORTINIT). Gaffer keeps its
+     * own logs in `logs` and migrate backups in `backups/migrate`.
      */
     public static function private_dir(string $relative): string
     {

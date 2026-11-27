@@ -197,6 +197,8 @@ changelog entry). What stays, because theme files or stored files depend on it:
 - The hidden `render:page` is a protocol between Gaffer versions (the live
   theme's Gaffer runs a staged copy's): its options and its result line
   (`"v": 1`) only grow.
+- `php gaffer update` (its steps, options and `--json`) is tooling too; its rollback folders
+  (`storage/updates/`) are read back by `--rollback` with the Gaffer that wrote them.
 - `php gaffer upgrade` and its rules are tooling too; its backups (`storage/upgrades/`) are read
   back by `--restore` with the same Gaffer.
 - **Commands a server runs from its crontab** are promised like the runtime (they run in

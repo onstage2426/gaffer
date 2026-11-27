@@ -11,6 +11,17 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **New: `php gaffer update` updates Gaffer on a site in one step, with a way back.** It checks
+  the site first (`doctor --wp`; it refuses on errors unless `--force`), lets composer work in a
+  staging copy, and swaps the new `vendor/` in by renaming (a visitor never meets half an update),
+  then runs `ai:update`, `upgrade --write`, the theme's build and `doctor --wp` again, and compares
+  the rendered pages with before. New errors roll everything back by themselves;
+  `php gaffer update --rollback` undoes the last update later (vendor/, `composer.lock`, the
+  build's manifest and what `upgrade` changed). `--json` for a monitor. Use it instead of
+  `composer update -W onstage2426/gaffer` + `upgrade` from now on. Check: `php gaffer update` on
+  the site, then `php gaffer update --rollback` and again `php gaffer update` once, to see both
+  work there. The rollback copies live in `storage/updates/` (the last three updates).
+
 - **New: `php gaffer upgrade` applies the mechanical part of these entries.** Without arguments
   it shows the diff of what it would change; `--write` applies it, after a backup of every file it
   touches (`storage/upgrades/`; `--restore=<folder>` undoes it) and with `twig:lint` and `doctor`

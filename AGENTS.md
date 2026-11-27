@@ -135,9 +135,11 @@ a container, their browser checks. `bin/dev/sites`:
 - `status [--online]`: each site's Gaffer reference (and whether GitHub still serves it), htmx,
   lockfiles, git, gaffer-search;
 - `run [--summary] -- doctor --wp`: any `php gaffer` command on every site at once;
-- `update`: the update cycle after a push (`composer update` until the lock has `origin/0.x`,
-  build with the theme's package manager, `ai:update`, `twig:lint`, commit `composer.lock`
-  where allowed); then `run --summary -- doctor --wp`;
+- `update`: the update cycle after a push: each site's own `php gaffer update` (staged, swapped,
+  `upgrade --write`, build, `doctor --wp`; blueprint-base in its container and `--composer` take the
+  plain `composer update -W` path) until the lock has `origin/0.x`, `twig:lint`, commit
+  `composer.lock` where allowed (it lists what else is uncommitted); then
+  `run --summary -- doctor --wp`;
 - `check`: the browser checks (`bin/dev/site-checks/`) with cleanup: Gravity Forms entries
   above the highest ID before are deleted and `spam.log` is restored; no form submit where
   Turnstile is off (`--allow-entries` to submit anyway).

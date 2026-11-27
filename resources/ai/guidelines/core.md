@@ -60,12 +60,13 @@ site-specific code.
 
 ### Updating Gaffer
 
-After `composer update -W onstage2426/gaffer`, run `php gaffer upgrade` (the diff of the
-mechanical changes; `--write` applies them with a backup and puts them back if they cause new
-errors), then read the entries in `vendor/onstage2426/gaffer/CHANGELOG.md` since the previous
-version and do what's left: entries marked *Automated* are done by `upgrade`, the rest has a grep
-and what to check. `doctor` lists what `upgrade` still would change. `composer update` runs
-`php gaffer ai:update`, so these guidelines are already the new version's.
+Update with `php gaffer update` (never a bare `composer update` on a live site): it checks the
+site, swaps the new Gaffer in at once, runs `upgrade --write` (the mechanical changes), the build
+and `doctor --wp`, rolls back by itself on new errors, and `php gaffer update --rollback` undoes it
+later. Then read the entries in `vendor/onstage2426/gaffer/CHANGELOG.md` since the previous
+version and do what's left: entries marked *Automated* are done, the rest has a grep and what to
+check (`doctor` lists what `upgrade` still would change). The guidelines are already the new
+version's.
 
 ### Check your work
 

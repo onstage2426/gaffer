@@ -61,6 +61,71 @@ final class Upgrader
     }
 
     /**
+     * Writes a plan for `php gaffer update` (format 1): one entry per file, as it was before the
+     * first rule and as the last rule leaves it (base64, null: new or deleted), and the by-hand
+     * items. `update` runs this with the staged new Gaffer and writes the files itself, right next
+     * to the vendor/ swap: theme code and Gaffer change together, not seconds apart.
+     *
+     * @param array<string, array{rule: Rule, changes: list<Change>, by_hand: list<string>}> $plan
+     */
+    public static function write_plan(string $file, array $plan): void
+    {
+        $merged = [];
+        $by_hand = [];
+        foreach ($plan as $id => $item) {
+            foreach ($item['changes'] as $change) {
+                $merged[$change->path] = new Change($change->path, isset($merged[$change->path]) ? $merged[$change->path]->before : $change->before, $change->after);
+            }
+            foreach ($item['by_hand'] as $todo) {
+                $by_hand[] = "{$id}: {$todo}";
+            }
+        }
+        $changes = [];
+        foreach ($merged as $change) {
+            if ($change->before !== $change->after) {
+                $changes[] = ['path' => $change->path, 'before' => $change->before === null ? null : base64_encode($change->before), 'after' => $change->after === null ? null : base64_encode($change->after)];
+            }
+        }
+        $json = json_encode(['format' => 1, 'rules' => array_keys($plan), 'changes' => $changes, 'by_hand' => $by_hand], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if ($json === false || file_put_contents($file, $json . "\n") === false) {
+            throw new RuntimeException("Can't write the plan to {$file}.");
+        }
+    }
+
+    /**
+     * The changes of a plan written by write_plan() (possibly by another Gaffer version), or null
+     * when the file isn't one or the theme changed since it was made (a file differs from its
+     * "before"): then nothing may be written from it.
+     *
+     * @return list<Change>|null
+     */
+    public static function read_plan(Theme $theme, string $file): ?array
+    {
+        $plan = json_decode((string) @file_get_contents($file), true);
+        if (!is_array($plan) || ($plan['format'] ?? null) !== 1 || !is_array($plan['changes'] ?? null)) {
+            return null;
+        }
+        $changes = [];
+        foreach ($plan['changes'] as $entry) {
+            if (!is_array($entry) || !is_string($entry['path'] ?? null) || str_contains($entry['path'], '..') || str_starts_with($entry['path'], '/')) {
+                return null;
+            }
+            $before = is_string($entry['before'] ?? null) ? base64_decode($entry['before'], true) : null;
+            $after = is_string($entry['after'] ?? null) ? base64_decode($entry['after'], true) : null;
+            if ($before === false || $after === false) {
+                return null;
+            }
+            $now = is_file("{$theme->root}/{$entry['path']}") ? (string) file_get_contents("{$theme->root}/{$entry['path']}") : null;
+            if ($now !== $before) {
+                return null;
+            }
+            $changes[] = new Change($entry['path'], $before, $after);
+        }
+
+        return $changes;
+    }
+
+    /**
      * Writes the changes after backing up what they touch into $backup (a new folder).
      *
      * @param list<Change> $changes

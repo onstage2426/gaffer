@@ -310,6 +310,41 @@ final class UpgradeTest extends BaseTestCase
         self::assertSame(['blocks/hero/hero.twig'], array_map(static fn(string $t): string => explode(' ', $t)[0], $plan['2026-11-27-search-values']['by_hand']));
     }
 
+    public function test_a_plan_round_trips_and_refuses_a_changed_theme(): void
+    {
+        $this->write('views/header.twig', "{% if item.has_children %}a{% endif %}\n");
+        $theme = new Theme($this->root);
+        Upgrader::write_plan("{$this->root}/plan.json", Upgrader::plan($theme));
+
+        $changes = Upgrader::read_plan($theme, "{$this->root}/plan.json");
+        self::assertNotNull($changes);
+        self::assertSame(['views/header.twig'], array_map(static fn(Change $c): string => $c->path, $changes));
+        Upgrader::apply($theme, $changes, "{$this->root}/backup");
+        self::assertSame("{% if item.children %}a{% endif %}\n", $this->read('views/header.twig'));
+
+        // Applied once: the file no longer is what the plan started from, so it can't be applied again.
+        self::assertNull(Upgrader::read_plan($theme, "{$this->root}/plan.json"));
+        Upgrader::restore($theme, "{$this->root}/backup");
+        self::assertNotNull(Upgrader::read_plan($theme, "{$this->root}/plan.json"));
+
+        // Someone edited the file after the plan was made: refused.
+        $this->write('views/header.twig', "{% if item.has_children %}edited{% endif %}\n");
+        self::assertNull(Upgrader::read_plan($theme, "{$this->root}/plan.json"));
+    }
+
+    public function test_a_plan_with_nothing_to_do_and_unsafe_paths(): void
+    {
+        $theme = new Theme($this->root);
+        Upgrader::write_plan("{$this->root}/plan.json", Upgrader::plan($theme));
+        self::assertSame([], Upgrader::read_plan($theme, "{$this->root}/plan.json"));
+
+        file_put_contents("{$this->root}/bad.json", json_encode(['format' => 1, 'changes' => [['path' => '../outside.php', 'before' => null, 'after' => base64_encode('x')]]]));
+        self::assertNull(Upgrader::read_plan($theme, "{$this->root}/bad.json"));
+        file_put_contents("{$this->root}/bad.json", json_encode(['format' => 2, 'changes' => []]));
+        self::assertNull(Upgrader::read_plan($theme, "{$this->root}/bad.json"));
+        self::assertNull(Upgrader::read_plan($theme, "{$this->root}/missing.json"));
+    }
+
     public function test_restore_puts_everything_back(): void
     {
         $this->write('views/a.twig', 'before');

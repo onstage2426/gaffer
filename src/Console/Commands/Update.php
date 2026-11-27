@@ -8,6 +8,9 @@ use Gaffer\Console\ChildProcess;
 use Gaffer\Console\Command;
 use Gaffer\Console\Update\Steps;
 use Gaffer\Console\Update\Swap;
+use Gaffer\Console\Upgrade\Change;
+use Gaffer\Console\Upgrade\Theme;
+use Gaffer\Console\Upgrade\Upgrader;
 use Gaffer\Paths;
 use Gaffer\Storage;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -18,8 +21,9 @@ use Throwable;
 
 /**
  * One site's whole Gaffer update, with a way back: checks before, composer in a staging copy,
- * vendor/ swapped by rename (a site never runs half an update), then ai:update, upgrade --write,
- * the build, twig:lint, doctor --wp and the pages compared with before. New doctor errors put
+ * the new Gaffer's upgrade rules planned there, the theme's changes written and vendor/ swapped
+ * by rename right after each other (a site never runs half an update), then ai:update, the
+ * build, doctor --wp and the pages compared with before. New doctor errors put
  * everything back. Each step runs as the theme's own `php gaffer`, so the new code checks itself.
  */
 #[AsCommand('update', 'Update Gaffer (and its dependencies) on this site: staged, swapped in at once, checked, rolled back on new errors; --rollback to undo')]
@@ -145,32 +149,60 @@ final class Update extends Command
                 return $finish('up to date', self::SUCCESS);
             }
 
+            // The theme's mechanical changes, computed by the new Gaffer's rules in the staging copy
+            // and written right next to the swap: old theme code never runs against the new Gaffer
+            // (nor new code against the old) for longer than the two writes take.
+            $steps->step('upgrade, planned with the new Gaffer (written together with the swap)');
+            $planned = self::plan_upgrade($theme, $root, $dir, $steps);
+
             $steps->step("Swap: Gaffer {$report['from']} → {$report['to']}");
             Swap::keep_before($theme, $dir);
             $steps->detail("Kept for a rollback: {$dir}/before/ (composer files, the Vite manifest and stamp)");
-            Swap::swap($theme, $dir, $root);
+            $backup = null;
+            if ($planned !== null && $planned !== []) {
+                $backup = Storage::theme_dir('upgrades') . '/' . date('Ymd-His');
+                Upgrader::apply(new Theme($theme), $planned, $backup);
+                file_put_contents("{$dir}/upgrade-backup", $backup);
+            }
+            try {
+                Swap::swap($theme, $dir, $root);
+            } catch (Throwable $e) {
+                $backup !== null && Upgrader::restore(new Theme($theme), $backup);
+                throw $e;
+            }
             Swap::clean_stage($root);
+            if ($backup !== null) {
+                $steps->detail(count($planned) . " theme files written (backup {$backup}), then at once:");
+            }
             $steps->detail("vendor/ → {$dir}/vendor.old; the staged vendor/ → vendor/ (two renames); composer.lock copied");
+            if ($planned !== null && array_filter($planned, static fn(Change $c): bool => str_starts_with($c->path, 'app/') && ($c->before === null || $c->after === null)) !== []) {
+                // A classmap lists the files: renew it (with the new vendor/ in place).
+                $dump = $steps->run([$composer, 'dump-autoload', '-q', '--no-interaction'], $theme, 120);
+                $dump !== null && $dump['code'] === 0 ? $steps->detail('composer dump-autoload (a file in app/ was added or removed)') : $steps->failed('composer dump-autoload', $dump);
+            }
         } catch (Throwable $e) {
             $steps->detail('<error>✗ ' . $e->getMessage() . '</error>');
 
             return $finish('failed: ' . $e->getMessage(), 2);
         }
+        $report['upgrade'] = $planned === null ? null : ($planned === [] ? 'nothing' : 'written: ' . count($planned) . ' files');
 
         $steps->step('ai:update (the guidelines and skills of the new Gaffer)');
         $ai = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'ai:update'], $theme, 300);
         $ai !== null && $ai['code'] === 0 ? $steps->detail('ok (' . $ai['seconds'] . ' s)') : $steps->failed('ai:update (not fatal)', $ai);
 
-        $steps->step('upgrade --write (the mechanical CHANGELOG changes)');
-        $upgrade = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'upgrade', '--write'], $theme, 1200);
-        $text = $upgrade['stdout'] ?? '';
-        $report['upgrade'] = str_contains($text, 'Nothing to upgrade') ? 'nothing' : trim((string) preg_replace('/\s+/', ' ', self::last_line($upgrade)));
-        foreach (array_filter(explode("\n", $text), static fn(string $l): bool => (bool) preg_match('/^(\d{4}-\d\d-\d\d-\S+:|\+\+\+ b\/|  (new|delete) |  By hand:)/', $l)) as $line) {
-            $steps->detail(trim($line));
-        }
-        $steps->detail($report['upgrade']);
-        if (preg_match('/upgrade --restore=(\S+?)\)?\.?$/m', $text, $m)) {
-            file_put_contents("{$dir}/upgrade-backup", $m[1]);
+        if ($planned === null) {
+            // No plan (the new Gaffer has no `upgrade --plan`, or the theme changed meanwhile): the
+            // rules run after the swap, as before.
+            $steps->step('upgrade --write (the mechanical CHANGELOG changes)');
+            $upgrade = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'upgrade', '--write'], $theme, 1200);
+            $text = $upgrade['stdout'] ?? '';
+            $report['upgrade'] = str_contains($text, 'Nothing to upgrade') ? 'nothing' : trim((string) preg_replace('/\s+/', ' ', self::last_line($upgrade)));
+            self::upgrade_lines($text, $steps);
+            $steps->detail($report['upgrade']);
+            if (preg_match('/upgrade --restore=(\S+?)\)?\.?$/m', $text, $m)) {
+                file_put_contents("{$dir}/upgrade-backup", $m[1]);
+            }
         }
 
         $steps->step('Build');
@@ -252,15 +284,66 @@ final class Update extends Command
     private static function rollback(string $theme, string $dir, Steps $steps): void
     {
         $backup = is_file("{$dir}/upgrade-backup") ? trim((string) file_get_contents("{$dir}/upgrade-backup")) : '';
-        Swap::back($theme, $dir);
-        $steps->detail("vendor/ ← {$dir}/vendor.old (the update's vendor/ kept as vendor.failed); composer files and the Vite manifest and stamp ← {$dir}/before/");
+        if ($backup !== '' && !str_starts_with($backup, '/')) {
+            $backup = "{$theme}/{$backup}"; // older updates wrote it relative to the theme
+        }
+        // The theme's files and vendor/ go back together, as they came (the backup's format is
+        // the same in every version: a manifest and the files).
+        $restored = false;
         if ($backup !== '') {
+            try {
+                Upgrader::restore(new Theme($theme), $backup);
+                $restored = true;
+            } catch (Throwable $e) {
+                $steps->detail('upgrade backup not restored here (' . $e->getMessage() . '): after the swap with upgrade --restore');
+            }
+        }
+        Swap::back($theme, $dir);
+        $steps->detail(($restored ? "upgrade's changes put back ({$backup}), then at once: " : '') . "vendor/ ← {$dir}/vendor.old (the update's vendor/ kept as vendor.failed); composer files and the Vite manifest and stamp ← {$dir}/before/");
+        if ($backup !== '' && !$restored) {
             $restore = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'upgrade', "--restore={$backup}"], $theme, 300);
             $restore !== null && $restore['code'] === 0 ? $steps->detail('upgrade\'s changes put back') : $steps->failed('upgrade --restore', $restore);
         }
         $ai = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'ai:update'], $theme, 300);
         if ($ai === null || $ai['code'] !== 0) {
             $steps->failed('ai:update (not fatal)', $ai);
+        }
+    }
+
+    /**
+     * The new Gaffer's `upgrade --plan`, run from the staging copy (its vendor/, links to the
+     * theme's files): the changes to write at the swap, [] for none, null when there is no usable
+     * plan (an older Gaffer without --plan, a failure, the theme changed meanwhile).
+     *
+     * @return list<Change>|null
+     */
+    private static function plan_upgrade(string $theme, string $root, string $dir, Steps $steps): ?array
+    {
+        $file = "{$dir}/upgrade-plan.json";
+        $boot = '$root = $argv[1]; array_splice($argv, 1, 1); $_SERVER["argv"] = $argv; $_SERVER["argc"] = count($argv); require "{$root}/vendor/autoload.php"; exit(Gaffer\Console\Console::boot($root));';
+        $run = $steps->run([PHP_BINARY, '-r', $boot, '--', $root, 'upgrade', "--plan={$file}"], $root, 1200);
+        self::upgrade_lines($run['stdout'] ?? '', $steps);
+        if ($run === null || $run['code'] !== 0 || !is_file($file)) {
+            $steps->detail('No plan from the new Gaffer (' . self::last_line($run) . '): upgrade --write runs after the swap instead.');
+
+            return null;
+        }
+        $changes = Upgrader::read_plan(new Theme($theme), $file);
+        if ($changes === null) {
+            $steps->detail("{$file} doesn't fit the theme any more (a file changed meanwhile?): upgrade --write runs after the swap instead.");
+
+            return null;
+        }
+        $steps->detail($changes === [] ? 'Nothing to upgrade.' : count($changes) . ' files to write at the swap.');
+
+        return $changes;
+    }
+
+    /** The lines of upgrade's output worth logging: rule ids, changed files, by-hand items. */
+    private static function upgrade_lines(string $text, Steps $steps): void
+    {
+        foreach (array_filter(explode("\n", $text), static fn(string $l): bool => (bool) preg_match('/^(\d{4}-\d\d-\d\d-\S+:|\+\+\+ b\/|  (new|delete) |  By hand:)/', $l)) as $line) {
+            $steps->detail(trim($line));
         }
     }
 

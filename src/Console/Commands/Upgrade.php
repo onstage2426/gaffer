@@ -30,7 +30,8 @@ final class Upgrade extends Command
             ->addOption('write', null, InputOption::VALUE_NONE, 'Apply the changes (a backup first; twig:lint and doctor after: new errors put everything back)')
             ->addOption('rule', null, InputOption::VALUE_REQUIRED, 'Only this rule (its id, e.g. 2026-11-23-file-inputs)')
             ->addOption('no-check', null, InputOption::VALUE_NONE, 'Skip twig:lint and doctor after writing')
-            ->addOption('restore', null, InputOption::VALUE_REQUIRED, 'Put back an earlier --write from its backup folder (printed by that run)');
+            ->addOption('restore', null, InputOption::VALUE_REQUIRED, 'Put back an earlier --write from its backup folder (printed by that run)')
+            ->addOption('plan', null, InputOption::VALUE_REQUIRED, 'A dry run that also writes the changes to this JSON file (for `update`, which writes them together with the vendor/ swap)');
     }
 
     #[\Override]
@@ -47,6 +48,10 @@ final class Upgrade extends Command
 
         $only = $input->getOption('rule');
         $plan = Upgrader::plan($theme, is_string($only) ? $only : null);
+        $file = $input->getOption('plan');
+        if (is_string($file)) {
+            Upgrader::write_plan($file, $plan);
+        }
         if ($plan === []) {
             $output->writeln('Nothing to upgrade.');
 
@@ -63,6 +68,11 @@ final class Upgrade extends Command
             foreach ($item['by_hand'] as $todo) {
                 $output->writeln("  <comment>By hand:</comment> {$todo}");
             }
+        }
+        if (is_string($file)) {
+            $output->writeln("Planned: nothing was written; the changes are in {$file}.");
+
+            return self::SUCCESS;
         }
         if (!$input->getOption('write') || $changes === []) {
             $output->writeln($changes === [] ? 'Nothing to change automatically.' : 'Dry run: nothing was written. Apply with --write.');

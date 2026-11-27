@@ -12,12 +12,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * The backups migrate:* --run saved (storage/backups/migrate/), with the command that made
+ * The backups migrate:* --run saved (Gaffer's private folder in uploads/), with the command that made
  * each and what the log says about it (written, aborted, undone): what migrate:rollback takes.
  */
 #[AsCommand('migrate:backups', 'List the backups migrate:* runs saved, for migrate:rollback')]
 final class MigrateBackups extends Command
 {
+    /** The backups are in WordPress's uploads folder. */
+    protected bool $wordpress = true;
+
     #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {

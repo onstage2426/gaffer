@@ -44,10 +44,8 @@ Start the next round here; remove an item when it's done or decided.
   forbids framing (`X-Frame-Options: DENY`, a security plugin's or the host's) leaves the modal
   empty; `SAMEORIGIN` is fine. Nothing checks it in doctor: it fails visibly, in the editor.
 
-- **Private folders in `uploads/gaffer/`** (2026-11-23): a folder `private_dir()` made in the
-  theme's `storage/` before is still used until it's moved (`Storage::before()`, `doctor --wp`
-  gives the `mv`). Remove that fallback when no site has one (every known site moved on
-  2026-11-23); 2.x at the latest.
+- **Private folders in `uploads/gaffer/`** (2026-11-23): the theme's `storage/` fallback was
+  removed on 2026-11-27; `doctor --wp` errors on a folder left there (`Storage::before()`).
 - **From the full-stack audit (2026-11-22, `prompts/audit-full.md`, first run).** Built:
   `/?s=` with `urls.redirect_search` (WordPress sets `post_type=any`, so the redirect never ran:
   a blank, cacheable 200 or the theme's `search.php`); `doctor --wp` errors on an empty 200

@@ -386,9 +386,9 @@ final class WordPressCheck implements Check
     }
 
     /**
-     * Private folders still in the theme's storage/ (private_dir() before 2026-11-23): still used
-     * there, but a deploy that replaces the theme deletes them, and every site of a network shares
-     * them. The hint moves them to this site's uploads/gaffer/.
+     * Private folders still in the theme's storage/ (private_dir() before 2026-11-23): no longer
+     * used since 2026-11-27, so their files (visitors' uploads, migrate backups, logs) are missing
+     * from the site until they're moved. The hint moves them to this site's uploads/gaffer/.
      */
     private function storage_before(Report $report): void
     {
@@ -398,8 +398,8 @@ final class WordPressCheck implements Check
         }
         $data = Paths::data();
         $moves = array_map(static fn(string $name, string $dir): string => 'mv ' . escapeshellarg($dir) . ' ' . escapeshellarg("{$data}/{$name}"), array_keys($before), $before);
-        $report->warning('wp', 'Private folders are still in the theme\'s storage/: ' . implode(', ', array_keys($before)) . ' (they moved to uploads/gaffer/)', null, null,
-            'A deploy that replaces the theme would delete them (visitors\' uploads, migrate backups, logs), and a network\'s sites share them. Gaffer uses them where they are until they\'re moved; move them once '
+        $report->error('wp', 'Private folders are still in the theme\'s storage/, where Gaffer no longer reads them: ' . implode(', ', array_keys($before)) . ' (they moved to uploads/gaffer/)', null, null,
+            'Their files (visitors\' uploads, migrate backups, logs) are missing from the site until they\'re moved. Move them once '
             . (\is_multisite() ? '(on a network: into the main site\'s folder, run with its SITE_URL) ' : '') . 'with: mkdir -p ' . escapeshellarg($data) . ' && ' . implode(' && ', $moves));
     }
 

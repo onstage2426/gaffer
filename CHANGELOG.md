@@ -11,6 +11,12 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **Private folders left in the theme's `storage/` are no longer used** (`Storage::private_dir()`
+  moved them to `uploads/gaffer/` on 2026-11-23; every known site has moved them). `doctor --wp`
+  errors while one is still there, with the `mv` that moves it, so `php gaffer update` rolls back
+  on such a site until it's moved. Find: `php gaffer doctor --wp`. Check: the files in them
+  (visitors' uploads, migrate backups, logs) are under `uploads/gaffer/`.
+
 - **ACF JSON in `storage/acf-json/` is no longer read** (it moved to `acf-json/` on 2026-11-22).
   *Automated (`2026-11-22-acf-json`): `php gaffer update` and `upgrade --write` move the files.*
   `doctor` errors while the old folder has JSON: the field groups, post types and options pages in

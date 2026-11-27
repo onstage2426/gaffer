@@ -28,18 +28,12 @@ final class Storage
 
     /**
      * The private folder {relative} in uploads/gaffer/, created with its deny-all .htaccess and
-     * .gitignore when missing; its path. Needs WordPress loaded (not SHORTINIT). Until a site moves
-     * them (`doctor --wp` says how), folders made in the theme's storage/ before 2026-11-23 are
-     * still used where they are.
+     * .gitignore when missing; its path. Needs WordPress loaded (not SHORTINIT).
      */
     public static function private_dir(string $relative): string
     {
         $relative = self::relative($relative);
-        $before = Paths::storage() . '/' . $relative;
         $dir = Paths::data() . '/' . $relative;
-        if (!is_dir($dir) && is_dir($before)) {
-            return $before;
-        }
         self::deny(Paths::data());
 
         return self::deny($dir);
@@ -62,8 +56,9 @@ final class Storage
     }
 
     /**
-     * Folders in the theme's storage/ that private_dir() made before 2026-11-23 and still uses:
-     * name => path. Tooling's folders (theme_dir()) aren't listed.
+     * Folders in the theme's storage/ that private_dir() made before 2026-11-23 (no longer used
+     * since 2026-11-27; doctor errors until they're moved): name => path. Tooling's folders
+     * (theme_dir()) aren't listed.
      *
      * @internal
      * @return array<string, string>

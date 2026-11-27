@@ -47,9 +47,12 @@ final class RenderDiff extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $select = $input->getOption('select');
-        // What changes on every request on any site (Gravity Forms' state tokens and honeypot label,
-        // WPML's cookie expiry), the theme's own (console.render_ignore), then this run's.
+        // What changes on every request or build on any site (Gravity Forms' state tokens and
+        // honeypot label, WPML's cookie expiry, asset `ver=` cache busters, the signed search token
+        // Gaffer writes), the theme's own (console.render_ignore), then this run's.
         $ignore = [
+            '/([?&;]ver=)[\w.\-]+/',
+            '/data-gaffer-search-token="[^"]*"/',
             '/name=\x27(?:gform_currency|state_\d+)\x27[^>]*value=\x27[^\x27]*\x27|gfield--type-honeypot.*?<\/label>/s',
             '/"expires":"[^"]*"/',
             ...array_values(array_map('strval', (array) (Config::get('console.render_ignore') ?? []))),

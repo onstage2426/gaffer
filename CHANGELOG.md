@@ -22,8 +22,8 @@ see on your theme it lists as by hand.
   after: `$added = $product->add_to_cart($quantity) !== null;`. Check: add a simple and a variable
   product to the cart (the drawer opens with them), and a variable one without a choice (the notice).
 
-- **`render:diff` ignores Gravity Forms' per-request tokens and honeypot label and WPML's cookie
-  timestamp by itself**, so a page with a form counts as unchanged when nothing changed. A theme's
+- **`render:diff` ignores Gravity Forms' per-request tokens and honeypot label, WPML's cookie
+  timestamp, asset `ver=` cache busters and the signed search token by itself**, so a page with a form counts as unchanged when nothing changed. A theme's
   `console.render_ignore` and `--ignore` patterns for them can go. Nothing else to do.
 
 - **New: `php gaffer update` updates Gaffer on a site in one step, with a way back.** It checks

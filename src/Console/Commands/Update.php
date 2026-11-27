@@ -288,7 +288,7 @@ final class Update extends Command
     private static function build(string $theme, Steps $steps): string
     {
         $command = match (true) {
-            is_file("{$theme}/bun.lock") || is_file("{$theme}/bun.lockb") => (ChildProcess::run(['bun', '--version'], null, 30)['code'] ?? 1) === 0 ? ['bun', 'run', 'build'] : ['npx', '-y', 'bun@1', 'run', 'build'],
+            is_file("{$theme}/bun.lock") || is_file("{$theme}/bun.lockb") => self::on_path('bun') ? ['bun', 'run', 'build'] : ['npx', '-y', 'bun@1', 'run', 'build'],
             is_file("{$theme}/package-lock.json") => ['npm', 'run', 'build'],
             default => null,
         };
@@ -306,6 +306,18 @@ final class Update extends Command
         $steps->detail("ok ({$run['seconds']} s)");
 
         return 'ok';
+    }
+
+    /** Whether a program is on PATH (without starting it: a missing one makes proc_open warn). */
+    private static function on_path(string $program): bool
+    {
+        foreach (explode(PATH_SEPARATOR, (string) getenv('PATH')) as $dir) {
+            if ($dir !== '' && is_executable("{$dir}/{$program}")) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @param array{stdout: string, stderr: string}|null $run */

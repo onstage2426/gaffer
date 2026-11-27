@@ -118,3 +118,6 @@ Don't change code in this session. The output is the triage below and `docs/comp
   - **A static doctor error on a copy can be Gaffer's false positive:** config a theme computes
     from WordPress (`facet_values` from its settings) is empty without it, and the check took an
     empty map for a list. Read the theme's config code before reporting the site.
+  - **Run every migration rule over the corpus before it ships:** a rule that renamed `files[x]`
+    inputs would also have renamed a live site's own upload action's `files[]` (its action reads
+    that key). Only the corpus run showed it; the rule now touches Gaffer's forms only.

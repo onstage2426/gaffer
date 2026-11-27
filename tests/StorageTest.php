@@ -61,4 +61,19 @@ final class StorageTest extends TestCase
         }
         self::assertSame(['', '/', '../uploads', 'offers/../../x'], $refused);
     }
+
+    public function test_tooling_folders_are_never_taken_for_private_ones(): void
+    {
+        $theme = sys_get_temp_dir() . '/gaffer-tooling-' . bin2hex(random_bytes(4));
+        mkdir("{$theme}/storage/offers", 0755, true);
+        \Gaffer\Paths::set_base($theme);
+        file_put_contents("{$theme}/storage/offers/.gitignore", "# Never commit: private files of this site.\n*\n");
+        Storage::theme_dir('updates');
+        // A tooling folder a newer Gaffer added, which this one doesn't know by name.
+        mkdir("{$theme}/storage/later-tool");
+        file_put_contents("{$theme}/storage/later-tool/.gitignore", "# Never commit: Gaffer's tooling, made again on demand.\n*\n");
+
+        self::assertSame(['offers'], array_keys(Storage::before()));
+        exec('rm -rf ' . escapeshellarg($theme));
+    }
 }

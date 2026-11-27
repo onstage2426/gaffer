@@ -23,6 +23,9 @@ final class Storage
 
     private const string MARKER = "# Never commit: private files of this site.\n";
 
+    /** theme_dir()'s folders say so in their .gitignore, so any Gaffer version tells them from private ones. */
+    private const string TOOLING_MARKER = "# Never commit: Gaffer's tooling, made again on demand.\n";
+
     /**
      * The private folder {relative} in uploads/gaffer/, created with its deny-all .htaccess and
      * .gitignore when missing; its path. Needs WordPress loaded (not SHORTINIT). Until a site moves
@@ -55,7 +58,7 @@ final class Storage
             throw new \LogicException("storage/{$relative}: add its first folder to Storage::TOOLING (or doctor takes it for a private folder left behind).");
         }
 
-        return self::deny(Paths::storage() . '/' . $relative);
+        return self::deny(Paths::storage() . '/' . $relative, self::TOOLING_MARKER);
     }
 
     /**
@@ -73,7 +76,12 @@ final class Storage
             if (in_array($name, ['cache', 'acf-json', ...self::TOOLING], true)) {
                 continue;
             }
-            // private_dir() put a deny file in each folder it made (storage/backups/migrate: in both).
+            // private_dir() put a deny file in each folder it made (storage/backups/migrate: in both);
+            // a tooling folder's says it's tooling (one a newer Gaffer added counts too).
+            $deny = (string) @file_get_contents("{$dir}/.gitignore");
+            if (str_starts_with($deny, self::TOOLING_MARKER)) {
+                continue;
+            }
             if (is_file("{$dir}/.gitignore") || glob("{$dir}/*/.gitignore") !== []) {
                 $found[$name] = $dir;
             }
@@ -92,12 +100,12 @@ final class Storage
         return $relative;
     }
 
-    private static function deny(string $dir): string
+    private static function deny(string $dir, string $marker = self::MARKER): string
     {
         if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new RuntimeException("Could not create {$dir}");
         }
-        foreach (['.htaccess' => "Require all denied\n", '.gitignore' => self::MARKER . "*\n"] as $file => $content) {
+        foreach (['.htaccess' => "Require all denied\n", '.gitignore' => $marker . "*\n"] as $file => $content) {
             if (!is_file("{$dir}/{$file}")) {
                 file_put_contents("{$dir}/{$file}", $content);
             }

@@ -163,6 +163,12 @@ Every plugin follows the same rules:
 
 - **A plugin only when it must be one:** its data outlives the theme, one copy serves a network,
   or it needs a fixed path (an endpoint). Otherwise it belongs in Gaffer or the theme.
+- **Three kinds, only engines in the catalog** (the user, 2026-11-27): an **engine** is called by
+  Gaffer through a contract (gaffer-search); a **listener** only listens to Gaffer's documented
+  events (`gaffer:*`, `API.md` "Events") and WordPress's hooks (an analytics plugin); a **reader**
+  only reads the site's report (`health --json`, `API.md` "Report": a hub). Listeners and readers
+  are standalone plugins Gaffer doesn't know; their routes are the events and the report, which
+  only grow.
 - **One contract, and only through Gaffer.** Themes never call a plugin, and a plugin never calls
   Gaffer. Gaffer finds it through a filter (`gaffer_<name>_engine`) that names a contract
   number. The contract is in the plugin's `docs/contract.md` and only grows: additions are

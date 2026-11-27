@@ -6,6 +6,7 @@ namespace Gaffer\Console\Commands;
 
 use Gaffer\Console\ChildProcess;
 use Gaffer\Console\Command;
+use Gaffer\Console\Update\Steps;
 use Gaffer\Console\Update\Swap;
 use Gaffer\Paths;
 use Gaffer\Storage;
@@ -45,32 +46,32 @@ final class Update extends Command
         $base = Storage::theme_dir('updates');
         $lock = fopen("{$base}/.lock", 'c');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
-            $output->writeln('<error>Another update is running on this theme.</error>');
+            $output->writeln("<error>Another update is running on this theme ({$base}/.lock is held).</error>");
 
             return 2;
         }
         $json = (bool) $input->getOption('json');
-        $say = static function (string $line) use ($output, $json): void {
-            if (!$json) {
-                $output->writeln($line);
-            }
-        };
+        $composer = (string) $input->getOption('composer');
 
         $rollback = $input->getOption('rollback');
         if ($rollback !== false) {
             $id = is_string($rollback) ? basename($rollback) : self::latest($base);
             if ($id === null || !is_dir("{$base}/{$id}")) {
-                $output->writeln('<error>No update to roll back.</error>');
+                $output->writeln("<error>No update to roll back in {$base}.</error>");
 
                 return 2;
             }
-            self::rollback($theme, "{$base}/{$id}", $say);
-            $say("Rolled back {$id}.");
+            $steps = new Steps($output, $json, "{$base}/{$id}/rollback.log");
+            self::rollback($theme, "{$base}/{$id}", $steps);
+            $output->writeln($json ? (string) json_encode(['format' => 1, 'result' => 'rolled back', 'id' => $id, 'reference' => self::reference($theme), 'log' => $steps->log]) : "Rolled back {$id}: Gaffer is at " . self::reference($theme) . ". Log: {$steps->log}");
 
             return self::SUCCESS;
         }
 
-        $report = ['format' => 1, 'result' => null, 'from' => self::reference($theme), 'to' => null, 'errors_before' => null, 'errors_after' => null, 'pages_changed' => null, 'changed_pages' => [], 'upgrade' => null, 'build' => null, 'id' => null];
+        $id = date('Ymd-His');
+        $dir = "{$base}/{$id}";
+        $steps = new Steps($output, $json, "{$dir}/update.log");
+        $report = ['format' => 1, 'result' => null, 'id' => $id, 'log' => $steps->log, 'from' => self::reference($theme), 'to' => null, 'packages' => [], 'errors_before' => null, 'errors_after' => null, 'pages_changed' => null, 'changed_pages' => [], 'upgrade' => null, 'build' => null];
         $finish = static function (string $result, int $code) use (&$report, $output, $json): int {
             $report['result'] = $result;
             if ($json) {
@@ -80,80 +81,107 @@ final class Update extends Command
             return $code;
         };
 
-        $problem = self::preflight($theme, $base, (string) $input->getOption('composer'));
+        $steps->step("Preflight: {$theme}");
+        $steps->detail("Gaffer now: {$report['from']} (composer.lock); PHP " . PHP_VERSION . ' (' . PHP_BINARY . ')');
+        $problem = self::preflight($theme, $base, $composer, $steps);
         if ($problem !== null) {
-            $say("<error>{$problem}</error>");
+            $steps->detail("<error>✗ {$problem}</error>");
 
             return $finish('refused: ' . $problem, 2);
         }
 
-        $say('Checking the site before updating …');
-        $report['errors_before'] = self::doctor_errors($theme);
-        if ($report['errors_before'] === null) {
-            $say('<error>doctor --wp couldn\'t run: fix that first (an update couldn\'t be checked).</error>');
+        $steps->step('doctor --wp before the update (an update never starts on a red site)');
+        $before = self::doctor($theme, $steps);
+        $report['errors_before'] = $before['errors'] ?? null;
+        if ($before === null) {
+            $steps->detail('<error>✗ doctor --wp gave no report, so the update couldn\'t be checked: run `php gaffer doctor --wp` and fix what stops it.</error>');
 
             return $finish('refused: doctor --wp could not run', 2);
         }
-        if ($report['errors_before'] > 0 && !$input->getOption('force')) {
-            $say("<error>doctor --wp has {$report['errors_before']} errors before the update: fix them first, or --force.</error>");
+        if ($before['errors'] > 0 && !$input->getOption('force')) {
+            $steps->detail("<error>✗ {$before['errors']} errors: fix them first (php gaffer doctor --wp), or --force.</error>");
 
             return $finish('refused: errors before', 2);
         }
-        $id = date('Ymd-His');
-        $report['id'] = $id;
-        $dir = "{$base}/{$id}";
+
         $render = !$input->getOption('no-render');
         if ($render) {
-            self::gaffer($theme, ['render:snapshot', "gaffer-update-{$id}"], 1800);
+            $steps->step("Rendered pages before the update (render:snapshot gaffer-update-{$id})");
+            $snapshot = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'render:snapshot', "gaffer-update-{$id}"], $theme, 1800);
+            $steps->detail(self::last_line($snapshot) . ' (' . ($snapshot['seconds'] ?? '?') . ' s)');
         }
 
-        $say('Updating Gaffer in a staging copy …');
+        $steps->step('Staging copy and composer');
         try {
             $root = Swap::stage($theme, $dir);
-            $composer = ChildProcess::run([(string) $input->getOption('composer'), 'update', '-W', 'onstage2426/gaffer', '--no-interaction', '--no-scripts', '--no-progress'], $root, 900);
-            if ($composer === null || $composer['code'] !== 0) {
+            $steps->detail("Staging: {$root} (composer.json, composer.lock, a copy of vendor/, links to the rest)");
+            $run = $steps->run([$composer, 'update', '-W', 'onstage2426/gaffer', '--no-interaction', '--no-scripts', '--no-progress'], $root, 900);
+            if ($run === null || $run['code'] !== 0) {
+                $steps->failed('composer update', $run);
                 Swap::clean_stage($root);
-                $say('<error>composer failed:</error> ' . trim(($composer['stderr'] ?? '') . "\n" . ($composer['stdout'] ?? '')));
+                $steps->detail('Nothing was changed: the site still runs its vendor/.');
 
                 return $finish('failed: composer', 2);
             }
+            $steps->detail("composer: {$run['seconds']} s");
+            $report['packages'] = self::package_changes($theme, $root);
+            foreach ($report['packages'] as $name => $change) {
+                $steps->detail("  {$name}: {$change}");
+            }
             $problem = Swap::problem($theme, $root);
             if ($problem !== null) {
+                $steps->detail("<error>✗ {$problem}</error> Nothing was changed.");
                 Swap::clean_stage($root);
-                $say("<error>{$problem}</error> Nothing was changed.");
 
                 return $finish('failed: ' . $problem, 2);
             }
+            $steps->detail('Autoloader paths: relative (checked vendor/composer/*.php)');
             $report['to'] = self::reference($root);
             if ($report['to'] === $report['from']) {
                 Swap::clean_stage($root);
+                $steps->detail("Gaffer is already at {$report['from']}: nothing to swap.");
                 ChildProcess::run(['rm', '-rf', $dir], null, 120);
-                $say("Gaffer is already at {$report['from']}.");
 
                 return $finish('up to date', self::SUCCESS);
             }
+
+            $steps->step("Swap: Gaffer {$report['from']} → {$report['to']}");
             Swap::keep_before($theme, $dir);
+            $steps->detail("Kept for a rollback: {$dir}/before/ (composer files, the Vite manifest and stamp)");
             Swap::swap($theme, $dir, $root);
             Swap::clean_stage($root);
+            $steps->detail("vendor/ → {$dir}/vendor.old; the staged vendor/ → vendor/ (two renames); composer.lock copied");
         } catch (Throwable $e) {
-            $say('<error>' . $e->getMessage() . '</error>');
+            $steps->detail('<error>✗ ' . $e->getMessage() . '</error>');
 
             return $finish('failed: ' . $e->getMessage(), 2);
         }
-        $say("Gaffer {$report['from']} → {$report['to']} swapped in.");
 
-        self::gaffer($theme, ['ai:update'], 300);
-        $upgrade = self::gaffer($theme, ['upgrade', '--write'], 1200);
-        $report['upgrade'] = trim((string) preg_replace('/\s+/', ' ', substr($upgrade['stdout'] ?? '', -300)));
-        if (preg_match('/upgrade --restore=(\S+?)\)?\.?$/m', $upgrade['stdout'] ?? '', $m)) {
+        $steps->step('ai:update (the guidelines and skills of the new Gaffer)');
+        $ai = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'ai:update'], $theme, 300);
+        $ai !== null && $ai['code'] === 0 ? $steps->detail('ok (' . $ai['seconds'] . ' s)') : $steps->failed('ai:update (not fatal)', $ai);
+
+        $steps->step('upgrade --write (the mechanical CHANGELOG changes)');
+        $upgrade = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'upgrade', '--write'], $theme, 1200);
+        $text = $upgrade['stdout'] ?? '';
+        $report['upgrade'] = str_contains($text, 'Nothing to upgrade') ? 'nothing' : trim((string) preg_replace('/\s+/', ' ', self::last_line($upgrade)));
+        foreach (array_filter(explode("\n", $text), static fn(string $l): bool => (bool) preg_match('/^(\d{4}-\d\d-\d\d-\S+:|\+\+\+ b\/|  (new|delete) |  By hand:)/', $l)) as $line) {
+            $steps->detail(trim($line));
+        }
+        $steps->detail($report['upgrade']);
+        if (preg_match('/upgrade --restore=(\S+?)\)?\.?$/m', $text, $m)) {
             file_put_contents("{$dir}/upgrade-backup", $m[1]);
         }
-        $report['build'] = self::build($theme);
-        $say('Build: ' . $report['build']);
 
-        $report['errors_after'] = self::doctor_errors($theme);
+        $steps->step('Build');
+        $report['build'] = self::build($theme, $steps);
+
+        $steps->step('doctor --wp after the update');
+        $after = self::doctor($theme, $steps);
+        $report['errors_after'] = $after['errors'] ?? null;
         if ($render) {
-            $diff = self::gaffer($theme, ['render:diff', "gaffer-update-{$id}", '--json', '--hide-reorders'], 1800);
+            $steps->step("Rendered pages after (render:diff gaffer-update-{$id} --hide-reorders)");
+            $diff = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'render:diff', "gaffer-update-{$id}", '--json', '--hide-reorders'], $theme, 1800);
             $data = json_decode($diff['stdout'] ?? '', true);
             $report['pages_changed'] = is_array($data) && is_int($data['different'] ?? null) ? $data['different'] : null;
             $pages = [];
@@ -163,33 +191,37 @@ final class Update extends Command
                 }
             }
             $report['changed_pages'] = array_values(array_unique($pages));
+            $steps->detail(is_array($data) ? ($data['same'] ?? '?') . ' the same, ' . ($report['pages_changed'] ?? '?') . ' different' . ($report['changed_pages'] !== [] ? ': ' . implode(', ', array_slice($report['changed_pages'], 0, 10)) . (count($report['changed_pages']) > 10 ? ', …' : '') : '') : 'no comparison: ' . self::last_line($diff));
+            if ($report['changed_pages'] !== []) {
+                // Cached pages still work after any update (old HTML with new code, old builds kept a
+                // week); these show something new, which a page cache keeps showing until it expires.
+                $steps->detail('A page cache shows the old versions of these until it expires: purge it to show them now.');
+            }
         }
 
-        if ($report['errors_after'] === null || $report['errors_after'] > $report['errors_before']) {
-            $why = $report['errors_after'] === null ? 'doctor --wp no longer runs' : "doctor --wp: {$report['errors_before']} errors before, {$report['errors_after']} after";
+        if ($after === null || $after['errors'] > $before['errors']) {
+            $why = $after === null ? 'doctor --wp gave no report after the update' : "doctor --wp: {$before['errors']} errors before, {$after['errors']} after";
             if ($input->getOption('keep')) {
-                $say("<error>{$why}.</error> Kept (--keep): undo with php gaffer update --rollback={$id}");
+                $steps->detail("<error>✗ {$why}.</error> Kept (--keep): look, then undo with php gaffer update --rollback={$id}");
 
                 return $finish('kept with new errors', 1);
             }
-            self::rollback($theme, $dir, $say);
-            $say("<error>{$why}: the update was rolled back.</error> Run it again with --keep to look at the errors.");
+            $steps->step("Rollback ({$why})");
+            self::rollback($theme, $dir, $steps);
+            $steps->detail("<error>✗ The update was rolled back.</error> Run it again with --keep to look at the errors. Log: {$steps->log}");
 
             return $finish('rolled back: ' . $why, 1);
         }
 
         self::prune($base);
-        if ($report['changed_pages'] !== []) {
-            // Cached pages still work after any update (old HTML with new code, old builds kept a
-            // week); these show something new, which a page cache keeps showing until it expires.
-            $say('These pages render differently now: ' . implode(', ', array_slice($report['changed_pages'], 0, 10)) . (count($report['changed_pages']) > 10 ? ', …' : '') . '. A page cache shows the old ones until it expires: purge it to show them now.');
-        }
-        $say('Done: doctor --wp ' . $report['errors_after'] . ' errors' . ($report['pages_changed'] !== null ? ", {$report['pages_changed']} pages render differently (php gaffer render:diff gaffer-update-{$id})" : '') . ". Undo: php gaffer update --rollback={$id}");
+        $steps->step("Done: Gaffer {$report['from']} → {$report['to']}");
+        $steps->detail("Undo: php gaffer update --rollback={$id}  (vendor.old and the rest in {$dir}; the last " . self::KEEP . ' updates are kept)');
+        $steps->detail("Log: {$steps->log}");
 
         return $finish('updated', self::SUCCESS);
     }
 
-    private static function preflight(string $theme, string $base, string $composer): ?string
+    private static function preflight(string $theme, string $base, string $composer, Steps $steps): ?string
     {
         foreach (['composer.json', 'composer.lock', 'vendor'] as $needed) {
             if (!file_exists("{$theme}/{$needed}")) {
@@ -197,15 +229,19 @@ final class Update extends Command
             }
         }
         if (@stat($theme)['dev'] !== @stat($base)['dev']) {
-            return "storage/updates/ is on another file system than the theme (GAFFER_STORAGE?): vendor/ can't be swapped by rename.";
+            return "{$base} is on another file system than the theme (GAFFER_STORAGE?): vendor/ can't be swapped by rename.";
         }
-        $version = ChildProcess::run([$composer, '--version', '--no-interaction'], $theme, 60);
+        $version = $steps->run([$composer, '--version', '--no-interaction'], $theme, 60);
         if ($version === null || $version['code'] !== 0) {
+            $steps->failed('composer --version', $version);
+
             return "{$composer} doesn't run here (--composer=<path>).";
         }
+        $steps->detail(self::last_line($version));
         $size = ChildProcess::run(['du', '-sk', "{$theme}/vendor"], null, 120);
         $kb = (int) ($size['stdout'] ?? 0);
         $free = (int) (disk_free_space($base) ?: 0);
+        $steps->detail(sprintf('vendor/ %.1f MB, %.0f MB free in %s', $kb / 1024, $free / 1048576, $base));
         if ($kb > 0 && $free < $kb * 1024 * 3) {
             return 'Not enough disk space for a staging copy of vendor/ (three times its size).';
         }
@@ -213,37 +249,43 @@ final class Update extends Command
         return null;
     }
 
-    /** @param \Closure(string): void $say */
-    private static function rollback(string $theme, string $dir, \Closure $say): void
+    private static function rollback(string $theme, string $dir, Steps $steps): void
     {
         $backup = is_file("{$dir}/upgrade-backup") ? trim((string) file_get_contents("{$dir}/upgrade-backup")) : '';
         Swap::back($theme, $dir);
+        $steps->detail("vendor/ ← {$dir}/vendor.old (the update's vendor/ kept as vendor.failed); composer files and the Vite manifest and stamp ← {$dir}/before/");
         if ($backup !== '') {
-            self::gaffer($theme, ['upgrade', "--restore={$backup}"], 300);
+            $restore = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'upgrade', "--restore={$backup}"], $theme, 300);
+            $restore !== null && $restore['code'] === 0 ? $steps->detail('upgrade\'s changes put back') : $steps->failed('upgrade --restore', $restore);
         }
-        self::gaffer($theme, ['ai:update'], 300);
-        $say('vendor/, composer.lock, the build\'s manifest' . ($backup !== '' ? ' and the files upgrade changed' : '') . ' are back.');
+        $ai = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'ai:update'], $theme, 300);
+        if ($ai === null || $ai['code'] !== 0) {
+            $steps->failed('ai:update (not fatal)', $ai);
+        }
     }
 
-    /**
-     * @param list<string> $arguments
-     * @return array{stdout: string, stderr: string, code: int, timed_out: bool}|null
-     */
-    private static function gaffer(string $theme, array $arguments, int $timeout): ?array
+    /** @return array{errors: int, warnings: int}|null doctor --wp's counts, its errors named; null without a report */
+    private static function doctor(string $theme, Steps $steps): ?array
     {
-        return ChildProcess::run([PHP_BINARY, "{$theme}/gaffer", ...$arguments], $theme, $timeout);
-    }
-
-    private static function doctor_errors(string $theme): ?int
-    {
-        $run = self::gaffer($theme, ['doctor', '--wp', '--json'], 1800);
+        $run = $steps->run([PHP_BINARY, "{$theme}/gaffer", 'doctor', '--wp', '--json'], $theme, 1800);
         $json = json_decode($run['stdout'] ?? '', true);
+        if (!is_array($json) || !is_int($json['errors'] ?? null)) {
+            $steps->failed('doctor --wp', $run);
 
-        return is_array($json) && is_int($json['errors'] ?? null) ? $json['errors'] : null;
+            return null;
+        }
+        $steps->detail("{$json['errors']} errors, " . (int) ($json['warnings'] ?? 0) . ' warnings (' . ($run['seconds'] ?? '?') . ' s)');
+        foreach ((array) ($json['findings'] ?? []) as $finding) {
+            if (is_array($finding) && ($finding['level'] ?? null) === 'error') {
+                $steps->detail('  error [' . ($finding['check'] ?? '?') . '] ' . ($finding['file'] ?? '') . (isset($finding['line']) ? ":{$finding['line']}" : '') . '  ' . ($finding['message'] ?? ''));
+            }
+        }
+
+        return ['errors' => $json['errors'], 'warnings' => (int) ($json['warnings'] ?? 0)];
     }
 
     /** The theme's own build with its package manager: bun.lock → bun, package-lock.json → npm. */
-    private static function build(string $theme): string
+    private static function build(string $theme, Steps $steps): string
     {
         $command = match (true) {
             is_file("{$theme}/bun.lock") || is_file("{$theme}/bun.lockb") => (ChildProcess::run(['bun', '--version'], null, 30)['code'] ?? 1) === 0 ? ['bun', 'run', 'build'] : ['npx', '-y', 'bun@1', 'run', 'build'],
@@ -251,11 +293,59 @@ final class Update extends Command
             default => null,
         };
         if ($command === null) {
-            return 'skipped (no bun.lock or package-lock.json)';
-        }
-        $run = ChildProcess::run($command, $theme, 1200);
+            $steps->detail('skipped: no bun.lock or package-lock.json');
 
-        return $run !== null && $run['code'] === 0 ? 'ok (' . implode(' ', $command) . ')' : 'failed (' . implode(' ', $command) . '): ' . substr(trim(($run['stderr'] ?? '') . ' ' . ($run['stdout'] ?? '')), -300);
+            return 'skipped';
+        }
+        $run = $steps->run($command, $theme, 1200);
+        if ($run === null || $run['code'] !== 0) {
+            $steps->failed(implode(' ', $command), $run);
+
+            return 'failed';
+        }
+        $steps->detail("ok ({$run['seconds']} s)");
+
+        return 'ok';
+    }
+
+    /** @param array{stdout: string, stderr: string}|null $run */
+    private static function last_line(?array $run): string
+    {
+        $lines = array_values(array_filter(array_map('trim', explode("\n", ($run['stdout'] ?? '') . "\n" . ($run['stderr'] ?? '')))));
+
+        return $lines === [] ? '(no output)' : (string) end($lines);
+    }
+
+    /**
+     * Packages whose version changed between the theme's composer.lock and the staged one.
+     *
+     * @return array<string, string> name => "old → new"
+     */
+    private static function package_changes(string $theme, string $root): array
+    {
+        $versions = static function (string $file): array {
+            $lock = json_decode((string) @file_get_contents($file), true);
+            $out = [];
+            foreach ((array) ($lock['packages'] ?? []) as $p) {
+                if (is_array($p) && is_string($p['name'] ?? null)) {
+                    $ref = $p['source']['reference'] ?? $p['dist']['reference'] ?? null;
+                    $out[$p['name']] = (string) ($p['version'] ?? '?') . (is_string($ref) && str_starts_with((string) ($p['version'] ?? ''), 'dev-') ? '@' . substr($ref, 0, 7) : '');
+                }
+            }
+
+            return $out;
+        };
+        $old = $versions("{$theme}/composer.lock");
+        $new = $versions("{$root}/composer.lock");
+        $changes = [];
+        foreach ($new + $old as $name => $_) {
+            if (($old[$name] ?? null) !== ($new[$name] ?? null)) {
+                $changes[$name] = ($old[$name] ?? '(new)') . ' → ' . ($new[$name] ?? '(removed)');
+            }
+        }
+        ksort($changes);
+
+        return $changes;
     }
 
     /** Gaffer's reference in a composer.lock (7 characters), or its version. */

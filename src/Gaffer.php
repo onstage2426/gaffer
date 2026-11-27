@@ -157,9 +157,8 @@ final class Gaffer
     }
 
     /**
-     * ACF local JSON is saved to and loaded from acf-json/ (and storage/acf-json, where it was
-     * until 2026-11-22: a file there is saved in place until the theme moves it); block data is
-     * read without kses's "&amp;" (AcfValues).
+     * ACF local JSON is saved to and loaded from acf-json/; block data is read without kses's
+     * "&amp;" (AcfValues).
      */
     private static function acf(): void
     {
@@ -172,17 +171,8 @@ final class Gaffer
             }
             return $dir;
         });
-        add_filter('acf/json/save_paths', static function (array $paths): array {
-            if (is_dir(Paths::acf_json_before())) {
-                $paths[] = Paths::acf_json_before();
-            }
-            return $paths;
-        });
         add_filter('acf/settings/load_json', static function (array $paths): array {
             $paths[] = Paths::acf_json();
-            if (is_dir(Paths::acf_json_before())) {
-                $paths[] = Paths::acf_json_before();
-            }
             return $paths;
         });
     }

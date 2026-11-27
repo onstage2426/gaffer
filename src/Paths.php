@@ -131,8 +131,8 @@ final class Paths
     }
 
     /**
-     * Where ACF JSON was until 2026-11-22 (storage/acf-json, which GAFFER_STORAGE moved): still
-     * loaded, and saved in place, until the theme moves it to acf-json/ (doctor warns).
+     * Where ACF JSON was until 2026-11-22 (storage/acf-json, which GAFFER_STORAGE moved): no longer
+     * read; doctor errors while it has files, `upgrade` moves them to acf-json/.
      *
      * @internal
      */
@@ -142,14 +142,14 @@ final class Paths
     }
 
     /**
-     * The theme's ACF JSON files in both folders (acf-json/ first).
+     * The theme's ACF JSON files.
      *
      * @internal
      * @return list<string>
      */
     public static function acf_json_files(string $pattern = '*.json'): array
     {
-        return [...glob(self::acf_json() . "/{$pattern}") ?: [], ...glob(self::acf_json_before() . "/{$pattern}") ?: []];
+        return glob(self::acf_json() . "/{$pattern}") ?: [];
     }
 
     /**

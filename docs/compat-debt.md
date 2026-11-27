@@ -53,8 +53,8 @@ Start the next round here; remove an item when it's done or decided.
   a blank, cacheable 200 or the theme's `search.php`); `doctor --wp` errors on an empty 200
   render; `Post::is_current()` only for a queried post; `token_required` isn't `stale`; a missing
   Vite entry keeps the page out of caches; unreachable `ajax.php`/private-file probes warn; ACF
-  JSON in `acf-json/` (out of `GAFFER_STORAGE`'s reach; `storage/acf-json` read until a theme
-  moves it); `rolldownOptions` (Vite 8). Internal now: `FormAction::run()`, `Spam::log()`,
+  JSON in `acf-json/` (out of `GAFFER_STORAGE`'s reach; `storage/acf-json` no longer read since
+  2026-11-27, `doctor` errors and `upgrade` moves it); `rolldownOptions` (Vite 8). Internal now: `FormAction::run()`, `Spam::log()`,
   `Turnstile::enabled()`; removed `MenuItem::is_external()`. Checked and fine: plugin head with
   the previous two Gaffer pushes, Gaffer head with plugin v0.1.0–v0.3.1, tokens byte-identical
   across all of them, an old `gaffer.json` stamp. Open:

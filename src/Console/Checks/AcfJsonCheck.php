@@ -25,8 +25,8 @@ final class AcfJsonCheck implements Check
 
         $before = glob(Paths::acf_json_before() . '/*.json') ?: [];
         if ($before !== []) {
-            $report->warning('acf', 'ACF JSON is still in storage/acf-json/ (' . count($before) . ' file' . (count($before) === 1 ? '' : 's') . '): it moved to acf-json/ in the theme', null, null,
-                'GAFFER_STORAGE moves storage/ (the theme would lose what\'s made in the ACF UI): git mv storage/acf-json acf-json. Gaffer reads both until then.');
+            $report->error('acf', 'ACF JSON is still in storage/acf-json/ (' . count($before) . ' file' . (count($before) === 1 ? '' : 's') . '), which Gaffer no longer reads: its field groups, post types and options pages are gone from the site', null, null,
+                'php gaffer upgrade --write moves them to acf-json/ in the theme (or git mv storage/acf-json acf-json).');
         }
         foreach (Paths::acf_json_files() as $file) {
             $json = (string) file_get_contents($file);

@@ -11,6 +11,12 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **ACF JSON in `storage/acf-json/` is no longer read** (it moved to `acf-json/` on 2026-11-22).
+  *Automated (`2026-11-22-acf-json`): `php gaffer update` and `upgrade --write` move the files.*
+  `doctor` errors while the old folder has JSON: the field groups, post types and options pages in
+  it are gone from the site until they're moved. Find: `ls storage/acf-json`. Check: `php gaffer
+  doctor --wp`, and the field groups in the admin.
+
 - **`MenuItem::has_children()` is removed: `item.children` is empty when there are none.**
   *Automated (`2026-11-27-menu-children`) for templates; PHP calls are by hand.* One way to ask
   (Phase 7 of the road to 1.0). Find: `grep -rn "has_children" views blocks app inc`. Before:

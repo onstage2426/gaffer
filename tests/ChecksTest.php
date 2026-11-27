@@ -213,17 +213,16 @@ final class ChecksTest extends TestCase
         self::assertStringContainsString('"Tax: pa_kleur" is made in the ACF UI', $findings[1]['message']);
     }
 
-    public function test_acf_json_in_storage_is_still_read_and_asked_to_move(): void
+    public function test_acf_json_left_in_storage_is_an_error(): void
     {
         mkdir("{$this->theme}/storage/acf-json", 0755, true);
         file_put_contents("{$this->theme}/storage/acf-json/group_x.json", (string) json_encode(['key' => 'group_x', 'title' => 'Tax: pa_kleur', 'fields' => [],
             'location' => [[['param' => 'taxonomy', 'operator' => '==', 'value' => 'pa_kleur']]]]));
 
         $findings = $this->findings(new AcfJsonCheck());
-        self::assertSame(['warning', 'warning'], array_column($findings, 'level'));
-        self::assertStringContainsString('still in storage/acf-json/ (1 file)', $findings[0]['message']);
-        self::assertStringContainsString('"Tax: pa_kleur" is made in the ACF UI', $findings[1]['message']);
-        self::assertSame(["{$this->theme}/storage/acf-json/group_x.json"], \Gaffer\Paths::acf_json_files());
+        self::assertSame(['error'], array_column($findings, 'level'));
+        self::assertStringContainsString('still in storage/acf-json/ (1 file), which Gaffer no longer reads', $findings[0]['message']);
+        self::assertSame([], \Gaffer\Paths::acf_json_files());
     }
 
     public function test_inner_blocks_are_reported(): void

@@ -5,7 +5,7 @@ const F = window.GafferSearch;
 
 // An Alpine component without Alpine: the factory's object with the two magics it uses.
 function component(factory, html = '<input name="q">') {
-    document.body.innerHTML = `<form method="get" action="https://shop.test/search.php"><input type="hidden" name="token" value="T">
+    document.body.innerHTML = `<form method="get" action="/winkel/" data-gaffer-search-endpoint="https://shop.test/search.php" data-gaffer-search-token="T">
         <input type="hidden" name="offset" value="0">${html}</form>`;
     const form = document.querySelector("form");
     const c = { ...factory, $root: form, $nextTick: async () => { form.elements.offset.value = String(c.offset); } };
@@ -164,8 +164,8 @@ describe("createAlpineSearch", () => {
 
 describe("createAlpineSearch's form", () => {
     function wrapped(options) {
-        document.body.innerHTML = `<div id="archive"><form id="archive-form" method="get" action="https://shop.test/search.php">
-            <input type="hidden" name="token" value="T"><input name="q"></form>
+        document.body.innerHTML = `<div id="archive"><form id="archive-form" method="get" action="/winkel/" data-gaffer-search-endpoint="https://shop.test/search.php" data-gaffer-search-token="T">
+            <input name="q"></form>
             <ul><li><form><input name="product" value="705"></form></li></ul></div>`;
         const root = document.getElementById("archive");
         const c = { ...F.createAlpineSearch(options), $root: root, $nextTick: async () => {} };

@@ -8,8 +8,8 @@ function archive(options = {}) {
     document.body.innerHTML = `
         <script type="application/json" id="archive-results">{"query":"","total":30,"offset":0,"limit":2,"results":[{"id":1,"card":"<article>1</article>"}]}</script>
         <div id="wrapper">
-            <form id="archive-form" method="get" action="https://shop.test/search.php">
-                <input type="hidden" name="token" value="T"><input type="hidden" name="offset" value="0">
+            <form id="archive-form" method="get" action="/winkel/" data-gaffer-search-endpoint="https://shop.test/search.php" data-gaffer-search-token="T">
+                <input type="hidden" name="offset" value="0">
             </form>
             <ul id="archive-list"><li><article>1</article></li></ul>
         </div>`;

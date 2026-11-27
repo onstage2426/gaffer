@@ -157,8 +157,6 @@ Start the next round here; remove an item when it's done or decided.
   `.codex/` and `public/`.
 - **Dates:**
   - remove `FormAction`'s old `form` key after 2026-12-31;
-  - remove the hand-written search endpoint/token reading from `form-search.js` when
-    `doctor`'s warning is gone on every site (2.x at the latest).
 
 ## Kept for compatibility (2.x candidates)
 
@@ -166,11 +164,6 @@ Start the next round here; remove an item when it's done or decided.
   `@gaffer/forms/meta.twig` sent `form` until 2026-11-20; a page cache may still serve that
   markup. Remove the `$form` parameter after 2026-12-31 (no cache keeps a page that long). It
   costs one parameter.
-
-- **`form-search.js` still reads a hand-written search form** (2026-11-21):
-  `data-gaffer-search-endpoint` and a hidden `token` input, next to what `{{ search.attrs() }}`
-  writes. `SearchCheck` warns on the hand-written ones. Remove the fallback when no site writes
-  them (2.x at the latest). It costs two lines.
 
 ## Platform dependencies and their timelines
 

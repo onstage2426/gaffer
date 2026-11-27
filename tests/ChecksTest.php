@@ -794,7 +794,7 @@ final class ChecksTest extends TestCase
         file_put_contents("{$this->theme}/views/bar.twig", '<form method="get" action="{{ search.endpoint }}"><input name="q"></form>');
         $found = array_values(array_filter($this->findings(new SearchCheck()), static fn(array $f): bool => str_contains($f['message'], 'by hand')));
 
-        self::assertSame([['bar.twig', 1], ['old.twig', 2]], array_map(static fn(array $f): array => [basename((string) $f['file']), $f['line']], $found));
+        self::assertSame([['bar.twig', 1, 'error'], ['old.twig', 2, 'warning']], array_map(static fn(array $f): array => [basename((string) $f['file']), $f['line'], $f['level']], $found));
     }
 
     public function test_a_search_component_that_never_shows_its_error(): void

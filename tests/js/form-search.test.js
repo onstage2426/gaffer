@@ -4,8 +4,8 @@ import { search } from "../../resources/js/search/form-search.js";
 
 
 function form(html, attributes = 'data-gaffer-search-history="push"') {
-    document.body.innerHTML = `<form method="get" action="https://shop.test/search.php" ${attributes}>
-        <input type="hidden" name="token" value="T">${html}</form>`;
+    document.body.innerHTML = `<form method="get" action="/winkel/" data-gaffer-search-endpoint="https://shop.test/search.php" data-gaffer-search-token="T" ${attributes}>
+        ${html}</form>`;
     return document.querySelector("form");
 }
 
@@ -14,7 +14,7 @@ beforeEach(() => {
 });
 
 describe("search(form), under createAlpineSearch()", () => {
-    test("sends the form's fields, without empty ones, to the form's action", async () => {
+    test("sends the form's fields, without empty ones, to the endpoint", async () => {
         const calls = mockFetch();
         const f = form(`<input name="q" value="jurk"><select name="sort[]"><option value="" selected></option></select>
             <input type="checkbox" name="filter[brand][]" value="A" checked><input type="checkbox" name="filter[brand][]" value="B" checked>`);
@@ -23,13 +23,12 @@ describe("search(form), under createAlpineSearch()", () => {
         expect(calls).toEqual(["https://shop.test/search.php?token=T&q=jurk&filter%5Bbrand%5D%5B%5D=A&filter%5Bbrand%5D%5B%5D=B"]);
     });
 
-    test("data-gaffer-search-endpoint wins over the action, which stays the page for a submit without JavaScript", async () => {
+    test("a form without {{ search.attrs() }} is refused: no endpoint, no request", async () => {
         const calls = mockFetch();
-        document.body.innerHTML = `<form method="get" action="/winkel/" data-gaffer-search-endpoint="https://shop.test/search.php">
-            <input type="hidden" name="token" value="T"><input name="q" value="jurk"></form>`;
+        document.body.innerHTML = `<form method="get" action="/winkel/"><input name="q" value="jurk"></form>`;
 
-        await search(document.querySelector("form"));
-        expect(calls).toEqual(["https://shop.test/search.php?token=T&q=jurk"]);
+        await expect(search(document.querySelector("form"))).rejects.toThrow(/search\.attrs\(\)/);
+        expect(calls).toEqual([]);
     });
 
     test("{{ search.attrs() }}: the endpoint and token from the form's attributes, the token kept out of the address bar", async () => {

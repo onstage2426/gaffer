@@ -11,6 +11,15 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **Gaffer's search JavaScript reads the endpoint and token only from `{{ search.attrs() }}`.** The
+  fallbacks for forms written by hand are gone with the theme's next build: the form's `action` as
+  the endpoint (a form without `data-gaffer-search-endpoint` now rejects with an error instead of
+  searching) and a hidden `token` input taking precedence over the form's token. No known site
+  writes them; `doctor` errors on the action-only form. Find: `grep -rn "\.endpoint\|name=\"token\"" views blocks`.
+  Before: `<form method="get" action="{{ search.endpoint }}"><input type="hidden" name="token" value="{{ search.token }}">`;
+  after: `<form method="get" action="{{ search.results_url }}" {{ search.attrs() }}>`. Check: the
+  searchbar and the archive's filters search as before after the build.
+
 - **Private folders left in the theme's `storage/` are no longer used** (`Storage::private_dir()`
   moved them to `uploads/gaffer/` on 2026-11-23; every known site has moved them). `doctor --wp`
   errors while one is still there, with the `mv` that moves it, so `php gaffer update` rolls back

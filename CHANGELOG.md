@@ -11,6 +11,10 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **`render:diff` ignores Gravity Forms' per-request tokens and honeypot label and WPML's cookie
+  timestamp by itself**, so a page with a form counts as unchanged when nothing changed. A theme's
+  `console.render_ignore` and `--ignore` patterns for them can go. Nothing else to do.
+
 - **New: `php gaffer update` updates Gaffer on a site in one step, with a way back.** It checks
   the site first (`doctor --wp`; it refuses on errors unless `--force`), lets composer work in a
   staging copy, and swaps the new `vendor/` in by renaming (a visitor never meets half an update),

@@ -160,10 +160,8 @@ php gaffer migrate:rollback <backup>                                  # undo one
   rendered).
   - `--select`: a CSS selector. `--ignore`: a regex for time-based or random
     content, matched against the page as rendered (mind single and double
-    quotes). Gravity Forms' markup has per-request tokens and a honeypot field
-    with a random label (`\x27` is a single quote):
-    `--ignore='/name=\x27(?:gform_currency|state_\d+)\x27[^>]*value=\x27[^\x27]*\x27|gfield--type-honeypot.*?<\/label>/s'`.
-    WPML's cookie script has a timestamp: `--ignore='/"expires":"[^"]*"/'`.
+    quotes). Gravity Forms' per-request tokens and honeypot label and WPML's cookie
+    timestamp are ignored already.
   - What changes on every request on this site goes in `console.render_ignore`
     (config), not on every command line. Typical candidates: signed CDN or
     social image URLs (Instagram's `?…&oh=…&oe=…`), timings (`"ms":\d+`),

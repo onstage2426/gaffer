@@ -48,6 +48,14 @@ final class InternalApiTest extends TestCase
         ], $refs);
     }
 
+    public function test_members_named_like_keywords_and_class_constants(): void
+    {
+        $code = "<?php\nuse Gaffer\\Types\\Notice;\n\$a = Notice::list(\$n);\n\$b = Notice::class;\n";
+        $refs = array_map(static fn(array $r): string => $r['class'] . ($r['member'] !== null ? '::' . $r['member'] : '') . '@' . $r['line'], GafferReferences::in($code));
+
+        self::assertSame(['Gaffer\Types\Notice@2', 'Gaffer\Types\Notice::list@3', 'Gaffer\Types\Notice@4'], $refs);
+    }
+
     public function test_status_of_public_internal_and_missing_code(): void
     {
         self::assertSame('public', PublicApi::status('Gaffer\View', 'render'));

@@ -48,7 +48,9 @@ final class GafferReferences
             if ($class === null || !str_starts_with($class, 'Gaffer\\')) {
                 continue;
             }
-            $member = $next === '::' && ($tokens[$i + 2] ?? null)?->is(T_STRING) ? $tokens[$i + 2]->text : null;
+            // A member may be named like a keyword (Notice::list: T_LIST); ::class is no member.
+            $name = $next === '::' ? ($tokens[$i + 2] ?? null) : null;
+            $member = $name !== null && !$name->is(T_CLASS) && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $name->text) === 1 ? $name->text : null;
             $found[] = ['class' => $class, 'member' => $member === 'class' ? null : $member, 'line' => $token->line];
         }
 

@@ -33,7 +33,9 @@ code. The repository was started fresh on 2026-11-20; it is public.
   (`UPDATE_API=1 composer test`), and check who uses it first:
   `bin/dev/usage [--member=View::fetch] [--unused]` lists every theme in
   `themes/` (and `local/usage-paths`) per public member, and the internal or missing code
-  they use.
+  they use. **What Gaffer stores** (block names from folders, field keys, the purchase guard's
+  keys, file formats) is pinned the same way in `tests/stored.txt` (`tests/StoredTest.php`,
+  `UPDATE_STORED=1 composer test`): a change there orphans stored data on every site.
 - **Stability is about what runs on the site** (the user's goal: 1.x for as
   long as possible): the PHP a theme calls, Twig, the JS, stored data and
   conventions. The tooling (CLI, doctor, MCP, AI files) only runs while

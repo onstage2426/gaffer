@@ -266,6 +266,11 @@ Pairs where a site writes by hand what Gaffer reads; each breaks when either sid
 
 ## Rules that follow from this
 
+- What Gaffer stores (post content, meta, files a site keeps) is read in its old and new form and
+  written in the new one for the rest of the major (2026-11-27, `tests/stored.txt`): an update
+  never needs a data migration step, and a rollback still reads what the newer version wrote
+  where the forms are the same.
+
 - PHP and bundled JavaScript ship together but deploy apart (`composer update` vs the next
   build): a contract between them only grows, and each half keeps working with the previous
   release's other half. `doctor` says when the build has older Gaffer JavaScript.

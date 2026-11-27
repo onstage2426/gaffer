@@ -1,0 +1,38 @@
+# Block names: blocks/{folder}/ → the name post content stores
+contentFaq → acf/content-faq
+content-faq → acf/content-faq
+heroHome → acf/hero-home
+herohome → acf/herohome
+slider-top10 → acf/slider-top10
+faqBlock → acf/faq-block
+
+# Block field keys (blocks/contentFaq/fields.php): stored next to every value in post content
+group group_content-faq
+tab field_content-faq__tab-velden
+text field_content-faq__titel
+message field_content-faq__message-let-op
+repeater field_content-faq__vragen
+  text field_content-faq__vragen__vraag
+  wysiwyg field_content-faq__vragen__antwoord
+group field_content-faq__kop
+  text field_content-faq__kop__tekst
+
+# Field group keys (fields/post_type/review.php): stored in postmeta, termmeta and options
+group group_post_type_review
+tab field_post_type_review__tab-velden
+text field_post_type_review__titel
+message field_post_type_review__message-let-op
+repeater field_post_type_review__vragen
+  text field_post_type_review__vragen__vraag
+  wysiwyg field_post_type_review__vragen__antwoord
+group field_post_type_review__kop
+  text field_post_type_review__kop__tekst
+
+# The purchase guard: the price a customer saw
+cart item key gaffer_price
+order item meta _gaffer_price
+
+# Files Gaffer reads back (a newer version is refused, older ones are read)
+uploads/gaffer/backups/migrate/*.json format 1
+doctor-baseline.json version 1
+health --json format 1

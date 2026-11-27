@@ -105,7 +105,10 @@ them).
 ## Data and conventions
 
 These live in databases and theme folders, so a change breaks sites even
-without a code change:
+without a code change. What ends up stored (block names, field keys, the purchase guard's
+keys, the formats of files Gaffer reads back) is frozen for 1.x: `tests/stored.txt` pins each
+rule with examples. Anything Gaffer stores that ever must change is read in both forms and
+written in the new one for the rest of the major, so stored data needs no migration step.
 
 - **The theme layout:** `views/`, `blocks/`, `fields/`, `inc/` (`*.php` then
   `*/*.php`), `app/` (`Theme\`), `config/`, `public/`, `assets/`, `acf-json/`
@@ -136,6 +139,8 @@ without a code change:
   (a composer update changes the PHP at once, the JavaScript with the next build).
 - **Storage formats:** `uploads/gaffer/backups/migrate/*.json` (rollback reads old
   backups) and `uploads/gaffer/logs/migrate.log`.
+- **Carts and orders** (with a `Product::confirm_purchase()` override): the cart item key
+  `gaffer_price` and the order item meta `_gaffer_price`, the price the customer saw.
 
 ## Events
 

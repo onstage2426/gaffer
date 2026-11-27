@@ -99,6 +99,10 @@ final class Gaffer\Types\MenuItem
   object(): Gaffer\Types\Post|Gaffer\Types\Term|null
   target(): ?string
   title(): string
+final class Gaffer\Types\Notice
+  attrs(): Twig\Markup
+  static list(array $notices): array
+  message(): Twig\Markup
 final class Gaffer\Types\Pagination
   readonly int $page
   readonly int $total_pages

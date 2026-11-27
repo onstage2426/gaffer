@@ -12,7 +12,10 @@
   structured data unless the theme does, and shows a password-protected product unless it checks
   `post_password_required()` (WooCommerce's template shows `get_the_password_form()`, which has no classes: style its field and
   button from the wrapper, or Tailwind's reset leaves them bare). Without `sidebar.php`, remove
-  `woocommerce_get_sidebar` from `woocommerce_sidebar` (`doctor --wp` warns).
+  `woocommerce_get_sidebar` from `woocommerce_sidebar` (`doctor --wp` warns). Notice overrides
+  (`notices/*.php`, and an action showing `wc_get_notices()`) pass `Notice::list($notices)`; the
+  template prints `<li{{ notice.attrs }}>{{ notice.message }}</li>` (the attributes are the
+  checkout's field links).
 - **Products:** map `product` to `app/Types/Product.php` extending `Gaffer\Types\Product`
   (`product()`, `is_variable()`, `with_variation()`/`variation()`/`selected()`,
   `can_add_to_cart()`, `add_to_cart($quantity)` (WooCommerce's own add-to-cart steps, the cart item key or null), `is_on_sale()`, `thumbnail()`, `gallery()`); the theme adds its own

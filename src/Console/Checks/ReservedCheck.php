@@ -10,7 +10,7 @@ use Gaffer\Console\ThemeFiles;
 /**
  * Names in templates and scripts that are Gaffer's (API.md, "Reserved names"), so Gaffer can add
  * one in a minor release without colliding with a theme's: `data-gaffer-*` attributes Gaffer
- * doesn't define, form inputs named `gaffer_*`, `gaffer:*` events a theme dispatches (listening
+ * doesn't define, form inputs named `gaffer_*`, `gaffer:*` and `gaffer-…:*` events a theme dispatches (listening
  * to them is what they're for) and `window.gaffer*` globals a theme sets.
  *
  * @internal
@@ -52,7 +52,7 @@ final class ReservedCheck implements Check
             }
         }
         // Dispatching Gaffer's events (listening is fine): new CustomEvent('gaffer:…'), $dispatch('gaffer:…').
-        preg_match_all('/(?:new\s+CustomEvent|\$dispatch)\(\s*[\'"`](gaffer:[\w:-]*)/', $code, $m, PREG_OFFSET_CAPTURE);
+        preg_match_all('/(?:new\s+CustomEvent|\$dispatch)\(\s*[\'"`](gaffer(?:-[a-z]+)?:[\w:-]*)/', $code, $m, PREG_OFFSET_CAPTURE);
         foreach ($m[1] as [$event, $offset]) {
             $found[] = ["Dispatches {$event}, an event name reserved for Gaffer", $line($offset)];
         }

@@ -1018,9 +1018,10 @@ final class ChecksTest extends TestCase
             ['The input name gaffer_mode is a request key reserved for Gaffer', 1],
             ['Dispatches gaffer:search, an event name reserved for Gaffer', 2],
         ], ReservedCheck::findings($twig, $known, 'twig'));
-        $js = "document.addEventListener('gaffer:search', track);\nwindow.gafferTrack = 1;\nif (window.gafferX === 1) {}\ndocument.dispatchEvent(new CustomEvent('gaffer:x'));";
+        $js = "document.addEventListener('gaffer:search', track);\nwindow.gafferTrack = 1;\nif (window.gafferX === 1) {}\ndocument.dispatchEvent(new CustomEvent('gaffer:x'));\nform.dispatchEvent(new CustomEvent('gaffer-search:results'));";
         self::assertSame([
             ['Dispatches gaffer:x, an event name reserved for Gaffer', 4],
+            ['Dispatches gaffer-search:results, an event name reserved for Gaffer', 5],
             ['Sets window.gafferTrack, a global reserved for Gaffer', 2],
         ], ReservedCheck::findings($js, $known, 'js'));
     }

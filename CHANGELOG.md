@@ -9,6 +9,12 @@ the entries since the version in your `composer.lock` after every
 
 ## 2026-11-27
 
+- **New: the `gaffer:search` event and `php gaffer health --json`.** After every search answer the
+  search form dispatches `gaffer:search` (`query`, `request` without the token, `total`) for
+  analytics or a tag manager to listen to; `health --json` prints the site's state as flat dotted
+  keys (`"format": 1`, keys only added) for monitoring. Both in `API.md` ("Events", "Report").
+  The event reaches the browser with the theme's next build. Nothing to change.
+
 - **Names starting with `gaffer` are Gaffer's, and so is `config/gaffer/`.** So that Gaffer can
   add things in 1.x without colliding with a theme (`API.md`, "Reserved names"), `doctor` errors
   on: an ajax action named `Gaffer*`, a `run()` parameter named `action` or `gaffer_*`, a Twig

@@ -6,8 +6,10 @@ namespace Gaffer\Console\Commands;
 
 use Gaffer\AdminBar;
 use Gaffer\Console\Command;
+use Gaffer\HealthReport;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -20,8 +22,20 @@ final class Health extends Command
     protected bool $wordpress = true;
 
     #[\Override]
+    protected function configure(): void
+    {
+        $this->addOption('json', null, InputOption::VALUE_NONE, 'The site\'s report instead: one JSON object of dotted keys, format 1 (keys are only added); same exit code');
+    }
+
+    #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if ($input->getOption('json')) {
+            $report = HealthReport::flat();
+            $output->writeln((string) json_encode($report, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
+            return $report['health.color'] === 'green' ? self::SUCCESS : self::FAILURE;
+        }
         $states = AdminBar::states();
         $worst = AdminBar::worst(array_values($states));
         if ($worst['color'] === 'green' && !$output->isVerbose()) {

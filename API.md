@@ -137,6 +137,25 @@ without a code change:
 - **Storage formats:** `uploads/gaffer/backups/migrate/*.json` (rollback reads old
   backups) and `uploads/gaffer/logs/migrate.log`.
 
+## Events
+
+What Gaffer's bundled JavaScript announces, for code outside it (analytics, a tag manager, a
+theme's component) to listen to. Each event bubbles from the element named; its `detail` is
+plain data and only gains keys. A theme listens to these; it never dispatches them.
+
+- **`gaffer:search`** (on the search form, after an answer): `query` (the words, `''` without),
+  `request` (the query string sent, without the token), `total` (matches, or `null`).
+- **`gaffer-search:results`**, **`gaffer-search:error`**, **`gaffer-search:popstate`** (on the
+  search form): the endpoint's answer, the error, the restored params. Experimental with Search.
+
+## Report
+
+`php gaffer health --json` prints the site's state as one JSON object of flat dotted keys
+(`gaffer.version`, `php.version`, `wordpress.version`, `site.url`, `site.environment`,
+`site.multisite`, `health.color`, `health.{line}.color`, `health.{line}.reason`), with
+`"format": 1`. Keys are only added, never renamed or removed, and a reader ignores keys it doesn't
+know: a monitor or a hub reshapes them for itself. The exit code is `health`'s.
+
 ## Reserved names
 
 So that Gaffer can add something in a 1.x minor without colliding with a theme, these are

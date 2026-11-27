@@ -194,6 +194,14 @@ async function performSearch(form, { endpoint, commit, writeHistory }) {
         if (writeHistory) syncUrl(form, params, commit);
         formLastParams.set(form, paramString);
         form.dispatchEvent(new CustomEvent("gaffer-search:results", { detail: data, bubbles: true }));
+        // For listeners outside the search (analytics, a tag manager): plain data only, and a
+        // detail that only gains keys (API.md, "Events"). The token stays out.
+        const request = new URLSearchParams(params);
+        request.delete("token");
+        form.dispatchEvent(new CustomEvent("gaffer:search", {
+            detail: { query: request.get("q") ?? "", request: request.toString(), total: typeof data?.total === "number" ? data.total : null },
+            bubbles: true,
+        }));
     }
     return data;
 }

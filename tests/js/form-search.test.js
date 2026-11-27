@@ -58,6 +58,16 @@ describe("search(form), under createAlpineSearch()", () => {
         expect([calls.length, events]).toEqual([1, 1]);
     });
 
+    test("dispatches gaffer:search with the request (no token) and the total, for listeners", async () => {
+        mockFetch(() => response({ total: 7, results: [] }));
+        const f = form('<input name="q" value="jurk"><input type="checkbox" name="filter[brand][]" value="A" checked>');
+        let detail;
+        document.addEventListener("gaffer:search", (e) => { detail = e.detail; }, { once: true });
+
+        await search(f);
+        expect(detail).toEqual({ query: "jurk", request: "q=jurk&filter%5Bbrand%5D%5B%5D=A", total: 7 });
+    });
+
     test("dispatches gaffer-search:error and rejects on failure", async () => {
         mockFetch(() => new Response(JSON.stringify({ error: "x", code: "index_not_built" }), { status: 503 }));
         const f = form('<input name="q" value="a">');

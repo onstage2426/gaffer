@@ -142,6 +142,16 @@ written in the new one for the rest of the major, so stored data needs no migrat
 - **Carts and orders** (with a `Product::confirm_purchase()` override): the cart item key
   `gaffer_price` and the order item meta `_gaffer_price`, the price the customer saw.
 
+## Cart badge
+
+With WooCommerce, Gaffer keeps the `gaffer_cart` cookie equal to the visitor's cart
+(`items=3&lines=2`: quantities as WooCommerce counts them, and lines), set on every change before
+an ajax answer is sent and deleted with WooCommerce's cart cookies. `@gaffer/cart.js` reads it:
+`cartBadge(url, kind = "items", events = [])` for Alpine (`count`, read again after every htmx
+request, on `pageshow` and on the named window events) and `cartCounts()`. The built-in action
+`GafferCartCount` (GET) sets the cookie and answers `{items, lines}` for a cached page whose cart
+has no cookie yet. The cookie's format only grows.
+
 ## Events
 
 What Gaffer's bundled JavaScript announces, for code outside it (analytics, a tag manager, a

@@ -11,6 +11,17 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **New: Gaffer keeps a cart count cookie for the header badge (`gaffer_cart`) and ships the badge's
+  JavaScript (`@gaffer/cart.js`).** Themes kept their own (a cookie set in a cart action or on
+  WooCommerce's cookie hook, read in the theme's JavaScript, with a fallback action). Gaffer now
+  sets it on every cart change before the answer is sent, with both counts (items and lines), and
+  answers a cached page's missing cookie with its built-in `GafferCartCount` action. Nothing changes
+  until a theme uses it. To move a badge over: `Alpine.data("cartBadge", cartBadge)` (import from
+  `@gaffer/cart.js`), `<span x-data="cartBadge('{{ ajax_url('GafferCartCount') }}')" x-text="count">`
+  (`'lines'` as the second argument to count lines), then delete the theme's own cookie code, its
+  count action and the badge's fetch. Find: `grep -rn "cart_count\|setcookie" app inc views assets/js`.
+  Check: add to the cart, reload, go back in the browser: the badge follows.
+
 - **`Product::add_to_cart($quantity)` adds to the cart the way WooCommerce does** *Automated
   (`2026-11-27-cart-add`) for the starter's `CartAdd`; other hand-written sequences are by hand.*
   The starter's cart action ran WooCommerce's steps itself and skipped one: it added unpublished

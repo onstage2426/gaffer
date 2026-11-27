@@ -26,7 +26,7 @@ final class Ajax
      *
      * @internal
      */
-    public const array OWN = ['Form' => Forms\FormAction::class];
+    public const array OWN = ['Form' => Forms\FormAction::class, 'GafferCartCount' => CartCount::class];
 
     /**
      * Entry point for the theme's ajax.php: answers the request and exits.

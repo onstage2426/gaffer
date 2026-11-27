@@ -28,6 +28,7 @@ final class Upgrader
             new Rules\ProductType(),
             new Rules\EditorStylesheet(),
             new Rules\CartAdd(),
+            new Rules\CartBadge(),
         ];
     }
 

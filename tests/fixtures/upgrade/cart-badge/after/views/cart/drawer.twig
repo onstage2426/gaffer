@@ -1,0 +1,154 @@
+{# Sync header cart count badge #}
+
+{% if notices %}
+    <div class="px-5 pt-4">{{ notices|raw }}{# trusted: WooCommerce notices #}</div>
+{% endif %}
+
+{% if added %}
+    <div
+        class="mx-5 mt-4 flex items-center gap-2.5 rounded-sm border border-success/50 bg-success/10 px-4 py-3 text-sm"
+        x-data="{ visible: true }"
+        x-show="visible"
+        x-init="setTimeout(() => visible = false, 3500)"
+        x-transition.opacity.duration.300ms
+    >
+        <svg class="text-success-strong shrink-0" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="599.983 149.933 18.017 18.033">
+            <g>
+                <path d="M600 158.9a9 9 0 1 1 0 .1z" fill="currentColor" fill-rule="evenodd"/>
+                <path d="M607.856 162a.794.794 0 0 1-.563-.234l-2.118-2.118a.796.796 0 0 1 1.126-1.126l1.555 1.556 4.097-4.097a.796.796 0 1 1 1.126 1.125l-4.66 4.66a.794.794 0 0 1-.563.233Z" fill="#fff" fill-rule="evenodd"/>
+            </g>
+        </svg>
+        <span class="text-success-strong font-medium">{{ 'Product succesvol toegevoegd aan je winkelwagen'|t }}</span>
+    </div>
+{% endif %}
+
+{% if cart_count == 0 %}
+    <div class="flex flex-col items-center justify-center px-5 py-20 text-center">
+        <svg class="text-ink-soft/20 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" width="64" height="64">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
+        </svg>
+        <p class="text-ink font-semibold">{{ 'Je winkelwagen is leeg'|t }}</p>
+        <p class="text-ink-soft mt-1 text-sm">{{ 'Voeg producten toe om verder te gaan'|t }}</p>
+    </div>
+
+{% else %}
+
+    <div class="px-5 py-4">
+        {% for item in cart_items %}
+            {{ include('cart/drawer-product.twig', { item: item }, with_context = false) }}
+        {% endfor %}
+    </div>
+
+    <div class="border-t border-black/10 px-5 pb-6 pt-4">
+
+        {# Applied coupons #}
+        {% for coupon in coupons %}
+            <div class="mb-2 flex items-center justify-between text-sm">
+                <a
+                    class="text-accent hover:text-danger flex items-center gap-1 transition-colors"
+                    href="?remove_coupon={{ coupon.code }}"
+                    hx-post="/?wc-ajax=remove_coupon"
+                    hx-vals='{ "coupon": "{{ coupon.code }}", "security": "{{ coupon.nonce }}" }'
+                    hx-swap="none"
+                    hx-on::after:request="window.dispatchEvent(new Event('cart-refresh'))"
+                    aria-label="{{ 'Verwijder coupon %s'|t|format(coupon.code) }}"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    {{ coupon.code }}
+                </a>
+                <span class="text-success-strong font-medium">- {{ coupon.percent ? coupon.amount ~ '%' : '€ ' ~ coupon.amount|number_format(2, ',', '.') }}</span>
+            </div>
+        {% endfor %}
+
+        {# Coupon input toggle #}
+        <div
+            class="mb-5"
+            x-data="{ open: false }"
+            x-effect="if (open) $nextTick(() => $refs.couponInput.focus())"
+        >
+            <button
+                class="text-accent cursor-pointer text-sm"
+                type="button"
+                x-show="!open"
+                x-on:click="open = true"
+            >+ {{ 'Couponcode invoeren'|t }}</button>
+            <form
+                x-show="open"
+                x-cloak
+                hx-post="/?wc-ajax=apply_coupon"
+                hx-swap="none"
+                hx-on::after:request="open = false; window.dispatchEvent(new Event('cart-refresh'))"
+            >
+                <input type="hidden" name="security" value="{{ apply_nonce }}" />
+                <div class="flex gap-2">
+                    <input
+                        x-ref="couponInput"
+                        class="h-9 flex-1 rounded-sm border border-black/15 px-3 text-sm"
+                        type="text"
+                        name="coupon_code"
+                        placeholder="{{ 'Couponcode'|t }}"
+                    />
+                    <button
+                        class="bg-cta hover:bg-cta-hover cursor-pointer rounded-sm px-4 text-sm font-semibold text-white"
+                        type="submit"
+                    >{{ 'Toepassen'|t }}</button>
+                </div>
+            </form>
+        </div>
+
+        {# Order summary #}
+        <div class="mb-5 space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="text-ink-soft">{{ 'Subtotaal'|t }}</span>
+                <span class="text-ink font-semibold tabular-nums">&euro;&nbsp;{{ subtotal|number_format(2, ',', '.') }}</span>
+            </div>
+            {% if shipping is not null %}
+                <div class="flex justify-between">
+                    <span class="text-ink-soft">{{ 'Verzending'|t }}</span>
+                    {% if shipping == 0 %}
+                        <span class="text-success-strong font-semibold">{{ 'Gratis'|t }}</span>
+                    {% else %}
+                        <span class="text-ink font-semibold tabular-nums">&euro;&nbsp;{{ shipping|number_format(2, ',', '.') }}</span>
+                    {% endif %}
+                </div>
+            {% endif %}
+            <div class="flex justify-between border-t border-black/10 pt-3 text-base">
+                <span class="text-ink font-bold">{{ 'Totaal'|t }}</span>
+                <span class="text-ink font-bold tabular-nums">&euro;&nbsp;{{ total|number_format(2, ',', '.') }}</span>
+            </div>
+            <p class="text-ink/40 text-xs leading-none">{{ 'Incl. btw'|t }}</p>
+        </div>
+
+        {# CTAs #}
+        <a
+            class="bg-cta hover:bg-cta-hover block rounded-sm py-4 text-center font-bold text-white transition-colors"
+            href="{{ checkout_url }}"
+        >{{ 'Naar afrekenen'|t }}</a>
+
+        {# Trust icons #}
+        {% if trust_icons %}
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
+                {% for image in trust_icons %}
+                    <img
+                        class="h-8 w-auto object-contain"
+                        {{ image.attrs('full') }}
+                        loading="lazy"
+                    >
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+{% endif %}
+
+{# Cross-sells — shown immediately after adding #}
+{% if added and cross_sells %}
+    <div class="border-t border-black/10 px-5 py-6">
+        <p class="text-ink mb-4 font-bold">{{ 'Vaak samen gekocht'|t }}</p>
+        <div class="grid grid-cols-3 gap-3">
+            {% for product in cross_sells %}
+                {{ include('product/card.twig', { post: product }, with_context = false) }}
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}

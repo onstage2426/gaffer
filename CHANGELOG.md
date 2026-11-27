@@ -12,7 +12,9 @@ see on your theme it lists as by hand.
 ## 2026-11-27
 
 - **New: Gaffer keeps a cart count cookie for the header badge (`gaffer_cart`) and ships the badge's
-  JavaScript (`@gaffer/cart.js`).** Themes kept their own (a cookie set in a cart action or on
+  JavaScript (`@gaffer/cart.js`).** *Automated (`2026-11-27-cart-badge`) for the starter's badge; a theme's own badge code is by hand.*
+  **Purge the page cache after this one:** cached pages carry the old badge, whose cookie and count
+  action are gone, and show a wrong count until the cache expires (`update` names every page). Themes kept their own (a cookie set in a cart action or on
   WooCommerce's cookie hook, read in the theme's JavaScript, with a fallback action). Gaffer now
   sets it on every cart change before the answer is sent, with both counts (items and lines), and
   answers a cached page's missing cookie with its built-in `GafferCartCount` action. Nothing changes

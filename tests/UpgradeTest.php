@@ -187,6 +187,23 @@ final class UpgradeTest extends BaseTestCase
         self::assertStringNotContainsString('woocommerce_add_to_cart_validation', $after);
     }
 
+    public function test_cart_badge_turns_the_starter_into_its_converted_self(): void
+    {
+        $fixtures = dirname(__DIR__) . '/tests/fixtures/upgrade/cart-badge';
+        exec('cp -r ' . escapeshellarg("{$fixtures}/before") . '/. ' . escapeshellarg($this->root));
+        $this->upgrade();
+
+        $after = [];
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator("{$fixtures}/after", \FilesystemIterator::SKIP_DOTS)) as $file) {
+            $after[] = substr($file->getPathname(), strlen("{$fixtures}/after") + 1);
+        }
+        sort($after);
+        foreach ($after as $path) {
+            self::assertSame((string) file_get_contents("{$fixtures}/after/{$path}"), $this->read($path), $path);
+        }
+        self::assertNull($this->read('app/Ajax/CartCount/CartCount.php'), 'the starter\'s count action goes');
+    }
+
     public function test_restore_puts_everything_back(): void
     {
         $this->write('views/a.twig', 'before');

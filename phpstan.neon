@@ -16,3 +16,4 @@ parameters:
     excludePaths:
         - tests/stubs
         - tests/bootstrap.php
+        - tests/fixtures/upgrade

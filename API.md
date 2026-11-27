@@ -37,6 +37,12 @@ WooCommerce, Gravity Forms and Twig 3. Sites keep Gaffer and their plugins
 updated; a minor release may start relying on what the current plugin
 versions offer. No minimum plugin versions are declared or checked.
 
+- **Minimums may rise in a minor:** PHP (composer then keeps a site on the Gaffer its PHP
+  allows until the host catches up), WordPress and the plugins above.
+- **A library major that changes theme code is a Gaffer major,** unless it can be migrated
+  automatically: Twig stays 3 for all of 1.x. Gaffer's JavaScript supports the next htmx major
+  next to htmx 4 for at least one minor before it requires it.
+
 ## Using the PHP API
 
 The classes and what each member does are in their docblocks. What those can't show:
@@ -147,6 +153,9 @@ changelog entry). What stays, because theme files or stored files depend on it:
 - The hidden `render:page` is a protocol between Gaffer versions (the live
   theme's Gaffer runs a staged copy's): its options and its result line
   (`"v": 1`) only grow.
+- **Commands a server runs from its crontab** are promised like the runtime (they run in
+  production with nobody watching): `php gaffer health` keeps its name, needs no option, and
+  exits 0 when every health line is green and 1 otherwise (printing the lines).
 - Checks that depend on third-party plugins (the MCP server, gaffer-search's
   `problems()`) and pattern-based template checks (wptexturize) are warnings,
   never errors, so a plugin release can't make `doctor` fail.

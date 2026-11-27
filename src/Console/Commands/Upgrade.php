@@ -72,15 +72,20 @@ final class Upgrade extends Command
 
         $check = !$input->getOption('no-check');
         $before = $check ? self::errors($theme) : 0;
+        if ($before === null) {
+            $output->writeln('<error>twig:lint or doctor couldn\'t run, so the upgrade couldn\'t be checked: nothing was written.</error> Fix what stops `php gaffer doctor --json`, or use --no-check and check by hand.');
+
+            return 2;
+        }
         $backup = Storage::theme_dir('upgrades') . '/' . date('Ymd-His');
         Upgrader::apply($theme, $changes, $backup);
         if (array_filter($changes, static fn(Change $c): bool => str_starts_with($c->path, 'app/') && ($c->before === null || $c->after === null)) !== []) {
             ChildProcess::run(['composer', 'dump-autoload', '-q'], $theme->root, 120); // a classmap lists the files
         }
         $after = $check ? self::errors($theme) : 0;
-        if ($after > $before) {
+        if ($after === null || $after > $before) {
             Upgrader::restore($theme, $backup);
-            $output->writeln("<error>The upgrade made new errors ({$before} before, {$after} after): everything was put back.</error> Run it again without --write and fix what twig:lint and doctor report.");
+            $output->writeln('<error>' . ($after === null ? 'twig:lint or doctor no longer runs after the upgrade' : "The upgrade made new errors ({$before} before, {$after} after)") . ': everything was put back.</error> Run it again without --write and fix what twig:lint and doctor report.');
 
             return 2;
         }
@@ -89,14 +94,17 @@ final class Upgrade extends Command
         return self::SUCCESS;
     }
 
-    /** twig:lint and doctor errors, from their JSON (the theme's own commands, so the theme's code is what runs). */
-    private static function errors(Theme $theme): int
+    /** twig:lint and doctor errors, from their JSON (the theme's own commands, so the theme's code is what runs); null when one couldn't run. */
+    private static function errors(Theme $theme): ?int
     {
         $errors = 0;
         foreach ([['twig:lint', '--json'], ['doctor', '--json']] as $command) {
             $run = ChildProcess::run([PHP_BINARY, "{$theme->root}/gaffer", ...$command], $theme->root, 600);
             $json = json_decode($run['stdout'] ?? '', true);
-            $errors += is_array($json) && is_int($json['errors'] ?? null) ? $json['errors'] : 1000; // couldn't run: count as broken
+            if (!is_array($json) || !is_int($json['errors'] ?? null)) {
+                return null;
+            }
+            $errors += $json['errors'];
         }
 
         return $errors;

@@ -18,6 +18,9 @@ use RuntimeException;
  */
 final class Storage
 {
+    /** The theme's storage/ folders tooling writes (theme_dir()): what can be made again, never the site's data. */
+    private const array TOOLING = ['screenshots', 'sessions', 'snapshots', 'upgrades'];
+
     private const string MARKER = "# Never commit: private files of this site.\n";
 
     /**
@@ -47,7 +50,12 @@ final class Storage
      */
     public static function theme_dir(string $relative): string
     {
-        return self::deny(Paths::storage() . '/' . self::relative($relative));
+        $relative = self::relative($relative);
+        if (!in_array(explode('/', $relative)[0], self::TOOLING, true)) {
+            throw new \LogicException("storage/{$relative}: add its first folder to Storage::TOOLING (or doctor takes it for a private folder left behind).");
+        }
+
+        return self::deny(Paths::storage() . '/' . $relative);
     }
 
     /**
@@ -62,7 +70,7 @@ final class Storage
         $found = [];
         foreach (glob(Paths::storage() . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
             $name = basename($dir);
-            if (in_array($name, ['cache', 'acf-json', 'screenshots', 'sessions', 'snapshots'], true)) {
+            if (in_array($name, ['cache', 'acf-json', ...self::TOOLING], true)) {
                 continue;
             }
             // private_dir() put a deny file in each folder it made (storage/backups/migrate: in both).

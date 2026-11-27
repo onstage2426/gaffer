@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gaffer\Console\Checks;
 
 use Gaffer\Console\ConfigStubs;
+use Gaffer\Console\ReservedMethods;
 use Gaffer\Console\Report;
 use Gaffer\Console\ThemeFiles;
 use Gaffer\Config;
@@ -55,6 +56,12 @@ final class ConfigCheck implements Check
                 } elseif (!is_a($class, $parent, true)) {
                     $report->error('config', "{$key}.{$type}: {$class} doesn't extend {$parent}", Paths::base('config/theme.php'), null,
                         $parent === Product::class ? 'class Product extends \\Gaffer\\Types\\Product (product(), with_variation(), gallery(), ...): see the CHANGELOG.' : null);
+                }
+                if (class_exists($class)) {
+                    foreach (ReservedMethods::clashes($class) as $method) {
+                        $report->warning('config', "{$class}::{$method}() has a name Gaffer adds to its type in the next minor release", (string) new \ReflectionClass($class)->getFileName(), null,
+                            'Rename it before updating: the coming method would replace or clash with it (API.md, "Theme subclasses").');
+                    }
                 }
             }
         }

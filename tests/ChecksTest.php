@@ -1025,6 +1025,17 @@ final class ChecksTest extends TestCase
         ], ReservedCheck::findings($js, $known, 'js'));
     }
 
+    public function test_methods_gaffer_will_add_to_its_types(): void
+    {
+        mkdir("{$this->theme}/app", 0755, true);
+        file_put_contents("{$this->theme}/app/ReservedPost.php", "<?php\nnamespace Theme;\nclass ReservedPost extends \\Gaffer\\Types\\Post\n{\n    public function reading_time(): int { return 1; }\n    public function label(): string { return ''; }\n}\n");
+        require_once "{$this->theme}/app/ReservedPost.php";
+        $class = 'Theme\\ReservedPost';
+
+        self::assertSame(['reading_time'], \Gaffer\Console\ReservedMethods::clashes($class, [\Gaffer\Types\Post::class => ['reading_time'], \Gaffer\Types\Term::class => ['label']]));
+        self::assertSame([], \Gaffer\Console\ReservedMethods::clashes($class));
+    }
+
     public function test_theme_twig_names_that_are_gaffers(): void
     {
         mkdir("{$this->theme}/app", 0755, true);

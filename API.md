@@ -153,8 +153,9 @@ Gaffer's; `doctor` errors when a theme takes one:
   in those files. A theme's own config files (`config/customer.php`) are never in the way.
 - **Folders:** Gaffer adds no top-level folder to the theme in 1.x; new conventions go inside
   its folders (`views/`, `app/`, `config/gaffer/`, …). A theme's other folders are its own.
-- **Methods on the types:** see "Theme subclasses" above (a new method on `Post`, `Product`,
-  `Term`, `Attachment` or `Image` only after a minor in which `doctor` warned about it).
+- **Methods on the types:** see "Theme subclasses" above: a new method on `Post`, `Product`,
+  `Term`, `Attachment` or `Image` only after a minor in which `doctor` warned about a theme
+  method with that name (the names Gaffer will add are listed for that minor).
 
 ## Tooling
 

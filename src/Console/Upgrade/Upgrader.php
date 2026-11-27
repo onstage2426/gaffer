@@ -35,6 +35,7 @@ final class Upgrader
             new Rules\FormActionFinal(),
             new Rules\SearchValues(),
             new Rules\VendorLink(),
+            new Rules\AutoloadOnce(),
         ];
     }
 

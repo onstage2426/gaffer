@@ -325,6 +325,25 @@ final class UpgradeTest extends BaseTestCase
         self::assertSame([], Upgrader::plan(new Theme($this->root)));
     }
 
+    public function test_autoload_once(): void
+    {
+        $this->write('functions.php', "<?php\n\nrequire __DIR__ . \"/vendor/autoload.php\";\nGaffer\\Gaffer::boot(__DIR__);\n");
+        $this->upgrade();
+        self::assertSame("<?php\n\n// ajax.php and the CLI load it first (php gaffer update may have switched vendor/ since)\nif (!class_exists(\\Gaffer\\Gaffer::class, false)) {\n    require __DIR__ . \"/vendor/autoload.php\";\n}\nGaffer\\Gaffer::boot(__DIR__);\n", $this->read('functions.php'));
+
+        $this->write('functions.php', "<?php\nrequire_once __DIR__ . '/vendor/autoload.php';\nGaffer\\Gaffer::boot(__DIR__);\n");
+        $this->upgrade();
+        self::assertStringContainsString("    require __DIR__ . '/vendor/autoload.php';\n}", (string) $this->read('functions.php'));
+    }
+
+    public function test_autoload_once_by_hand_when_written_otherwise(): void
+    {
+        $this->write('functions.php', "<?php\n\$a = __DIR__ . '/vendor/autoload.php';\nrequire \$a;\nGaffer\\Gaffer::boot(__DIR__);\n");
+        $plan = Upgrader::plan(new Theme($this->root));
+        self::assertSame([], $plan['2026-11-27-autoload-once']['changes']);
+        self::assertCount(1, $plan['2026-11-27-autoload-once']['by_hand']);
+    }
+
     public function test_a_plan_round_trips_and_refuses_a_changed_theme(): void
     {
         $this->write('views/header.twig', "{% if item.has_children %}a{% endif %}\n");

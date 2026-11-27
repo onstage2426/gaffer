@@ -11,6 +11,15 @@ see on your theme it lists as by hand.
 
 ## 2026-11-27
 
+- **`functions.php` loads `vendor/autoload.php` only when Gaffer isn't loaded yet.** `ajax.php` and
+  the CLI load it first, then WordPress loads `functions.php`; if `update` switches the vendor link
+  in between, the second load comes from the other folder and PHP stops with "Cannot redeclare class
+  ComposerAutoloaderInit…" (measured on ajax requests during switches). *Automated
+  (`2026-11-27-autoload-once`); written otherwise, it's listed by hand.* Find: `grep -n autoload
+  functions.php`. Before: `require __DIR__ . "/vendor/autoload.php";`; after: `if
+  (!class_exists(\Gaffer\Gaffer::class, false)) { require __DIR__ . "/vendor/autoload.php"; }`.
+  Check: pages and ajax actions answer as before.
+
 - **`php gaffer update` links `vendor` to a `vendor.{id}/` folder next to it** and switches the link
   in one step, so requests running during an update finish on the old code instead of failing; the
   theme's mechanical changes are written right before the switch, not seconds after it. The first
